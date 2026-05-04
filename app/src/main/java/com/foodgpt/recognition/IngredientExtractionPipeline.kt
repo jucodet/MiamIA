@@ -1,7 +1,7 @@
 package com.foodgpt.recognition
 
 class IngredientExtractionPipeline {
-    private val canonicalAnchorRegex = Regex("ingredients\\s*:", RegexOption.IGNORE_CASE)
+    private val canonicalAnchorRegex = Regex("ingr[ée]dients?\\s*:", RegexOption.IGNORE_CASE)
 
     fun detectAnchors(scanId: String, rawText: String): IngredientAnchorDetectionResult {
         val candidates = canonicalAnchorRegex.findAll(rawText).map {

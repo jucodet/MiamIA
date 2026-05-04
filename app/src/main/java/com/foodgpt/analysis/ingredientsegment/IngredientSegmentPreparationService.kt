@@ -4,7 +4,7 @@ class IngredientSegmentPreparationService(
     private val normalizer: IngredientAnchorNormalizer = IngredientAnchorNormalizer(),
     private val boundaryResolver: IngredientSegmentBoundaryResolver = IngredientSegmentBoundaryResolver()
 ) {
-    private val canonicalAnchorRegex = Regex("ingredients\\s*:", RegexOption.IGNORE_CASE)
+    private val canonicalAnchorRegex = Regex("ingr[ée]dients?\\s*:", RegexOption.IGNORE_CASE)
 
     fun prepare(scanId: String, ocrText: String): IngredientSegmentExtraction {
         val anchorIndex = canonicalAnchorRegex.find(ocrText)?.range?.first
