@@ -9,12 +9,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -158,26 +158,29 @@ class MainActivity : ComponentActivity() {
                 }
             } else {
                 var selectedTab by remember { mutableIntStateOf(0) }
-                Column(Modifier.fillMaxSize()) {
-                    TabRow(
-                        selectedTabIndex = selectedTab,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Tab(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            text = { Text("Caméra") },
-                        )
-                        Tab(
-                            selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
-                            text = { Text("Critique santé") },
-                        )
-                    }
+                Scaffold(
+                    topBar = {
+                        TabRow(
+                            selectedTabIndex = selectedTab,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Tab(
+                                selected = selectedTab == 0,
+                                onClick = { selectedTab = 0 },
+                                text = { Text("Caméra") },
+                            )
+                            Tab(
+                                selected = selectedTab == 1,
+                                onClick = { selectedTab = 1 },
+                                text = { Text("Critique santé") },
+                            )
+                        }
+                    },
+                ) { innerPadding ->
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .weight(1f, fill = true),
+                            .padding(innerPadding),
                     ) {
                         when (selectedTab) {
                             0 ->
