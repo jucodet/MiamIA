@@ -9,11 +9,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,6 +40,8 @@ import com.foodgpt.gemma4local.Gemma4LocalErrorMapper
 import com.foodgpt.gemma4local.Gemma4LocalMetricsLogger
 import com.foodgpt.gemma4local.GemmaModelImportManager
 import com.foodgpt.gemma4local.Gemma4LocalRequestMapper
+import com.foodgpt.healthcritique.HealthCritiqueScreen
+import com.foodgpt.healthcritique.HealthCritiqueViewModel
 import com.foodgpt.home.HomeSpecPriorityResolver
 import com.foodgpt.permissions.CameraPermissionHandler
 import com.foodgpt.recognition.AiEdgeGalleryRecognizer
@@ -51,6 +60,8 @@ class MainActivity : ComponentActivity() {
     private val modelImportManager by lazy { GemmaModelImportManager(applicationContext) }
 
     private lateinit var cameraViewModel: CameraViewModel
+
+    private lateinit var healthCritiqueViewModel: HealthCritiqueViewModel
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -124,6 +135,10 @@ class MainActivity : ComponentActivity() {
                     this@MainActivity,
                     CameraViewModel.factory(application, coordinator, compositionEngine)
                 )[CameraViewModel::class.java]
+                healthCritiqueViewModel = ViewModelProvider(
+                    this@MainActivity,
+                    HealthCritiqueViewModel.factory(applicationContext)
+                )[HealthCritiqueViewModel::class.java]
                 cameraViewModel.onLoginSucceeded()
                 if (permissionHandler.hasCameraPermission(this@MainActivity)) {
                     cameraViewModel.onPermissionGranted()
@@ -142,19 +157,49 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } else {
-                CameraScreen(
-                    viewModel = cameraViewModel,
-                    onCreateTempImage = { imageManager.createTempImageFile() },
-                    onRequestCameraPermission = {
-                        permissionLauncher.launch(Manifest.permission.CAMERA)
-                    },
-                    onOpenAppSettings = {
-                        startActivity(permissionHandler.buildAppSettingsIntent(this@MainActivity))
-                    },
-                    onChooseGemmaModel = {
-                        chooseGemmaModelLauncher.launch(arrayOf("*/*"))
+                var selectedTab by remember { mutableIntStateOf(0) }
+                Column(Modifier.fillMaxSize()) {
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("Caméra") },
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("Critique santé") },
+                        )
                     }
-                )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f, fill = true),
+                    ) {
+                        when (selectedTab) {
+                            0 ->
+                                CameraScreen(
+                                    viewModel = cameraViewModel,
+                                    onCreateTempImage = { imageManager.createTempImageFile() },
+                                    onRequestCameraPermission = {
+                                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                                    },
+                                    onOpenAppSettings = {
+                                        startActivity(permissionHandler.buildAppSettingsIntent(this@MainActivity))
+                                    },
+                                    onChooseGemmaModel = {
+                                        chooseGemmaModelLauncher.launch(arrayOf("*/*"))
+                                    },
+                                )
+
+                            else ->
+                                HealthCritiqueScreen(viewModel = healthCritiqueViewModel)
+                        }
+                    }
+                }
             }
         }
     }

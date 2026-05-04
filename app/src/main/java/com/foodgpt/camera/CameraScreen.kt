@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.foodgpt.additives.ui.AdditiveKpiPanel
 import com.foodgpt.home.HomeSpacingRules
 import com.foodgpt.home.MediaPipeStatusIndicator
 import com.foodgpt.welcome.WelcomeMessageUiState
@@ -42,6 +43,7 @@ fun CameraScreen(
     onChooseGemmaModel: () -> Unit
 ) {
     val state by viewModel.scanState.collectAsState()
+    val additiveKpi by viewModel.additiveKpiDisplay.collectAsState()
     val previewSession by viewModel.previewSession.collectAsState()
     val welcomeState by viewModel.welcomeUiState.collectAsState()
     val mediaPipeStatus by viewModel.mediaPipeStatus.collectAsState()
@@ -139,6 +141,13 @@ fun CameraScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    additiveKpi?.let { kpi ->
+                        Text("Additifs", style = MaterialTheme.typography.titleSmall)
+                        AdditiveKpiPanel(
+                            result = kpi,
+                            onRequestShowRaw = { showRaw = true },
+                        )
+                    }
                     OutlinedButton(
                         onClick = { showRaw = !showRaw },
                         modifier = Modifier.testTag("toggle_raw_transcript")
