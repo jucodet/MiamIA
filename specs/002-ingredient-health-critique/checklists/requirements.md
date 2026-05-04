@@ -2,6 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-04-19  
+**Updated**: 2026-05-04  
 **Feature**: `../spec.md`
 
 ## Content Quality
@@ -31,6 +32,9 @@
 
 ## Notes
 
-- Les exigences sont formulées pour permettre d’implémenter soit “prompt only”, soit “prompt + exécution”,
-  sans imposer de choix technique à ce stade.
-
+- L’entrée principale est désormais **contractuellement** la liste **capturée au scan** (segment
+  validé) ; SC-005 verrouille l’alignement liste soumise / liste capturée sur le parcours nominal.
+- **Clarification 2026-05-04** : liste **lecture seule** sur l’écran critique santé ; corrections via flux
+  scan / revalidation uniquement.
+- Mettre à jour `plan.md` / `tasks.md` / implémentation si elles supposaient encore une saisie libre
+  comme chemin principal (`/speckit.plan` ou ajustements manuels).

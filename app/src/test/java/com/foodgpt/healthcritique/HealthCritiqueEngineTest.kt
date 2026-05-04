@@ -2,20 +2,36 @@ package com.foodgpt.healthcritique
 
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HealthCritiqueEngineTest {
 
     @Test
-    fun inputInvalid_skipsLlm() = runBlocking {
-        val engine = HealthCritiqueEngine(
-            llmRunner = FakeHealthCritiqueLlmRunner(
-                HealthCritiqueLlmGenerateResult.Success("should not be used"),
-            ),
+    fun inputInvalid_nullSegment_skipsLlm_noValidatedSegment() = runBlocking {
+        val fake = FakeHealthCritiqueLlmRunner(
+            HealthCritiqueLlmGenerateResult.Success("should not be used"),
         )
+        val engine = HealthCritiqueEngine(llmRunner = fake)
+        val r = engine.analyze(requestId = "rid", ingredientText = null)
+        assertTrue(r is HealthCritiqueResult.InputInvalid)
+        val inv = r as HealthCritiqueResult.InputInvalid
+        assertEquals(InputInvalidReason.NO_VALIDATED_SEGMENT, inv.reasonCode)
+        assertNull(fake.lastUserMessage())
+    }
+
+    @Test
+    fun inputInvalid_blankSegment_skipsLlm_empty() = runBlocking {
+        val fake = FakeHealthCritiqueLlmRunner(
+            HealthCritiqueLlmGenerateResult.Success("should not be used"),
+        )
+        val engine = HealthCritiqueEngine(llmRunner = fake)
         val r = engine.analyze(requestId = "rid", ingredientText = "  ")
         assertTrue(r is HealthCritiqueResult.InputInvalid)
+        val inv = r as HealthCritiqueResult.InputInvalid
+        assertEquals(InputInvalidReason.EMPTY, inv.reasonCode)
+        assertNull(fake.lastUserMessage())
     }
 
     @Test

@@ -2,12 +2,13 @@
 
 ## Entités (logique métier)
 
-### IngredientList
+### IngredientList (entrée affichée + payload)
 
 | Champ | Type | Règles |
 |-------|------|--------|
-| `rawText` | `String` | Saisie utilisateur ; trim ; non accepté si blanc (FR-005). |
-| `normalizedText` | `String?` | Optionnel ; normalisation légère (espaces, casse) pour affichage ou clé de cache. |
+| `validatedSegmentText` | `String` | Texte **exact** du segment ingrédients **validé** dans le flux scan (FR-001, SC-005). Trim unique si et seulement si la même règle est appliquée au moment de la validation scan (documenter une seule normalisation). |
+| `sourceScanId` | `String?` | Optionnel ; identifiant de session / scan pour traçabilité (FR-006). |
+| `isEditableInHealthUi` | `Boolean` | **Toujours `false`** sur l’écran critique santé (clarification 2026-05-04). |
 
 ### AnalysisRequest
 
@@ -15,10 +16,10 @@
 |-------|------|--------|
 | `id` | `String` (UUID) | Identifiant unique par lancement. |
 | `createdAt` | `Instant` / `long` (epoch ms) | Horodatage local. |
-| `ingredientList` | référence `IngredientList` | Entrée figée au moment du run. |
+| `ingredientList` | référence `IngredientList` | **Uniquement** rempli à partir du segment validé du scan. |
 | `finalSystemPrompt` | `String` | Instructions système + contraintes prudence (FR-002, FR-003). |
-| `userPayload` | `String` | Corps utilisateur (liste d’ingrédients + contexte minimal). |
-| `populations` | fixe | Quatre populations ordonnées : enfants, femmes enceintes, adultes, personnes âgées (FR-002). |
+| `userPayload` | `String` | Corps utilisateur passé au LLM : MUST reprendre `validatedSegmentText` (même contenu que l’affichage lecture seule). |
+| `populations` | fixe | Quatre populations ordonnées (FR-002). |
 
 ### AnalysisResult
 
@@ -26,9 +27,9 @@
 |-------|------|--------|
 | `requestId` | `String` | Lien vers `AnalysisRequest.id`. |
 | `rawLlmText` | `String` | Texte brut retour modèle. |
-| `sections` | `Map<PopulationKey, String>` | Dérivé du parseur : une entrée par population si détection réussie. |
-| `parseWarnings` | `List<String>` | Sections manquantes, marqueurs absents, ambiguïtés (edge cases spec). |
-| `disclaimerAcknowledged` | `Boolean` | UI a affiché l’avertissement non médical (aligné Assumptions). |
+| `sections` | `Map<PopulationKey, String>` | Dérivé du parseur. |
+| `parseWarnings` | `List<String>` | Sections manquantes, marqueurs absents, ambiguïtés. |
+| `disclaimerAcknowledged` | `Boolean` | UI a affiché l’avertissement non médical. |
 
 ### PopulationKey (enum)
 
@@ -46,24 +47,24 @@ Ordre d’affichage UI = ordre ci-dessus.
 | Champ | Type |
 |-------|------|
 | `savedAt` | `Instant` / epoch ms |
-| `ingredientRaw` | `String` |
+| `ingredientRaw` | `String` | Copie du **segment validé** au moment de l’analyse (alignement SC-005 / historique). |
 | `resultRaw` | `String` |
-| `requestId` | `String` (optionnel, traçabilité) |
-
-Une seule ligne logique écrasée à chaque analyse réussie (ou politique produit : conserver aussi la dernière erreur — à trancher en implémentation, défaut : **dernière analyse aboutie**).
+| `systemPromptSnapshot` | `String` (optionnel) |
+| `requestId` | `String` (optionnel) |
 
 ## Transitions d’état (UI / orchestration)
 
 ```text
-Idle → ValidatingInput → (InvalidInput → Idle avec message)
-Idle → PromptReady → Inferring → ResultReady | InferenceError
-ResultReady → Idle (nouvelle saisie)
+SansSegmentValide → (tentative analyse → message « effectuer un scan » / segment requis)
+SegmentValideAffiché (lecture seule) → ValidatingInput → Inferring → ResultReady | InferenceError
+ResultReady → SegmentValideAffiché (nouveau scan remplace le segment source)
 ```
 
-- **InvalidInput**: liste vide ou trop courte (FR-005).
-- **InferenceError**: timeout, modèle absent, erreur LiteRT (réutiliser patterns message 009 si même moteur).
+- **InvalidInput**: segment vide, trop court selon règles FR-005, ou **absence de segment validé** alors que l’utilisateur lance l’analyse.
+- **InferenceError**: timeout, modèle absent, erreur LiteRT.
 
 ## Validation (rappel spec)
 
 - Réponse structurée **4 sections** (FR-003, SC-001).
-- Pas de diagnostic médical ; formulations prudentes (User Story 2).
+- **SC-005**: payload LLM = `validatedSegmentText` (contrôle test ou assertion en CI).
+- Pas de diagnostic médical (User Story 2).

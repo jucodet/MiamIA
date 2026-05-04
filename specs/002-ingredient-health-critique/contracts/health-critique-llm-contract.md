@@ -2,20 +2,22 @@
 
 ## Objectif
 
-Définir le contrat entre l’**UI / ViewModel** et le **moteur d’inférence** pour la feature **002** : produire une analyse d’impact santé **prudente**, structurée en **quatre populations**, à partir d’une liste d’ingrédients en texte libre, **sans envoi réseau** (alignement pratique avec le socle Gemma local existant).
+Définir le contrat entre l’**UI / ViewModel** et le **moteur d’inférence** pour la feature **002** : analyse d’impact santé **prudente**, **quatre populations**, à partir du **segment ingrédients validé** issu du **scan** (pas de saisie libre comme source principale), **sans envoi réseau**.
 
 ## Préconditions
 
-- `ingredientText` non vide et satisfaisant les règles de longueur minimale produit (sinon état `input_invalid` sans appel LLM).
-- Aucune étape de ce contrat n’envoie `ingredientText` ni la réponse vers un service distant (même politique que spec 009 pour le texte sensible).
+- `ingredientText` MUST être **identique** au **segment ingrédients validé** courant du parcours scan (FR-001, **SC-005**). L’UI associée MUST être **lecture seule** sur ce texte (clarification 2026-05-04).
+- Si aucun segment validé n’est disponible, l’analyse MUST **not** appeler le LLM : état `input_invalid` avec `reasonCode = no_validated_segment` (ou équivalent documenté).
+- `ingredientText` non vide et satisfaisant les règles de longueur minimale produit après les règles ci-dessus (sinon `input_invalid` sans appel LLM).
+- Aucune étape de ce contrat n’envoie `ingredientText` ni la réponse vers un service distant.
 
 ## Commande
 
 - **Command**: `AnalyzeIngredientHealthCritique`
 - **Payload**:
   - `requestId` (`String`, UUID)
-  - `ingredientText` (`String`)
-  - `maxInferenceMs` (`Long`, optionnel, défaut aligné config produit / spec perf)
+  - `ingredientText` (`String`) — **copie conforme** du segment validé
+  - `maxInferenceMs` (`Long`, optionnel)
 
 ## Sorties attendues (Result Contract)
 
@@ -61,7 +63,7 @@ Définir le contrat entre l’**UI / ViewModel** et le **moteur d’inférence**
 {
   "state": "input_invalid",
   "requestId": "uuid",
-  "reasonCode": "empty | too_short",
+  "reasonCode": "empty | too_short | no_validated_segment",
   "message": "…",
   "processedAt": "2026-05-04T12:00:00Z"
 }
@@ -78,12 +80,18 @@ Le prompt système MUST exiger des sections avec les marqueurs **exactement** :
 
 Chaque section MUST demander explicitement : **points de vigilance**, **explication / nuance** (faits vs incertitudes), **niveau de prudence** ; interdiction de **diagnostic** ; encouragement à consulter un professionnel de santé pour les situations à risque (notamment grossesse).
 
+## Implémentation Kotlin (référence)
+
+- `reasonCode` JSON `no_validated_segment` ↔ `InputInvalidReason.NO_VALIDATED_SEGMENT` dans `app/src/main/java/com/foodgpt/healthcritique/HealthCritiqueModels.kt` (sérialisation UI / logs si applicable).
+
 ## Mapping scénarios d’acceptation (spec 002)
 
 | Scénario spec | Attente contrat |
 |---------------|-----------------|
 | US1 — 4 sections | `critique_ready` + 4 clés `sections` renseignées ou `parseWarnings` documentés |
+| US1 — lecture seule | Aucun chemin d’analyse sans `ingredientText` issu du segment validé ; pas d’édition côté contrat |
+| US1 — sans segment | `input_invalid` / `no_validated_segment` |
 | US1 — liste vide | `input_invalid` / `empty` |
-| US2 — prudence / pas de diagnostic | Vérifié par contenu prompt + revue contenu ; tests manuels / sampling |
-| US3 — copie | Hors contrat LLM ; UI MUST exposer buffer copie non vide (SC-003) |
-| FR-006 — dernière analyse | Persistance `LastHealthAnalysisSnapshot` après `critique_ready` |
+| SC-005 | Assertion : chaîne envoyée au runner == segment validé (hors normalisation explicitement partagée avec le scan) |
+| US3 — copie | UI MUST exposer copie non vide (SC-003) |
+| FR-006 — dernière analyse | Persistance `LastHealthAnalysisSnapshot` après `critique_ready` avec même `ingredientRaw` que segment analysé |

@@ -32,4 +32,23 @@ class HealthCritiquePersistenceAndroidTest {
         assertEquals(snap.savedAtEpochMs, loaded.savedAtEpochMs)
         store2.clear()
     }
+
+    @Test
+    fun ingredientRaw_roundTrip_matchesValidatedSegmentUsedForAnalysis() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        val prefsName = "health_critique_seg_${System.nanoTime()}"
+        val store = LastHealthAnalysisStore(ctx, prefsName)
+        val validatedSegment = "eau, sucre, sel (segment validé scan)"
+        val snap = LastHealthAnalysisSnapshot(
+            savedAtEpochMs = 99L,
+            ingredientRaw = validatedSegment,
+            resultRaw = "###ENFANTS\nok",
+            systemPromptSnapshot = "sys",
+        )
+        store.save(snap)
+        val loaded = LastHealthAnalysisStore(ctx, prefsName).load()
+        assertNotNull(loaded)
+        assertEquals(validatedSegment, loaded!!.ingredientRaw)
+        store.clear()
+    }
 }

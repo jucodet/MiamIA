@@ -52,6 +52,7 @@ import com.foodgpt.recognition.LocalOcrFallbackRecognizer
 import com.foodgpt.recognition.RecognitionEngineSelector
 import com.foodgpt.scan.TemporaryImageManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
@@ -157,6 +158,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } else {
+                LaunchedEffect(Unit) {
+                    cameraViewModel.lastValidatedSegmentForHealth.collectLatest { segment ->
+                        healthCritiqueViewModel.setValidatedSegmentFromScan(segment)
+                    }
+                }
                 var selectedTab by remember { mutableIntStateOf(0) }
                 Scaffold(
                     topBar = {

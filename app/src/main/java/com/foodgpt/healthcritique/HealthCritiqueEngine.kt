@@ -1,5 +1,6 @@
 package com.foodgpt.healthcritique
 
+import com.foodgpt.BuildConfig
 import java.util.UUID
 
 class HealthCritiqueEngine(
@@ -9,9 +10,15 @@ class HealthCritiqueEngine(
     private val llmRunner: HealthCritiqueLlmRunner,
 ) {
 
+    /**
+     * Analyse la critique santé pour le segment courant.
+     *
+     * L’appelant MUST transmettre [ingredientText] **identique** au segment ingrédients validé
+     * affiché en lecture seule (SC-005), ou [null] s’il n’y a pas encore de segment issu du bilan.
+     */
     suspend fun analyze(
         requestId: String = UUID.randomUUID().toString(),
-        ingredientText: String,
+        ingredientText: String?,
         maxInferenceMs: Long = HealthCritiqueConfig.DEFAULT_MAX_INFERENCE_MS,
     ): HealthCritiqueResult {
         val now = System.currentTimeMillis()
@@ -26,8 +33,15 @@ class HealthCritiqueEngine(
 
             HealthIngredientValidation.Valid -> Unit
         }
+        val canonicalList = ingredientText!!.trim()
+        if (BuildConfig.DEBUG) {
+            val userPreview = promptBuilder.buildUserMessage(canonicalList)
+            check(userPreview.contains(canonicalList)) {
+                "SC-005 : le message utilisateur doit contenir la liste canonique affichée."
+            }
+        }
         val system = promptBuilder.buildSystemInstruction()
-        val user = promptBuilder.buildUserMessage(ingredientText)
+        val user = promptBuilder.buildUserMessage(canonicalList)
         return when (val out = llmRunner.generate(system, user, maxInferenceMs)) {
             is HealthCritiqueLlmGenerateResult.Success -> {
                 val parsed = sectionParser.parse(out.text)

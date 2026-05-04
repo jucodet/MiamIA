@@ -43,9 +43,12 @@ fun HealthCritiqueScreen(viewModel: HealthCritiqueViewModel) {
         )
         OutlinedTextField(
             value = state.ingredientText,
-            onValueChange = viewModel::onIngredientTextChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Liste d’ingrédients") },
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("health_segment_list"),
+            label = { Text("Liste d’ingrédients (scan, lecture seule)") },
             minLines = 4,
         )
         Button(

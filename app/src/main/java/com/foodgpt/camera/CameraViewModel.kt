@@ -70,6 +70,13 @@ class CameraViewModel(
     private val _scanState = MutableStateFlow<ScanState>(ScanState.CameraReady)
     val scanState: StateFlow<ScanState> = _scanState.asStateFlow()
 
+    /**
+     * Segment ingrédients validé aligné sur [ScanState.BilanReady.rawTranscript] (spec 002 / SC-005).
+     * [null] tant qu’aucun bilan prêt ; réinitialisé au redémarrage de scan ou si le flux quitte le bilan valide.
+     */
+    private val _lastValidatedSegmentForHealth = MutableStateFlow<String?>(null)
+    val lastValidatedSegmentForHealth: StateFlow<String?> = _lastValidatedSegmentForHealth.asStateFlow()
+
     private val _previewSession = MutableStateFlow(0)
     val previewSession: StateFlow<Int> = _previewSession.asStateFlow()
 
@@ -126,6 +133,7 @@ class CameraViewModel(
         lastItemsPreview = null
         pendingAnalysisSegment = null
         pendingScanId = null
+        _lastValidatedSegmentForHealth.value = null
         _previewSession.value += 1
         clearAdditiveKpiDisplay()
         _scanState.value = if (permissionHandler.hasCameraPermission(getApplication())) {
@@ -169,6 +177,7 @@ class CameraViewModel(
         val raw = lastRawTranscript ?: return
         val items = lastItemsPreview.orEmpty()
         clearAdditiveKpiDisplay()
+        _lastValidatedSegmentForHealth.value = null
         _scanState.value = ScanState.Success(transcriptText = raw, items = items)
     }
 
@@ -204,6 +213,7 @@ class CameraViewModel(
         val scanCoordinator = coordinator ?: return
 
         inFlightScan = true
+        _lastValidatedSegmentForHealth.value = null
         _scanState.value = ScanState.Capturing
         viewModelScope.launch {
             try {
@@ -290,6 +300,7 @@ class CameraViewModel(
         }
         val engine = compositionEngine
         if (engine == null) {
+            _lastValidatedSegmentForHealth.value = null
             _scanState.value = ScanState.Success(
                 transcriptText = decision.segmentPreview,
                 items = items
@@ -303,6 +314,7 @@ class CameraViewModel(
     }
 
     fun rejectSegmentConfirmation() {
+        _lastValidatedSegmentForHealth.value = null
         _scanState.value = ScanState.Error("Analyse annulee. Vous pouvez reprendre une photo.")
     }
 
@@ -329,6 +341,7 @@ class CameraViewModel(
             is AnalyzeCompositionResult.BilanSuccess -> {
                 val emptyReject = CompositionResultValidator.rejectEmptyStructure(outcome.bilan)
                 if (emptyReject != null) {
+                    _lastValidatedSegmentForHealth.value = null
                     ScanState.CompositionLimit(
                         message = emptyReject.message,
                         rawTranscript = rawText
@@ -340,24 +353,32 @@ class CameraViewModel(
                                 BuildAdditiveKpiDisplay(v.bilan, rawText)
                             }
                             _additiveKpiDisplay.value = kpi
+                            _lastValidatedSegmentForHealth.value = rawText
                             ScanState.BilanReady(
                                 bilan = v.bilan,
                                 rawTranscript = rawText,
                                 itemsPreview = itemsPreview
                             )
                         }
-                        is AnalyzeCompositionResult.CompositionLimit -> ScanState.CompositionLimit(
-                            message = v.message,
-                            rawTranscript = rawText
-                        )
-                        else -> ScanState.CompositionLimit(
-                            CompositionMessages.COMPOSITION_LIMIT_GENERIC,
-                            rawText
-                        )
+                        is AnalyzeCompositionResult.CompositionLimit -> {
+                            _lastValidatedSegmentForHealth.value = null
+                            ScanState.CompositionLimit(
+                                message = v.message,
+                                rawTranscript = rawText
+                            )
+                        }
+                        else -> {
+                            _lastValidatedSegmentForHealth.value = null
+                            ScanState.CompositionLimit(
+                                CompositionMessages.COMPOSITION_LIMIT_GENERIC,
+                                rawText
+                            )
+                        }
                     }
                 }
             }
             is AnalyzeCompositionResult.GemmaError -> {
+                _lastValidatedSegmentForHealth.value = null
                 val uiMessage = Gemma4LocalUiMessageResolver.resolve(outcome.code, outcome.message)
                 ScanState.GemmaUnavailable(
                     code = outcome.code,
@@ -365,10 +386,13 @@ class CameraViewModel(
                     rawTranscript = rawText
                 )
             }
-            is AnalyzeCompositionResult.CompositionLimit -> ScanState.CompositionLimit(
-                message = outcome.message,
-                rawTranscript = rawText
-            )
+            is AnalyzeCompositionResult.CompositionLimit -> {
+                _lastValidatedSegmentForHealth.value = null
+                ScanState.CompositionLimit(
+                    message = outcome.message,
+                    rawTranscript = rawText
+                )
+            }
         }
     }
 

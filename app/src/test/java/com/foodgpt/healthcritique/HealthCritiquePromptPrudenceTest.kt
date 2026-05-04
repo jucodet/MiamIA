@@ -17,5 +17,7 @@ class HealthCritiquePromptPrudenceTest {
         assertTrue(s.contains("grossesse", ignoreCase = true))
         assertTrue(s.contains("ambigu", ignoreCase = true))
         assertTrue(s.contains("diagnostic", ignoreCase = true))
+        assertTrue(s.contains("capture", ignoreCase = true))
+        assertTrue(s.contains("OCR", ignoreCase = true))
     }
 }

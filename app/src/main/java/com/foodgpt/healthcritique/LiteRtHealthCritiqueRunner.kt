@@ -1,6 +1,8 @@
 package com.foodgpt.healthcritique
 
 import android.content.Context
+import android.util.Log
+import com.foodgpt.BuildConfig
 import com.foodgpt.composition.CompositionMessages
 import com.foodgpt.composition.GemmaModelLocation
 import com.foodgpt.composition.GemmaModelLocator
@@ -41,6 +43,9 @@ class LiteRtHealthCritiqueRunner(
         maxInferenceMs: Long,
     ): HealthCritiqueLlmGenerateResult =
         withContext(Dispatchers.Default) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "health_critique_llm_userMessage_len=${userMessage.length}")
+            }
             val deadlineMs = maxInferenceMs.coerceAtLeast(1L)
             when (val located = locator.resolve()) {
                 GemmaModelLocation.NotFound ->
@@ -230,6 +235,8 @@ class LiteRtHealthCritiqueRunner(
             .joinToString("\n")
 
     companion object {
+        private const val TAG = "LiteRtHealthCritique"
+
         private val inferenceExecutor = Executors.newCachedThreadPool(
             object : ThreadFactory {
                 private val seq = AtomicInteger(0)

@@ -12,7 +12,9 @@ class HealthCritiquePromptBuilder {
     }
 
     fun buildSystemInstruction(): String = buildString {
-        appendLine("Tu aides à lire une liste d’ingrédients alimentaires (contexte UE, français).")
+        appendLine(
+            "Tu aides à lire une liste d’ingrédients alimentaires issue d’une capture (OCR possible, contexte UE, français)."
+        )
         appendLine("Objectif : critique aussi objective que possible de l’impact **potentiel** sur la santé, sans diagnostic.")
         appendLine("Tu dois distinguer clairement : faits établis, incertitudes scientifiques, et hypothèses.")
         appendLine("Évite les conclusions catégoriques (« toujours toxique », « interdit ») ; nuance selon les doses et le contexte.")

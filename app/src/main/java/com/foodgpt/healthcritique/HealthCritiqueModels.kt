@@ -10,6 +10,8 @@ enum class PopulationKey {
 enum class InputInvalidReason {
     EMPTY,
     TOO_SHORT,
+    /** Aucun segment ingrédients validé issu du scan (contrat `no_validated_segment`). */
+    NO_VALIDATED_SEGMENT,
 }
 
 enum class HealthInferenceErrorCode {

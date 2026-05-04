@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import android.content.Context
+import com.foodgpt.BuildConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,35 +28,47 @@ class HealthCritiqueViewModel(
     private val _ui = MutableStateFlow(HealthCritiqueScreenState())
     val ui: StateFlow<HealthCritiqueScreenState> = _ui.asStateFlow()
 
+    /** Segment validé courant (null = pas encore de bilan prêt côté scan). */
+    private var validatedSegmentFromScan: String? = null
+
     init {
         store.load()?.let { snap ->
-            _ui.update {
-                it.copy(
-                    ingredientText = snap.ingredientRaw,
-                    restoredSnapshot = snap,
-                )
+            setValidatedSegmentFromScan(snap.ingredientRaw)
+            _ui.update { it.copy(restoredSnapshot = snap) }
+        }
+    }
+
+    fun setValidatedSegmentFromScan(segment: String?) {
+        validatedSegmentFromScan = segment
+        _ui.update { it.copy(ingredientText = segment.orEmpty()) }
+        if (BuildConfig.DEBUG) {
+            check(_ui.value.ingredientText == (segment ?: "")) {
+                "SC-005 : l’affichage doit refléter exactement le segment synchronisé."
             }
         }
     }
 
-    fun onIngredientTextChange(value: String) {
-        _ui.update { it.copy(ingredientText = value) }
-    }
-
     fun analyze() {
-        val text = _ui.value.ingredientText
+        val segmentSnapshot = validatedSegmentFromScan
+        val displaySnapshot = _ui.value.ingredientText
+        if (BuildConfig.DEBUG) {
+            check(segmentSnapshot == null || displaySnapshot == segmentSnapshot) {
+                "SC-005 : buffer affiché et segment validé doivent rester alignés."
+            }
+        }
         val systemPreview = promptBuilder.buildSystemInstruction()
         _ui.update { it.copy(isLoading = true, result = null, lastSystemPrompt = systemPreview) }
         viewModelScope.launch {
-            val outcome = engine.analyze(ingredientText = text)
+            val outcome = engine.analyze(ingredientText = segmentSnapshot)
             _ui.update { st ->
                 st.copy(isLoading = false, result = outcome)
             }
             if (outcome is HealthCritiqueResult.CritiqueReady) {
+                val ingredientRaw = segmentSnapshot?.trim().orEmpty()
                 val savedAt = System.currentTimeMillis()
                 val snap = LastHealthAnalysisSnapshot(
                     savedAtEpochMs = savedAt,
-                    ingredientRaw = text.trim(),
+                    ingredientRaw = ingredientRaw,
                     resultRaw = outcome.llmRawText,
                     systemPromptSnapshot = systemPreview,
                 )

@@ -44,6 +44,16 @@
 
 ## 5. Performance
 
-**Decision**: Objectif perçu **cohérent avec 009** : réponse ou erreur explicite dans une fenêtre **&lt; 30 s** après lancement sur device milieu de gamme une fois le modèle chargé ; pas d’objectif requête/sec (usage interactif ponctuel).
+**Decision**: Objectif perçu **cohérent avec 009** : réponse ou erreur explicite dans une fenêtre **inférieure à 30 s** après lancement sur device milieu de gamme une fois le modèle chargé ; pas d’objectif requête/sec (usage interactif ponctuel).
 
 **Rationale**: Constitution IV ; parallèle avec SC-003 spec 009.
+
+## 6. Entrée « liste capturée » + lecture seule (spec + clarification 2026-05-04)
+
+**Decision**: Le **segment ingrédients validé** dans le flux caméra est la **seule source** de vérité pour `ingredientText` côté critique santé. L’UI de l’onglet santé affiche ce texte en **lecture seule** ; le moteur d’analyse reçoit **exactement** cette chaîne (SC-005). Toute correction utilisateur passe par **retour au scan** et **revalidation** du segment.
+
+**Rationale**: Alignement strict avec FR-001 et clarification session 2026-05-04 ; évite la dérive « texte modifié hors scan ».
+
+**Alternatives considered**:
+
+- **Champ éditable** sur l’onglet santé : exclu par décision produit pour cette release.
