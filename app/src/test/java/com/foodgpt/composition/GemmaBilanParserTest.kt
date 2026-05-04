@@ -27,4 +27,22 @@ class GemmaBilanParserTest {
     fun parse_missingMarker_returnsNull() {
         assertNull(GemmaBilanParser.parse("pas de structure"))
     }
+
+    @Test
+    fun parse_withAdditivesSection_analysisExcludesAdditivesBlock() {
+        val raw = """
+            ###LISTE
+            - eau
+            ###ANALYSE
+            Phrase courte sur le produit.
+            ###ADDITIFS_RISQUE
+            ROUGE|E120|Colorant de synthese
+            VERT|E300|Antioxydant courant
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertEquals("Phrase courte sur le produit.", bilan!!.compositionAnalysis)
+        assertEquals(listOf("eau"), bilan.ingredientLines)
+    }
 }

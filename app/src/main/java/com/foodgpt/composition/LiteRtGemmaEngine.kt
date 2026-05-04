@@ -240,6 +240,12 @@ class LiteRtGemmaEngine(
                 "Sous ###ANALYSE : au plus 3 phrases courtes (≈80 mots max), factuelles et prudentes ; " +
                     "nuancer si doute. Pas d'introduction hors marqueurs."
             )
+            appendLine("###ADDITIFS_RISQUE")
+            appendLine(
+                "Sous ###ADDITIFS_RISQUE : une ligne par additif pertinent, format exact NIVEAU|nom_additif|justification_courte " +
+                    "(une seule ligne par additif ; pas de texte libre hors lignes). " +
+                    "NIVEAU ∈ {VERT, ORANGE, ROUGE, INCERTAIN}."
+            )
             appendLine("Aucun texte avant la ligne ###LISTE.")
         }
         val conversationConfig = ConversationConfig(

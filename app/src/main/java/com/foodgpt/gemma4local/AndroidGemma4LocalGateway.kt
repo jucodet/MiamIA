@@ -92,7 +92,10 @@ class AndroidGemma4LocalGateway(
             engine.initialize()
             val systemInstruction = Contents.of(
                 "Tu analyses des listes d'ingredients alimentaires. " +
-                    "Reponds uniquement avec les sections ###LISTE puis ###ANALYSE."
+                    "Reponds uniquement avec les sections dans l'ordre : ###LISTE puis ###ANALYSE puis ###ADDITIFS_RISQUE. " +
+                    "Sous ###LISTE : lignes - ingredient. Sous ###ANALYSE : au plus 3 phrases courtes, factuelles. " +
+                    "Sous ###ADDITIFS_RISQUE : une ligne par additif au format exact NIVEAU|nom_additif|justification_courte ; " +
+                    "NIVEAU dans {VERT, ORANGE, ROUGE, INCERTAIN}. Pas de texte libre hors ces lignes dans cette section."
             )
             val conversationConfig = ConversationConfig(systemInstruction = systemInstruction)
             val prompt = "Texte capture (OCR):\n${inputText.trim().take(Gemma4LocalConfig.MAX_INPUT_CHARS)}"

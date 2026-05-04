@@ -15,6 +15,8 @@ import androidx.lifecycle.viewModelScope
 import com.foodgpt.analysis.ingredientsegment.AnalysisSubmissionGate
 import com.foodgpt.analysis.ingredientsegment.IngredientSegmentPreparationService
 import com.foodgpt.analysis.ingredientsegment.SubmissionBlockedReason
+import com.foodgpt.additives.AnalysisDisplayResult
+import com.foodgpt.additives.BuildAdditiveKpiDisplay
 import com.foodgpt.composition.AnalyzeCompositionResult
 import com.foodgpt.composition.CompositionAnalysisEngine
 import com.foodgpt.composition.CompositionMessages
@@ -76,6 +78,9 @@ class CameraViewModel(
     private val _mediaPipeStatus = MutableStateFlow(MediaPipeStatusViewState.checking())
     val mediaPipeStatus: StateFlow<MediaPipeStatusViewState> = _mediaPipeStatus.asStateFlow()
 
+    private val _additiveKpiDisplay = MutableStateFlow<AnalysisDisplayResult?>(null)
+    val additiveKpiDisplay: StateFlow<AnalysisDisplayResult?> = _additiveKpiDisplay.asStateFlow()
+
     private var bindJob: Job? = null
     private var inFlightScan = false
 
@@ -122,12 +127,17 @@ class CameraViewModel(
         pendingAnalysisSegment = null
         pendingScanId = null
         _previewSession.value += 1
+        clearAdditiveKpiDisplay()
         _scanState.value = if (permissionHandler.hasCameraPermission(getApplication())) {
             ScanState.CameraReady
         } else {
             ScanState.PermissionDenied
         }
         refreshMediaPipeAvailability()
+    }
+
+    private fun clearAdditiveKpiDisplay() {
+        _additiveKpiDisplay.value = null
     }
 
     fun onLoginSucceeded(userId: String = "connected-user") {
@@ -158,6 +168,7 @@ class CameraViewModel(
     fun showRawTranscriptOnly() {
         val raw = lastRawTranscript ?: return
         val items = lastItemsPreview.orEmpty()
+        clearAdditiveKpiDisplay()
         _scanState.value = ScanState.Success(transcriptText = raw, items = items)
     }
 
@@ -313,6 +324,7 @@ class CameraViewModel(
                 }
             }
         }
+        clearAdditiveKpiDisplay()
         _scanState.value = when (outcome) {
             is AnalyzeCompositionResult.BilanSuccess -> {
                 val emptyReject = CompositionResultValidator.rejectEmptyStructure(outcome.bilan)
@@ -323,11 +335,17 @@ class CameraViewModel(
                     )
                 } else {
                     when (val v = CompositionResultValidator.validateAgainstSource(outcome.bilan, rawText)) {
-                        is AnalyzeCompositionResult.BilanSuccess -> ScanState.BilanReady(
-                            bilan = v.bilan,
-                            rawTranscript = rawText,
-                            itemsPreview = itemsPreview
-                        )
+                        is AnalyzeCompositionResult.BilanSuccess -> {
+                            val kpi = withContext(Dispatchers.Default) {
+                                BuildAdditiveKpiDisplay(v.bilan, rawText)
+                            }
+                            _additiveKpiDisplay.value = kpi
+                            ScanState.BilanReady(
+                                bilan = v.bilan,
+                                rawTranscript = rawText,
+                                itemsPreview = itemsPreview
+                            )
+                        }
                         is AnalyzeCompositionResult.CompositionLimit -> ScanState.CompositionLimit(
                             message = v.message,
                             rawTranscript = rawText
