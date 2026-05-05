@@ -1,0 +1,5 @@
+source_feature,source_artifact,target_file,target_section,status
+001,spec.md,spec.md,Purpose,partial
+005,spec.md,spec.md,Scope,mapped
+007,spec.md,plan.md,Objectives,mapped
+008,spec.md,data-model.md,Value Objects,mapped

@@ -1,0 +1,4 @@
+source_feature,source_artifact,target_file,target_section,status
+010,spec.md,spec.md,Scope,mapped
+012,spec.md,spec.md,Scope,mapped
+015,spec.md,plan.md,Objectives,partial
