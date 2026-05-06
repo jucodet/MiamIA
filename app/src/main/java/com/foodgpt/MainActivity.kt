@@ -42,7 +42,10 @@ import com.foodgpt.gemma4local.GemmaModelImportManager
 import com.foodgpt.gemma4local.Gemma4LocalRequestMapper
 import com.foodgpt.healthcritique.HealthCritiqueScreen
 import com.foodgpt.healthcritique.HealthCritiqueViewModel
+import com.foodgpt.home.CompositionEngineHomeLlmMockRunner
+import com.foodgpt.home.HomeScreen
 import com.foodgpt.home.HomeSpecPriorityResolver
+import com.foodgpt.home.HomeViewModel
 import com.foodgpt.permissions.CameraPermissionHandler
 import com.foodgpt.recognition.AiEdgeGalleryRecognizer
 import com.foodgpt.recognition.DeviceAiCapabilityDetector
@@ -63,6 +66,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var cameraViewModel: CameraViewModel
 
     private lateinit var healthCritiqueViewModel: HealthCritiqueViewModel
+    private lateinit var homeViewModel: HomeViewModel
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -140,6 +144,10 @@ class MainActivity : ComponentActivity() {
                     this@MainActivity,
                     HealthCritiqueViewModel.factory(applicationContext)
                 )[HealthCritiqueViewModel::class.java]
+                homeViewModel = ViewModelProvider(
+                    this@MainActivity,
+                    HomeViewModel.factory(CompositionEngineHomeLlmMockRunner(compositionEngine))
+                )[HomeViewModel::class.java]
                 cameraViewModel.onLoginSucceeded()
                 if (permissionHandler.hasCameraPermission(this@MainActivity)) {
                     cameraViewModel.onPermissionGranted()
@@ -173,11 +181,16 @@ class MainActivity : ComponentActivity() {
                             Tab(
                                 selected = selectedTab == 0,
                                 onClick = { selectedTab = 0 },
-                                text = { Text("Caméra") },
+                                text = { Text("Accueil") },
                             )
                             Tab(
                                 selected = selectedTab == 1,
                                 onClick = { selectedTab = 1 },
+                                text = { Text("Caméra") },
+                            )
+                            Tab(
+                                selected = selectedTab == 2,
+                                onClick = { selectedTab = 2 },
                                 text = { Text("Critique santé") },
                             )
                         }
@@ -189,7 +202,9 @@ class MainActivity : ComponentActivity() {
                             .padding(innerPadding),
                     ) {
                         when (selectedTab) {
-                            0 ->
+                            0 -> HomeScreen(viewModel = homeViewModel)
+
+                            1 ->
                                 CameraScreen(
                                     viewModel = cameraViewModel,
                                     onCreateTempImage = { imageManager.createTempImageFile() },
