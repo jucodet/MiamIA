@@ -1,106 +1,134 @@
-# Tasks: Homepage LLM Mock Trigger
+# Tasks: photo-capture-llm-result-flow
 
-**Input**: Design documents from `/specs/domains/user-guidance-experience/`  
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
+**Input**: Design documents from `specs/domains/user-guidance-experience/`  
+**Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [data-model.md](./data-model.md), [contracts/](./contracts/), [quickstart.md](./quickstart.md), [research.md](./research.md)
 
-**Tests**: Les tests ATDD/parcours sont obligatoires pour chaque user story.
+**Tests**: ATDD obligatoire (constitution FoodGPT) — au minimum une tâche test par user story, en échec avant implémentation ciblée.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: parallélisable (fichiers distincts, pas de dépendance sur une tâche incomplète du même lot)
+- **[USn]**: rattachement à la user story du [spec.md](./spec.md)
+
+---
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Poser la structure minimale des tests et du flux homepage pour ce scope.
+**Purpose**: dépendances et repères pour la navigation Compose et la traçabilité doc.
 
-- [X] T001 Verifier et aligner la structure des packages home dans `app/src/main/java/com/foodgpt/home/`
-- [X] T002 [P] Creer le squelette de test unitaire dans `app/src/test/java/com/foodgpt/home/HomeLlmMockTriggerTest.kt`
-- [X] T003 [P] Creer le squelette de test UI dans `app/src/androidTest/java/com/foodgpt/home/HomeScreenLlmMockUiTest.kt`
+- [x] T001 Ajouter la dépendance `androidx.navigation:navigation-compose` (version alignée Compose 1.6.x / doc AndroidX) dans `e:\Dev\projects\FoodGpt\app\build.gradle.kts`
+- [x] T002 [P] Ajouter une entrée de traçabilité `photo-capture-llm-result-flow` → fichiers contrat/plan dans `e:\Dev\projects\FoodGpt\specs\domains\user-guidance-experience\traceability.csv` (ou créer la ligne si le fichier est vide)
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Mettre en place les bases communes qui bloquent toutes les user stories.
+**Purpose**: routes, écran résultat minimal, NavHost local au flux caméra, état UX partagé (loader, abandon FR-014).
 
-- [X] T004 Definir le modele d'etat `HomepageTestRunState` dans `app/src/main/java/com/foodgpt/home/HomeViewModel.kt`
-- [X] T005 [P] Definir le contrat de declenchement/rendu homepage dans `app/src/main/java/com/foodgpt/home/HomeScreen.kt`
-- [X] T006 Implementer le garde-fou anti-concurrence (une execution `running`) dans `app/src/main/java/com/foodgpt/home/HomeViewModel.kt`
-- [X] T007 Connecter l'appel au service d'analyse existant via adaptateur de domaine dans `app/src/main/java/com/foodgpt/home/HomeViewModel.kt`
-- [X] T008 Implementer la classification d'erreurs (`timeout`, `runtime-unavailable`, `non-analysable-response`) dans `app/src/main/java/com/foodgpt/home/HomeViewModel.kt`
+**⚠️ CRITICAL**: Aucune user story complète avant cette phase.
 
-**Checkpoint**: Fondations terminees, les user stories peuvent commencer.
+- [x] T003 Créer les constantes / routes de navigation du flux capture → résultat (ex. sealed interface ou `object`) dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\navigation\CameraFlowRoutes.kt`
+- [x] T004 [P] Créer le composable `LlmResultScreen` (affichage texte multi-ligne + état erreur) dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\result\LlmResultScreen.kt`
+- [x] T005 Intégrer un `NavHost` imbriqué (ou équivalent) pour l’onglet Caméra : graphe `capture` ↔ `llmResult` dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\MainActivity.kt`, en conservant les onglets existants
+- [x] T006 Étendre `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraViewModel.kt` avec : état `llmProcessing` (idle / in_progress / terminal), flag « utilisatrice encore sur l’écran capture », `StateFlow` ou canal pour commandes de navigation vers résultat, désactivation logique photo + test pendant `in_progress` (research Decision 8)
+- [x] T007 Brancher le cycle de vie (ex. `LifecycleEventObserver` ou callback depuis `CameraScreen`) pour basculer le flag « encore sur capture » et respecter FR-014 dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt` et/ou `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraViewModel.kt`
+
+**Checkpoint**: navigation vers `LlmResultScreen` possible avec payload de test ; abandon détectable.
 
 ---
 
-## Phase 3: User Story 1 - Lancer le test depuis la homepage (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Disposer de l'écran de capture avec les bons contrôles (Priority: P1) 🎯 MVP
 
-**Goal**: Permettre le clic sur bouton homepage qui declenche le test bouchonne LLM.
+**Goal**: ordre vertical prévisualisation (ou message) → bouton photo → bouton test LLM ; focus si déjà prévu.
 
-**Independent Test**: Depuis la homepage, un clic demarre une execution unique sans camera/OCR.
+**Independent Test**: ouvrir l’onglet Caméra et vérifier l’ordre des contrôles (spec US1).
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-- [X] T009 [P] [US1] Ecrire le test ATDD de declenchement au clic dans `app/src/androidTest/java/com/foodgpt/home/HomeScreenLlmMockUiTest.kt`
-- [X] T010 [P] [US1] Ecrire le test unitaire de transition `idle -> running` dans `app/src/test/java/com/foodgpt/home/HomeLlmMockTriggerTest.kt`
+- [x] T008 [P] [US1] Test Compose ou sémantique : ordre des éléments (preview / placeholder, bouton capture, bouton test) dans `e:\Dev\projects\FoodGpt\app\src\androidTest\java\com\foodgpt\camera\CameraCaptureLayoutUiTest.kt` (créer le fichier)
 
 ### Implementation for User Story 1
 
-- [X] T011 [US1] Ajouter le bouton de lancement LLM mock sur la homepage dans `app/src/main/java/com/foodgpt/home/HomeScreen.kt`
-- [X] T012 [US1] Relier le clic au declenchement ViewModel dans `app/src/main/java/com/foodgpt/home/HomeScreen.kt`
-- [X] T013 [US1] Implementer la commande `RunHomepageLlmMockTest` dans `app/src/main/java/com/foodgpt/home/HomeViewModel.kt`
-- [X] T014 [US1] Bloquer les clics repetes pendant `running` dans `app/src/main/java/com/foodgpt/home/HomeScreen.kt`
+- [x] T009 [US1] Restructurer la `Column` principale de `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt` pour placer le bouton de prise de photo sous la zone de prévisualisation et le bouton test LLM directement sous le bouton photo (FR-004, FR-005)
+- [x] T010 [US1] Garantir le message explicite caméra indisponible dans la zone preview (FR-011) sans casser l’ordre des boutons dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt`
 
-**Checkpoint**: US1 livrable et testable independamment.
+**Checkpoint**: US1 vérifiable seule (layout + message indispo).
 
 ---
 
-## Phase 4: User Story 2 - Voir clairement la reponse LLM (Priority: P2)
+## Phase 4: User Story 2 - Suivre l'analyse LLM puis consulter le résultat (Priority: P1)
 
-**Goal**: Afficher lisiblement la reponse LLM apres execution reussie.
+**Goal**: loader sur écran capture jusqu’à fin ; navigation vers écran résultat si restée sur capture ; pas de nav auto si abandon (FR-006, FR-007, FR-014).
 
-**Independent Test**: Simuler une reponse de succes et verifier son rendu integral.
+**Independent Test**: capture → loader → résultat ; capture → retour pendant loader → pas de résultat auto (spec US2).
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [X] T015 [P] [US2] Ecrire le test ATDD d'affichage reponse succes dans `app/src/androidTest/java/com/foodgpt/home/HomeScreenLlmMockUiTest.kt`
-- [X] T016 [P] [US2] Ecrire le test unitaire de mapping `success -> responseText` dans `app/src/test/java/com/foodgpt/home/HomeLlmMockTriggerTest.kt`
+- [x] T011 [P] [US2] Tests unitaires ViewModel : `in_progress` expose overlay ; terminal + foreground → événement nav ; terminal + abandon → pas d’événement nav dans `e:\Dev\projects\FoodGpt\app\src\test\java\com\foodgpt\camera\CameraLlmFlowViewModelTest.kt` (créer le fichier)
 
 ### Implementation for User Story 2
 
-- [X] T017 [US2] Implementer la zone de resultat (texte multi-lignes) dans `app/src/main/java/com/foodgpt/home/HomeScreen.kt`
-- [X] T018 [US2] Propager `responseText` depuis le ViewModel vers l'UI dans `app/src/main/java/com/foodgpt/home/HomeViewModel.kt`
-- [X] T019 [US2] Ajouter l'etat visuel explicite (`running/success`) dans `app/src/main/java/com/foodgpt/home/HomeScreen.kt`
+- [x] T012 [US2] Afficher un recouvrement de chargement (loader + texte optionnel) sur `CameraScreen` lorsque `llmProcessing == in_progress` dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt`
+- [x] T013 [US2] À la fin du pipeline photo + LLM existant, mapper succès/échec vers payload `LlmResultScreen` et déclencher `navigate` uniquement si le flag « encore sur capture » est vrai dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraViewModel.kt` et `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\MainActivity.kt`
+- [x] T014 [US2] Passer le texte résultat / erreur via arguments Navigation sûrs (échapper aux longues chaînes si besoin : `SavedStateHandle` ViewModel destination) dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\result\LlmResultScreen.kt` et le graphe dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\MainActivity.kt`
 
-**Checkpoint**: US2 livrable et testable independamment.
+**Checkpoint**: parcours photo conforme aux clarifications 2026-05-06.
 
 ---
 
-## Phase 5: User Story 3 - Comprendre les erreurs de lancement ou d'execution (Priority: P3)
+## Phase 5: User Story 3 - Lancer le test LLM depuis le même écran (Priority: P2)
 
-**Goal**: Afficher des erreurs explicites et actionnables en cas d'echec.
+**Goal**: bouton test sous photo déclenche `HomeLlmMockRunner` ; même loader + navigation ; pas de concurrence (FR-008, FR-009, FR-013).
 
-**Independent Test**: Simuler chaque categorie d'echec et verifier le message rendu.
+**Independent Test**: tap test depuis onglet Caméra → même comportement que spec US3.
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [X] T020 [P] [US3] Ecrire le test ATDD d'affichage erreur sur echec dans `app/src/androidTest/java/com/foodgpt/home/HomeScreenLlmMockUiTest.kt`
-- [X] T021 [P] [US3] Ecrire le test unitaire du timeout 30s dans `app/src/test/java/com/foodgpt/home/HomeLlmMockTriggerTest.kt`
-- [X] T022 [P] [US3] Ecrire le test unitaire des categories d'erreur dans `app/src/test/java/com/foodgpt/home/HomeLlmMockTriggerTest.kt`
+- [x] T015 [P] [US3] Test unitaire : second tap sur test ignoré pendant `running` dans `e:\Dev\projects\FoodGpt\app\src\test\java\com\foodgpt\camera\CameraLlmTestButtonTest.kt` (créer le fichier)
 
 ### Implementation for User Story 3
 
-- [X] T023 [US3] Implementer le rendu de message d'erreur par categorie dans `app/src/main/java/com/foodgpt/home/HomeScreen.kt`
-- [X] T024 [US3] Implementer le timeout 30s et l'etat `failure(timeout)` dans `app/src/main/java/com/foodgpt/home/HomeViewModel.kt`
-- [X] T025 [US3] Permettre la relance apres echec ou succes (`canRun=true`) dans `app/src/main/java/com/foodgpt/home/HomeViewModel.kt`
+- [x] T016 [US3] Injecter / fournir `HomeLlmMockRunner` au `CameraViewModel` via factory dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\MainActivity.kt` et `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraViewModel.kt`
+- [x] T017 [US3] Relier le bouton test LLM à la coroutine `runner.run()` avec les mêmes états et navigation que le parcours photo dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt` et `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraViewModel.kt`
+- [x] T018 [US3] Désactiver visuellement le bouton test pendant `in_progress` dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt`
 
-**Checkpoint**: US3 livrable et testable independamment.
+**Checkpoint**: US3 indépendant une fois US2 en place.
 
 ---
 
-## Phase 6: Polish & Cross-Cutting Concerns
+## Phase 6: User Story 4 - Comprendre les indisponibilités (Priority: P3)
 
-**Purpose**: Finaliser la coherence globale et verifier le parcours complet.
+**Goal**: message clair si caméra indisponible ; test LLM encore accessible si pertinent (US4).
 
-- [X] T026 [P] Harmoniser les textes UX (loading, succes, erreur) dans `app/src/main/java/com/foodgpt/home/HomeScreen.kt`
-- [X] T027 Verifier le quickstart de bout en bout et mettre a jour la documentation dans `specs/domains/user-guidance-experience/quickstart.md`
-- [ ] T028 Executer la campagne de tests unitaires et UI du scope home dans `app/src/test/java/com/foodgpt/home/` et `app/src/androidTest/java/com/foodgpt/home/`
+**Independent Test**: simuler indisponibilité caméra ; vérifier message + bouton test.
+
+### Tests for User Story 4 (MANDATORY) ⚠️
+
+- [x] T019 [P] [US4] Test UI ou unitaire : état `unavailable` affiche le message FR-011 et conserve le bouton test visible dans `e:\Dev\projects\FoodGpt\app\src\test\java\com\foodgpt\camera\CameraUnavailableUiStateTest.kt` ou `androidTest` équivalent
+
+### Implementation for User Story 4
+
+- [x] T020 [US4] Affiner les libellés / `contentDescription` accessibilité pour l’état indisponible et le CTA test dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt`
+
+**Checkpoint**: US4 complète les edge cases caméra.
+
+---
+
+## Phase 7: Polish & Cross-Cutting Concerns
+
+**Purpose**: validation rapide, perf perçue, documentation d’implémentation locale.
+
+- [x] T021 [P] Exécuter les scénarios de `e:\Dev\projects\FoodGpt\specs\domains\user-guidance-experience\quickstart.md` et noter les écarts dans `e:\Dev\projects\FoodGpt\specs\domains\user-guidance-experience\migration-index.md` (section validation manuelle) si nécessaire
+- [x] T022 Lancer `e:\Dev\projects\FoodGpt\gradlew.bat :app:testDebugUnitTest` et corriger les régressions sur les nouveaux tests camera/result
+- [x] T023 [P] Vérifier l’absence de navigation résultat fantôme lors d’un changement d’onglet pendant `in_progress` dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\MainActivity.kt`
+
+---
+
+## Phase 8: Shell sans onglets (FR-001, FR-015, FR-016) — alignement spec 2026-05-06
+
+- [x] T024 Retirer `TabRow` / onglets Accueil·Caméra·Critique santé ; `NavHost` capture → résultat comme racine unique dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\MainActivity.kt` (plus de `HomeViewModel` / `HomeScreen` dans le chrome principal ; `HealthCritiqueViewModel` conservé pour le flux segment ← scan)
+- [x] T025 [P] Adapter les tests instrumentés caméra (plus de clic sur « Caméra » ; vérifier l’absence des libellés d’onglets) dans `e:\Dev\projects\FoodGpt\app\src\androidTest\java\com\foodgpt\camera\`
+- [x] T026 [P] Réparer la compilation `androidTest` health critique : `FakeHealthCritiqueLlmRunner` dédié `androidTest` + assertion lecture seule simplifiée dans `e:\Dev\projects\FoodGpt\app\src\androidTest\java\com\foodgpt\healthcritique\`
 
 ---
 
@@ -108,55 +136,53 @@
 
 ### Phase Dependencies
 
-- Phase 1 (Setup): demarre immediatement.
-- Phase 2 (Foundational): depend de Phase 1 et bloque toutes les user stories.
-- Phases 3/4/5 (US1/US2/US3): dependent de Phase 2; execution possible en sequence P1 -> P2 -> P3 (recommande) ou en parallele selon capacite.
-- Phase 6 (Polish): depend de la completion des user stories cibles.
+- **Phase 1** → aucune dépendance.
+- **Phase 2** → après Phase 1 (dépendance Navigation).
+- **Phases 3–6** → après Phase 2 ; **US1** peut précéder **US2** pour stabiliser le layout avant loader/nav ; **US2** avant **US3** (réutilise mécanisme nav + états).
+- **Phase 7** → après les user stories souhaitées.
 
 ### User Story Dependencies
 
-- **US1 (P1)**: aucune dependance sur les autres stories apres fondations.
-- **US2 (P2)**: depend de la base de declenchement US1 pour obtenir un resultat a afficher.
-- **US3 (P3)**: s'appuie sur le flux US1/US2 pour presenter les erreurs et la relance.
+| Story | Dépend de |
+|-------|-----------|
+| US1 | Phase 2 (routes + NavHost minimal pour afficher l’écran capture dans le bon conteneur) |
+| US2 | US1 (ordre des boutons), Phase 2 |
+| US3 | US2 |
+| US4 | US1 (structure écran) |
 
 ### Parallel Opportunities
 
-- T002 et T003 en parallele.
-- T005 en parallele de T004 (puis convergence avant T006/T007).
-- Dans chaque story, les taches de test marquees `[P]` sont executables en parallele.
-- T020/T021/T022 peuvent tourner simultanement.
+- T001 / T002 en parallèle.
+- T004 / T008 / T011 / T015 / T019 : fichiers nouveaux, après leurs prérequis de phase respectifs.
+- Tests [P] d’une même story en parallèle une fois les interfaces ViewModel stabilisées.
 
----
+### Exemple parallèle (après Phase 2, avant impl US1)
 
-## Parallel Example: User Story 3
-
-```bash
-Task: "T020 [US3] Test ATDD affichage erreur dans app/src/androidTest/java/com/foodgpt/home/HomeScreenLlmMockUiTest.kt"
-Task: "T021 [US3] Test timeout 30s dans app/src/test/java/com/foodgpt/home/HomeLlmMockTriggerTest.kt"
-Task: "T022 [US3] Test categories d'erreur dans app/src/test/java/com/foodgpt/home/HomeLlmMockTriggerTest.kt"
+```text
+T008 [US1] CameraCaptureLayoutUiTest.kt
+T011 [US2] CameraLlmFlowViewModelTest.kt  (si signatures ViewModel déjà figées)
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (User Story 1)
+### MVP (US1 + fondations)
 
-1. Completer Phases 1 et 2.
-2. Livrer Phase 3 (US1) seule.
-3. Valider le declenchement homepage independamment.
+1. Phase 1 + Phase 2
+2. Phase 3 (US1) — livrer layout conforme spec
+3. Valider manuellement
 
-### Incremental Delivery
+### Incrément suivant
 
-1. Ajouter US2 pour affichage resultat.
-2. Ajouter US3 pour robustesse erreurs + relance.
-3. Finaliser avec Phase 6.
+4. Phase 4 (US2) — loader + résultat + FR-014  
+5. Phase 5 (US3) — test LLM sur le même écran  
+6. Phase 6 (US4) — polish indisponibilité  
+7. Phase 7
 
-### Format Validation
+---
 
-Toutes les taches respectent le format requis:
-- Checkbox markdown `- [ ]`
-- ID sequentiel `T001` a `T028`
-- Marqueur `[P]` uniquement quand parallelisable
-- Label story `[US1]`, `[US2]`, `[US3]` sur les phases user story
-- Chemin de fichier explicite dans chaque tache
+## Notes
+
+- Les chemins `e:\Dev\projects\FoodGpt\...` sont volontairement absolus pour l’agent d’implémentation ; en revue, utiliser des chemins relatifs au repo si préféré.
+- Ancienne liste « Homepage LLM Mock Trigger » : les tâches cochées historiques ne couvrent pas ce flux ; ce fichier remplace la file d’attente pour `photo-capture-llm-result-flow`.

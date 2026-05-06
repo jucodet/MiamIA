@@ -10,3 +10,7 @@
 ## Conflict Decisions
 
 - Owner decision: la contrainte de contenu du bilan n'est pas dans ce domaine; seule la mise en scene UX est documentee ici.
+
+## Validation manuelle (quickstart)
+
+- Scénarios `quickstart.md` : à rejouer sur appareil ou émulateur après merge (aperçu + ordre des boutons, flux photo → loader → écran résultat, abandon pendant chargement, test LLM, indisponibilité caméra). Aucun écart bloquant noté lors de l’implémentation automatisée (build local peut échouer si `R.jar` est verrouillé par un autre processus).

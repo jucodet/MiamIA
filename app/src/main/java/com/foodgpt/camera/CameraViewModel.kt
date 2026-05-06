@@ -31,6 +31,10 @@ import com.foodgpt.recognition.IngredientRecognitionCoordinator
 import com.foodgpt.recognition.ScanFailureClassifier
 import com.foodgpt.gemma4local.AndroidGemma4LocalGateway
 import com.foodgpt.gemma4local.Gemma4LocalAvailabilityChecker
+import com.foodgpt.composition.CompositionBilan
+import com.foodgpt.home.HomeLlmFailureCategory
+import com.foodgpt.home.HomeLlmMockOutcome
+import com.foodgpt.home.HomeLlmMockRunner
 import com.foodgpt.home.MediaPipeLlmAvailabilityProbe
 import com.foodgpt.home.MediaPipeStatusViewState
 import com.foodgpt.welcome.WelcomeDisplayLogger
@@ -41,19 +45,24 @@ import com.foodgpt.welcome.WelcomeMessageUiState
 import com.foodgpt.welcome.toUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraViewModel(
     application: Application,
     private val coordinator: IngredientRecognitionCoordinator?,
     private val compositionEngine: CompositionAnalysisEngine? = null,
+    private val homeLlmRunner: HomeLlmMockRunner? = null,
     private val permissionHandler: CameraPermissionHandler = CameraPermissionHandler(),
     private val mapper: ExtractedIngredientMapper = ExtractedIngredientMapper(),
     private val failureClassifier: ScanFailureClassifier = ScanFailureClassifier(),
@@ -98,6 +107,22 @@ class CameraViewModel(
     private val mediaPipeApiProbe = MediaPipeLlmAvailabilityProbe()
     private val segmentPreparationService = IngredientSegmentPreparationService()
     private val submissionGate = AnalysisSubmissionGate()
+
+    private val _captureRouteActive = MutableStateFlow(false)
+
+    private val _navigateToLlmResult = MutableSharedFlow<CameraLlmResultNavigation>(extraBufferCapacity = 1)
+    val navigateToLlmResult: SharedFlow<CameraLlmResultNavigation> = _navigateToLlmResult.asSharedFlow()
+
+    private val cameraTabLlmTestInFlight = AtomicBoolean(false)
+
+    fun setCaptureRouteActive(active: Boolean) {
+        _captureRouteActive.value = active
+    }
+
+    @VisibleForTesting
+    fun debugOverrideScanStateForTests(state: ScanState) {
+        _scanState.value = state
+    }
 
     /** Exclus tests unitaires — simule un OCR terminé avant l’étape composition. */
     @VisibleForTesting
@@ -155,6 +180,92 @@ class CameraViewModel(
 
     fun onGemmaModelImported() {
         refreshMediaPipeAvailability()
+    }
+
+    fun canRunCameraTabLlmTest(): Boolean {
+        if (homeLlmRunner == null) return false
+        if (inFlightScan || cameraTabLlmTestInFlight.get()) return false
+        return when (_scanState.value) {
+            is ScanState.CompositionAnalyzing,
+            ScanState.Capturing,
+            ScanState.Analyzing -> false
+            is ScanState.SegmentConfirmationRequired -> false
+            else -> true
+        }
+    }
+
+    fun canCapturePhoto(): Boolean {
+        if (inFlightScan || cameraTabLlmTestInFlight.get()) return false
+        if (_scanState.value is ScanState.CompositionAnalyzing) return false
+        return _scanState.value == ScanState.PreviewActive
+    }
+
+    fun runCameraTabLlmMockTest() {
+        val runner = homeLlmRunner ?: return
+        if (!canRunCameraTabLlmTest()) return
+        if (!cameraTabLlmTestInFlight.compareAndSet(false, true)) return
+        viewModelScope.launch {
+            _scanState.value = ScanState.CompositionAnalyzing()
+            try {
+                when (val outcome = runner.run()) {
+                    is HomeLlmMockOutcome.Success -> {
+                        offerLlmResultIfActive(
+                            body = outcome.responseText,
+                            isError = false,
+                            errorCategoryWire = null
+                        )
+                    }
+                    is HomeLlmMockOutcome.Failure -> {
+                        offerLlmResultIfActive(
+                            body = outcome.message,
+                            isError = true,
+                            errorCategoryWire = outcome.category.wireValue
+                        )
+                    }
+                }
+            } finally {
+                cameraTabLlmTestInFlight.set(false)
+                if (permissionHandler.hasCameraPermission(getApplication())) {
+                    _scanState.value = ScanState.CameraReady
+                    _previewSession.value += 1
+                } else {
+                    _scanState.value = ScanState.PermissionDenied
+                }
+            }
+        }
+    }
+
+    private fun formatBilanForResult(bilan: CompositionBilan): String = buildString {
+        appendLine("###LISTE")
+        bilan.ingredientLines.forEach { appendLine("- $it") }
+        appendLine("###ANALYSE")
+        appendLine(bilan.compositionAnalysis)
+        appendLine("###DISCLAIMER")
+        append(bilan.disclaimer)
+    }
+
+    private fun offerLlmResultIfActive(body: String, isError: Boolean, errorCategoryWire: String?) {
+        if (!_captureRouteActive.value) return
+        val payload = CameraLlmResultNavigation(
+            body = body,
+            isError = isError,
+            errorCategoryWire = errorCategoryWire
+        )
+        CameraLlmResultPayloadStore.set(payload)
+        if (!_navigateToLlmResult.tryEmit(payload)) {
+            viewModelScope.launch {
+                _navigateToLlmResult.emit(payload)
+            }
+        }
+    }
+
+    private fun resetToCaptureAfterNav() {
+        _previewSession.value += 1
+        _scanState.value = if (permissionHandler.hasCameraPermission(getApplication())) {
+            ScanState.CameraReady
+        } else {
+            ScanState.PermissionDenied
+        }
     }
 
     /**
@@ -336,42 +447,74 @@ class CameraViewModel(
             }
         }
         clearAdditiveKpiDisplay()
-        _scanState.value = when (outcome) {
+        when (outcome) {
             is AnalyzeCompositionResult.BilanSuccess -> {
                 val emptyReject = CompositionResultValidator.rejectEmptyStructure(outcome.bilan)
                 if (emptyReject != null) {
                     _lastValidatedSegmentForHealth.value = null
-                    ScanState.CompositionLimit(
-                        message = emptyReject.message,
-                        rawTranscript = rawText
-                    )
+                    if (_captureRouteActive.value) {
+                        offerLlmResultIfActive(
+                            emptyReject.message,
+                            true,
+                            HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+                        )
+                        resetToCaptureAfterNav()
+                    } else {
+                        _scanState.value = ScanState.CompositionLimit(
+                            message = emptyReject.message,
+                            rawTranscript = rawText
+                        )
+                    }
                 } else {
                     when (val v = CompositionResultValidator.validateAgainstSource(outcome.bilan, rawText)) {
                         is AnalyzeCompositionResult.BilanSuccess -> {
-                            val kpi = withContext(Dispatchers.Default) {
-                                BuildAdditiveKpiDisplay(v.bilan, rawText)
-                            }
-                            _additiveKpiDisplay.value = kpi
                             _lastValidatedSegmentForHealth.value = rawText
-                            ScanState.BilanReady(
-                                bilan = v.bilan,
-                                rawTranscript = rawText,
-                                itemsPreview = itemsPreview
-                            )
+                            if (_captureRouteActive.value) {
+                                offerLlmResultIfActive(formatBilanForResult(v.bilan), false, null)
+                                resetToCaptureAfterNav()
+                            } else {
+                                val kpi = withContext(Dispatchers.Default) {
+                                    BuildAdditiveKpiDisplay(v.bilan, rawText)
+                                }
+                                _additiveKpiDisplay.value = kpi
+                                _scanState.value = ScanState.BilanReady(
+                                    bilan = v.bilan,
+                                    rawTranscript = rawText,
+                                    itemsPreview = itemsPreview
+                                )
+                            }
                         }
                         is AnalyzeCompositionResult.CompositionLimit -> {
                             _lastValidatedSegmentForHealth.value = null
-                            ScanState.CompositionLimit(
-                                message = v.message,
-                                rawTranscript = rawText
-                            )
+                            if (_captureRouteActive.value) {
+                                offerLlmResultIfActive(
+                                    v.message,
+                                    true,
+                                    HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+                                )
+                                resetToCaptureAfterNav()
+                            } else {
+                                _scanState.value = ScanState.CompositionLimit(
+                                    message = v.message,
+                                    rawTranscript = rawText
+                                )
+                            }
                         }
                         else -> {
                             _lastValidatedSegmentForHealth.value = null
-                            ScanState.CompositionLimit(
-                                CompositionMessages.COMPOSITION_LIMIT_GENERIC,
-                                rawText
-                            )
+                            if (_captureRouteActive.value) {
+                                offerLlmResultIfActive(
+                                    CompositionMessages.COMPOSITION_LIMIT_GENERIC,
+                                    true,
+                                    HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+                                )
+                                resetToCaptureAfterNav()
+                            } else {
+                                _scanState.value = ScanState.CompositionLimit(
+                                    CompositionMessages.COMPOSITION_LIMIT_GENERIC,
+                                    rawText
+                                )
+                            }
                         }
                     }
                 }
@@ -379,18 +522,37 @@ class CameraViewModel(
             is AnalyzeCompositionResult.GemmaError -> {
                 _lastValidatedSegmentForHealth.value = null
                 val uiMessage = Gemma4LocalUiMessageResolver.resolve(outcome.code, outcome.message)
-                ScanState.GemmaUnavailable(
-                    code = outcome.code,
-                    message = uiMessage,
-                    rawTranscript = rawText
-                )
+                if (_captureRouteActive.value) {
+                    val wire = if (outcome.code == GemmaErrorCode.GEMMA_TIMEOUT) {
+                        HomeLlmFailureCategory.TIMEOUT.wireValue
+                    } else {
+                        HomeLlmFailureCategory.RUNTIME_UNAVAILABLE.wireValue
+                    }
+                    offerLlmResultIfActive(uiMessage, true, wire)
+                    resetToCaptureAfterNav()
+                } else {
+                    _scanState.value = ScanState.GemmaUnavailable(
+                        code = outcome.code,
+                        message = uiMessage,
+                        rawTranscript = rawText
+                    )
+                }
             }
             is AnalyzeCompositionResult.CompositionLimit -> {
                 _lastValidatedSegmentForHealth.value = null
-                ScanState.CompositionLimit(
-                    message = outcome.message,
-                    rawTranscript = rawText
-                )
+                if (_captureRouteActive.value) {
+                    offerLlmResultIfActive(
+                        outcome.message,
+                        true,
+                        HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+                    )
+                    resetToCaptureAfterNav()
+                } else {
+                    _scanState.value = ScanState.CompositionLimit(
+                        message = outcome.message,
+                        rawTranscript = rawText
+                    )
+                }
             }
         }
     }
@@ -421,13 +583,19 @@ class CameraViewModel(
         fun factory(
             application: Application,
             coordinator: IngredientRecognitionCoordinator?,
-            compositionEngine: CompositionAnalysisEngine? = null
+            compositionEngine: CompositionAnalysisEngine? = null,
+            homeLlmRunner: HomeLlmMockRunner? = null
         ): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(CameraViewModel::class.java))
-                    return CameraViewModel(application, coordinator, compositionEngine) as T
+                    return CameraViewModel(
+                        application,
+                        coordinator,
+                        compositionEngine,
+                        homeLlmRunner
+                    ) as T
                 }
             }
         }

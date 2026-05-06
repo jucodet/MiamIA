@@ -1,36 +1,41 @@
-# Implementation Plan: Homepage LLM Mock Trigger
+# Implementation Plan: photo-capture-llm-result-flow
 
-**Branch**: `016-home-llm-button` | **Date**: 2026-05-06 | **Spec**: `specs/domains/user-guidance-experience/spec.md`  
-**Input**: Feature specification from `/specs/domains/user-guidance-experience/spec.md`
+**Branch**: `016-ingredient-phrase-segment` (outil) | **Spec branch référencée**: `017-photo-analyse-ecran-resultat` | **Date**: 2026-05-06 | **Spec**: [`spec.md`](./spec.md)
+
+**Input**: Spécification domaine `user-guidance-experience` — accueil = écran capture, sans onglets, loader sur capture, navigation résultat conditionnelle, abandon FR-014, retour capture FR-016.
+
+**Note**: Phases 0–1 documentées ci-dessous ; `tasks.md` est produit par `/speckit-tasks` (Phase 2 livrable).
 
 ## Summary
 
-Ajouter un point d'entree UX sur la homepage qui declenche le test bouchonne du pipeline LLM local au clic, affiche un etat d'execution clair, puis rend la reponse LLM (ou une erreur explicite) sans passer par les parcours camera/OCR. La conception preserve la frontiere DDD: `user-guidance-experience` orchestre uniquement le declenchement et le rendu, tandis que la validite metier de la reponse reste dans le domaine d'analyse.
+Faire de l’écran de **prise de photo** le **premier écran** et la **racine** de la navigation principale (**FR-001**, **FR-015**, **SC-007**) : prévisualisation (ou message si caméra indisponible), bouton photo, puis bouton test LLM. Après photo ou test, afficher un **loader sur l’écran capture** jusqu’à l’état terminal (**FR-006**, **FR-013**), puis **naviguer vers un écran résultat** seulement si l’utilisatrice est **restée sur la capture** (**FR-007**, **FR-010**, **FR-014**). **Retour** depuis le résultat → **capture**, sans réintroduction d’onglets (**FR-016**). Décisions détaillées dans [`research.md`](./research.md) ; contrat observable dans [`contracts/capture-llm-result-navigation-contract.md`](./contracts/capture-llm-result-navigation-contract.md).
 
 ## Technical Context
 
-**Language/Version**: Kotlin 2.x + Android (minSdk 26, targetSdk 34, Java 17)  
-**Primary Dependencies**: Jetpack Compose Material3, AndroidX Lifecycle/ViewModel, Kotlin Coroutines, modules app existants pour orchestration d'analyse locale  
-**Storage**: N/A (pas de nouvelle persistance requise pour ce scope UX)  
-**Testing**: JUnit4 + tests UI Compose + tests ViewModel  
-**Target Platform**: Smartphones Android  
-**Project Type**: Application mobile Android  
-**Performance Goals**: affichage de l'etat "en cours" en moins de 200 ms apres clic; rendu de la reponse en moins de 30 s dans les cas reussis  
-**Constraints**: offline-first local; pas de declenchements concurrents; message d'erreur explicite obligatoire  
-**Scale/Scope**: homepage + ecran/resultat associe au test LLM; une execution active a la fois
+**Language/Version**: Kotlin (JVM cible Android), Gradle Kotlin DSL  
+**Primary Dependencies**: Jetpack Compose, Navigation Compose, CameraX (prévisualisation / capture), ViewModel, coroutines ; gateway LLM local existant (ex. `AndroidGemma4LocalGateway` / mocks selon build)  
+**Storage**: N/A pour ce flux UX (état écran / run en mémoire ; persistance hors périmètre sauf réutilisation existante)  
+**Testing**: Tests instrumentés Android (`androidTest`), tests unitaires JVM si logique pure ; ATDD aligné constitution (scénarios Given/When/Then de la spec)  
+**Target Platform**: Android (API minimale du module `app`)  
+**Project Type**: application mobile monolithique (`app/`)  
+**Performance Goals**: **SC-003** (loader &lt; 1 s après début traitement), **SC-007** (écran capture sans onglets &lt; 3 s cold start représentatif), latence résultat **SC-004**  
+**Constraints**: pas de navigation résultat après abandon pendant chargement (**FR-014**) ; un seul run LLM actif ; boutons photo et test désactivés pendant `in_progress` (research Decision 8)  
+**Scale/Scope**: un graphe principal capture → résultat LLM ; pas de barre d’onglets multi-sections (**FR-015**)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **I. Qualite produit et code**: PASS - exigences testables, traçabilite spec vers artefacts de design.
-- **II. ATDD d'abord**: PASS - scenarios Given/When/Then dans la spec, quickstart de tests ajoute.
-- **III. UX moderne et optimale**: PASS - etats explicites `idle/running/success/failure`, erreurs lisibles.
-- **IV. Performance exigence produit**: PASS - objectifs mesurables definis (etat <200ms, reponse <30s).
-- **V. Simplicite et evolutivite**: PASS - orchestration UI minimale, aucune fuite de logique metier.
-- **VI. Frontieres DDD**: PASS - domaine UX consomme un service d'analyse sans redefinir "reponse exploitable".
+| Principe | Statut |
+|----------|--------|
+| **I. Qualité / traçabilité** | Spec domaine + contrat UI + modèle données ; incrément testable par user story. |
+| **II. ATDD** | Scénarios US1–US4 et edge cases dans `spec.md` ; quickstart + contrat pour validation manuelle et cibles de tests auto. |
+| **III. UX** | Parcours simple, feedback loader, erreurs explicites (**FR-010**, **FR-011**). |
+| **IV. Performance** | **SC-001**–**SC-007** dans la spec. |
+| **V. Simplicité** | Navigation pile simple ; pas de sur-couche sans besoin. |
+| **VI. DDD** | Domaine `user-guidance-experience` ; sémantique du texte LLM hors périmètre (research Decision 4). |
 
-**Post-Design Re-check**: PASS - modeles UX et contrat d'interface restent limites a `user-guidance-experience`.
+**Post-design (Phase 1)** : aucune violation nouvelle ; frontières préservées (`data-model.md`, contrat limité à l’observable UI).
 
 ## Project Structure
 
@@ -38,40 +43,53 @@ Ajouter un point d'entree UX sur la homepage qui declenche le test bouchonne du 
 
 ```text
 specs/domains/user-guidance-experience/
-├── plan.md
-├── research.md
-├── data-model.md
-├── quickstart.md
-├── contracts/
-│   └── homepage-llm-mock-ui-contract.md
-└── tasks.md
+├── plan.md              # This file
+├── research.md          # Phase 0
+├── data-model.md        # Phase 1
+├── quickstart.md        # Phase 1
+├── contracts/           # Phase 1
+└── tasks.md             # /speckit-tasks (non créé par ce plan)
 ```
 
 ### Source Code (repository root)
 
 ```text
 app/src/main/java/com/foodgpt/
-├── home/
-│   ├── HomeScreen.kt
-│   └── HomeViewModel.kt
-├── analysis/
-│   └── AnalysisInputBuilder.kt
-├── composition/
-│   └── LiteRtGemmaEngine.kt
-└── ui/
-    └── components/
+├── MainActivity.kt                    # Point d’entrée Compose ; shell sans TabRow principal
+├── camera/                            # CameraScreen, CameraViewModel, capture
+├── navigation/                        # Routes / NavHost capture ↔ résultat
+├── result/ ou équivalent              # LlmResultScreen, payload d’affichage
+├── home/                              # HomeLlmMockRunner (réutilisation FR-008)
+├── gemma4local/                       # Gateway / modèles résultat analyse
+└── …                                  # Autres packages inchangés hors refactor navigation
 
-app/src/test/java/com/foodgpt/home/
-└── HomeLlmMockTriggerTest.kt
-
-app/src/androidTest/java/com/foodgpt/home/
-└── HomeScreenLlmMockUiTest.kt
+app/src/androidTest/java/com/foodgpt/  # Tests parcours / smoke cold start si ajoutés
 ```
 
-**Structure Decision**: conserver l'implementation dans le flux homepage (`home/`) avec adaptation minimale vers le service d'analyse existant; les tests unitaires et UI couvrent le declenchement, les etats et le rendu resultat.
+**Structure Decision**: Module unique `app` ; refactor **MainActivity** pour retirer l’onglet comme navigation **primaire** et faire du flux capture (+ sous-route résultat) la **racine**, conformément à research Decisions 10–11.
+
+## Phase 0 — Recherche
+
+**Statut**: terminé — voir [`research.md`](./research.md). Aucun `NEEDS CLARIFICATION` restant pour ce périmètre.
+
+## Phase 1 — Design & contrats
+
+**Statut**: terminé.
+
+- [`data-model.md`](./data-model.md) — entités `AppNavigationShell`, `CaptureScreenUiSession`, `LlmPipelineRun`, `LlmResultScreenPayload`.
+- [`contracts/capture-llm-result-navigation-contract.md`](./contracts/capture-llm-result-navigation-contract.md) — commandes observables, états, navigation.
+- [`quickstart.md`](./quickstart.md) — validation manuelle (cold start, onglets, FR-016, abandon).
+
+**Agent context**: `.cursor/rules/specify-rules.mdc` pointe déjà vers `specs/domains/user-guidance-experience/plan.md`.
+
+## Phase 2 — Tâches d’implémentation
+
+Hors fichier : exécuter **`/speckit-tasks`** pour générer ou mettre à jour `tasks.md` (refactor navigation, tests ATDD **SC-007** / **FR-015** / **FR-016**, etc.).
 
 ## Complexity Tracking
 
+> Aucune violation constitutionnelle à justifier pour ce plan.
+
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| None | N/A | N/A |
+| — | — | — |

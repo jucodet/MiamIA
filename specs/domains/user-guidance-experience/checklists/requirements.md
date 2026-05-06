@@ -1,4 +1,4 @@
-# Specification Quality Checklist: home-camera-llm-panel
+# Specification Quality Checklist: photo-capture-llm-result-flow + accueil capture sans onglets
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-05-06  
@@ -31,5 +31,5 @@
 
 ## Notes
 
-- Validation relancee apres integration des contraintes camera live, bouton photo, bouton Test LLM et panneau de resultat dedie.
-- Toutes les verifications passent. La specification est prete pour `/speckit.clarify` ou `/speckit.plan`.
+- Validation après extension : premier écran = prise de photo au lancement, suppression de la barre d'onglets principale (FR-015), retour cohérent sur la capture (FR-016), SC-007 ; périmètre inchangé sur loader, résultat LLM et ordre des boutons.
+- Spécification prête pour `/speckit.clarify` ou `/speckit.plan`.

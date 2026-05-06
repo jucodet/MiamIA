@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -26,7 +27,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.foodgpt.additives.ui.AdditiveKpiPanel
 import com.foodgpt.home.HomeSpacingRules
@@ -48,6 +53,18 @@ fun CameraScreen(
     val welcomeState by viewModel.welcomeUiState.collectAsState()
     val mediaPipeStatus by viewModel.mediaPipeStatus.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.setCaptureRouteActive(true)
+                Lifecycle.Event.ON_STOP -> viewModel.setCaptureRouteActive(false)
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Column(
         modifier = Modifier
@@ -86,7 +103,45 @@ fun CameraScreen(
             }
 
             is ScanState.CameraUnavailable -> {
-                Text("Caméra indisponible: ${(state as ScanState.CameraUnavailable).reason ?: "erreur inconnue"}")
+                val unavailable = state as ScanState.CameraUnavailable
+                Text(
+                    text = "Caméra indisponible: ${unavailable.reason ?: "erreur inconnue"}",
+                    modifier = Modifier
+                        .semantics { contentDescription = "Message caméra indisponible avec détail" }
+                        .testTag("camera_unavailable_message")
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(360.dp)
+                        .testTag("photo_preview_placeholder"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Prévisualisation désactivée — la caméra n'est pas disponible.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                Button(
+                    onClick = { viewModel.capturePhoto(onCreateTempImage()) },
+                    enabled = viewModel.canCapturePhoto(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("capture_photo_button")
+                ) {
+                    Text("Prendre la photo")
+                }
+                OutlinedButton(
+                    onClick = viewModel::runCameraTabLlmMockTest,
+                    enabled = viewModel.canRunCameraTabLlmTest(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
+                        .testTag("camera_tab_llm_test_button")
+                ) {
+                    Text("Test LLM")
+                }
                 Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("retry_camera")) {
                     Text("Réessayer")
                 }
@@ -94,29 +149,68 @@ fun CameraScreen(
 
             is ScanState.CompositionAnalyzing -> {
                 val analyzing = state as ScanState.CompositionAnalyzing
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    CircularProgressIndicator()
-                    Text(
-                        "Analyse composition (Gemma)…",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.testTag("composition_analyzing_label")
-                    )
-                    if (analyzing.partialResponse.isNotBlank()) {
-                        Text(
-                            text = analyzing.partialResponse,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 180.dp)
-                                .verticalScroll(rememberScrollState())
-                                .testTag("composition_streaming_draft")
+                key(previewSession) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(360.dp)
+                            .testTag("photo_preview_box")
+                    ) {
+                        CameraPreviewBox(
+                            onPreviewViewCreated = { previewView ->
+                                viewModel.attachPreview(previewView, lifecycleOwner)
+                            },
+                            modifier = Modifier.fillMaxSize()
                         )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                CircularProgressIndicator()
+                                Text(
+                                    "Analyse LLM en cours…",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.testTag("llm_loading_overlay_label")
+                                )
+                                if (analyzing.partialResponse.isNotBlank()) {
+                                    Text(
+                                        text = analyzing.partialResponse,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 120.dp)
+                                            .verticalScroll(rememberScrollState())
+                                            .testTag("composition_streaming_draft")
+                                    )
+                                }
+                            }
+                        }
                     }
+                }
+                Button(
+                    onClick = { viewModel.capturePhoto(onCreateTempImage()) },
+                    enabled = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("capture_photo_button")
+                ) {
+                    Text("Prendre la photo")
+                }
+                OutlinedButton(
+                    onClick = viewModel::runCameraTabLlmMockTest,
+                    enabled = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
+                        .testTag("camera_tab_llm_test_button")
+                ) {
+                    Text("Test LLM")
                 }
             }
 
@@ -300,11 +394,22 @@ fun CameraScreen(
 
                     Button(
                         onClick = { viewModel.capturePhoto(onCreateTempImage()) },
+                        enabled = viewModel.canCapturePhoto(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("capture_photo_button")
                     ) {
                         Text("Prendre la photo")
+                    }
+                    OutlinedButton(
+                        onClick = viewModel::runCameraTabLlmMockTest,
+                        enabled = viewModel.canRunCameraTabLlmTest(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
+                            .testTag("camera_tab_llm_test_button")
+                    ) {
+                        Text("Test LLM")
                     }
 
                     Text(
