@@ -1,5 +1,5 @@
 ---
-name: "speckit-domain-ddd"
+name: "speckit-design-map"
 description: "Define a DDD-aligned specification topology and migration map from existing Spec Kit features to business domains. Use when the user wants to reorganize specs by functional domains, bounded contexts, and team/deployment boundaries."
 disable-model-invocation: true
 compatibility: "Requires spec-kit project structure with specs/ directory"
@@ -8,11 +8,11 @@ metadata:
   source: "custom"
 ---
 
-# Speckit Domain DDD
+# Speckit Design Map
 
 ## Purpose
 
-Create a target DDD model that transforms a feature-indexed spec tree into a domain-indexed structure readable by humans and scalable for parallel teams.
+Create and maintain a DDD topology that routes every new feature request into the right bounded context before specification starts.
 
 Align all decisions with Eric Evans DDD strategic/tactical best practices (Evans 2003 + DDD Reference): domain language first, explicit context boundaries, and protected model integrity.
 
@@ -25,6 +25,33 @@ Use user constraints if provided:
 - Existing `specs/*` artifacts to include
 
 If missing, infer from current specs and state assumptions explicitly.
+
+For new feature intake, the user can provide only a high-level intent. In that case this skill must act as a domain router.
+
+## New Feature Intake (Mandatory First Step)
+
+For any new feature workflow, this skill runs before `speckit-specify`.
+
+Input:
+- User intent (problem/opportunity, no detailed spec required)
+
+Execution:
+1. Read and analyze `specs/domains/domain-map.md` as the authoritative routing source.
+2. Identify the best matching bounded context and target domain folder.
+3. If no domain is a safe match, ask targeted clarification questions (max 3) focused on business boundary fit.
+4. Prepare the target location:
+   - Ensure `specs/domains/<domain>/` exists.
+   - Ensure `specs/domains/<domain>/spec.md` exists (create from template if missing).
+5. Persist active target for downstream commands by writing `.specify/feature.json` with:
+   - `feature_directory: "specs/domains/<domain>"`
+6. Return the selected bounded context, rationale, and resolved target path.
+
+Output:
+- `bounded_context`
+- `target_domain`
+- `target_spec_file`
+- `routing_rationale` (short)
+- `next_command`: `/speckit.specify`
 
 ## Workflow
 

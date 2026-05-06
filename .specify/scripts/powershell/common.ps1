@@ -247,7 +247,9 @@ function Get-FeaturePathsEnv {
             $featureDir = Get-FeatureDirFromBranchPrefixOrExit -RepoRoot $repoRoot -CurrentBranch $currentBranch
         }
     } else {
-        $featureDir = Get-FeatureDirFromBranchPrefixOrExit -RepoRoot $repoRoot -CurrentBranch $currentBranch
+        [Console]::Error.WriteLine("ERROR: Missing routed domain directory.")
+        [Console]::Error.WriteLine("Run /speckit-design-map first to set .specify/feature.json, then /speckit.specify.")
+        exit 1
     }
     
     [PSCustomObject]@{
