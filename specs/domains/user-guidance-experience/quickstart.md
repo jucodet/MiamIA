@@ -18,7 +18,7 @@ Verifier rapidement que le bouton homepage declenche le test bouchonne LLM et qu
 4. Verifier l'affichage immediat d'un etat `running`.
 5. Attendre le resultat:
    - si succes: verifier affichage lisible de la reponse LLM;
-   - si echec: verifier message explicite avec categorie.
+   - si echec: verifier message explicite avec categorie (`timeout`, `runtime-unavailable` ou `non-analysable-response`).
 6. Pendant `running`, cliquer plusieurs fois sur le bouton:
    - verifier qu'aucune execution concurrente n'est declenchee.
 7. Apres fin (`success` ou `failure`), relancer un nouveau test:
@@ -39,3 +39,4 @@ Verifier rapidement que le bouton homepage declenche le test bouchonne LLM et qu
 ## Expected Outcomes
 
 - Tous les criteres SC-001 a SC-004 de la spec sont observables et verifiables.
+- En cas de timeout fonctionnel, la categorie affichee doit etre `timeout` (pas `runtime-unavailable`).

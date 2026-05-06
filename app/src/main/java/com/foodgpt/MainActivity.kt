@@ -40,6 +40,7 @@ import com.foodgpt.gemma4local.Gemma4LocalErrorMapper
 import com.foodgpt.gemma4local.Gemma4LocalMetricsLogger
 import com.foodgpt.gemma4local.GemmaModelImportManager
 import com.foodgpt.gemma4local.Gemma4LocalRequestMapper
+import com.foodgpt.gemma4local.HybridGemma4LocalGateway
 import com.foodgpt.healthcritique.HealthCritiqueScreen
 import com.foodgpt.healthcritique.HealthCritiqueViewModel
 import com.foodgpt.home.CompositionEngineHomeLlmMockRunner
@@ -98,7 +99,8 @@ class MainActivity : ComponentActivity() {
             }
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Import du modele impossible.", Toast.LENGTH_SHORT).show()
+            val reason = modelImportManager.getLastImportErrorMessage() ?: "Import du modele impossible."
+            Toast.makeText(this, reason, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -126,7 +128,7 @@ class MainActivity : ComponentActivity() {
                         repository = repository
                     )
                 }
-                val localGateway = AndroidGemma4LocalGateway(applicationContext)
+                val localGateway = HybridGemma4LocalGateway(applicationContext)
                 val localClient = Gemma4LocalClient(
                     availabilityChecker = Gemma4LocalAvailabilityChecker(localGateway),
                     requestMapper = Gemma4LocalRequestMapper(),

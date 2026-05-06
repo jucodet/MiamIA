@@ -99,7 +99,7 @@
 **Purpose**: Finaliser la coherence globale et verifier le parcours complet.
 
 - [X] T026 [P] Harmoniser les textes UX (loading, succes, erreur) dans `app/src/main/java/com/foodgpt/home/HomeScreen.kt`
-- [ ] T027 Verifier le quickstart de bout en bout et mettre a jour la documentation dans `specs/domains/user-guidance-experience/quickstart.md`
+- [X] T027 Verifier le quickstart de bout en bout et mettre a jour la documentation dans `specs/domains/user-guidance-experience/quickstart.md`
 - [ ] T028 Executer la campagne de tests unitaires et UI du scope home dans `app/src/test/java/com/foodgpt/home/` et `app/src/androidTest/java/com/foodgpt/home/`
 
 ---

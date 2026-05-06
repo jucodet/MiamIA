@@ -2,6 +2,7 @@ package com.foodgpt.gemma4local
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import com.foodgpt.composition.GemmaModelPaths
 import java.io.File
 import java.io.FileOutputStream
@@ -9,7 +10,15 @@ import java.io.FileOutputStream
 class GemmaModelImportManager(
     private val context: Context
 ) {
+    private var lastImportErrorMessage: String? = null
+
     fun importFromUri(uri: Uri, overwriteExisting: Boolean = false): Boolean {
+        lastImportErrorMessage = null
+        val extensionError = validateModelExtension(uri)
+        if (extensionError != null) {
+            lastImportErrorMessage = extensionError
+            return false
+        }
         val target = targetModelFile()
         if (!overwriteExisting && hasLocalModel()) {
             persistModelUri(uri)
@@ -36,6 +45,7 @@ class GemmaModelImportManager(
             true
         }.getOrElse {
             temp.delete()
+            lastImportErrorMessage = it.message ?: "Import du modele impossible."
             false
         }
     }
@@ -48,6 +58,8 @@ class GemmaModelImportManager(
         return target.isFile && target.length() > 0L
     }
 
+    fun getLastImportErrorMessage(): String? = lastImportErrorMessage
+
     private fun persistModelUri(uri: Uri) {
         prefs().edit().putString(PREF_MODEL_URI, uri.toString()).apply()
     }
@@ -58,6 +70,28 @@ class GemmaModelImportManager(
     private fun targetModelFile(): File {
         val outDir = File(context.filesDir, GemmaModelPaths.ASSET_DIRECTORY).apply { mkdirs() }
         return File(outDir, GemmaModelPaths.EXPECTED_MODEL_FILENAME)
+    }
+
+    private fun validateModelExtension(uri: Uri): String? {
+        val fileName = resolveDisplayName(uri) ?: uri.lastPathSegment.orEmpty()
+        if (fileName.isBlank()) {
+            return "Modele invalide: nom de fichier introuvable. Fichier .litertlm requis."
+        }
+        if (!fileName.endsWith(".litertlm", ignoreCase = true)) {
+            return "Modele invalide: extension non supportee ($fileName). Utilisez un fichier .litertlm."
+        }
+        return null
+    }
+
+    private fun resolveDisplayName(uri: Uri): String? {
+        if (uri.scheme == "file") return uri.lastPathSegment
+        return runCatching {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                ?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+                }
+        }.getOrNull()
     }
 
     companion object {

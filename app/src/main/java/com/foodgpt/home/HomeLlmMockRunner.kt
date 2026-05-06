@@ -4,9 +4,9 @@ import com.foodgpt.analysis.AnalysisInputBuilder
 import com.foodgpt.composition.AnalyzeCompositionResult
 import com.foodgpt.composition.CompositionAnalysisEngine
 import com.foodgpt.composition.GemmaErrorCode
-import kotlinx.coroutines.withTimeoutOrNull
+import com.foodgpt.gemma4local.Gemma4LocalConfig
 
-private const val HOMEPAGE_LLM_TIMEOUT_MS = 30_000L
+private const val HOMEPAGE_LLM_TIMEOUT_MS = Gemma4LocalConfig.DEFAULT_TIMEOUT_MS
 
 interface HomeLlmMockRunner {
     suspend fun run(): HomeLlmMockOutcome
@@ -18,12 +18,7 @@ class CompositionEngineHomeLlmMockRunner(
 
     override suspend fun run(): HomeLlmMockOutcome {
         val payload = AnalysisInputBuilder.buildSegmentPayload(MOCK_INGREDIENTS_INPUT)
-        val result = withTimeoutOrNull(HOMEPAGE_LLM_TIMEOUT_MS) {
-            compositionEngine.analyze(payload, HOMEPAGE_LLM_TIMEOUT_MS)
-        } ?: return HomeLlmMockOutcome.Failure(
-            category = HomeLlmFailureCategory.TIMEOUT,
-            message = "Le test a depasse 30 secondes sans reponse exploitable."
-        )
+        val result = compositionEngine.analyze(payload, HOMEPAGE_LLM_TIMEOUT_MS)
 
         return when (result) {
             is AnalyzeCompositionResult.BilanSuccess -> {
@@ -48,7 +43,12 @@ class CompositionEngineHomeLlmMockRunner(
                 } else {
                     HomeLlmFailureCategory.RUNTIME_UNAVAILABLE
                 }
-                HomeLlmMockOutcome.Failure(category = category, message = result.message)
+                val message = if (result.code == GemmaErrorCode.GEMMA_TIMEOUT) {
+                    "Le test a depasse ${HOMEPAGE_LLM_TIMEOUT_MS / 1000} secondes sans reponse exploitable."
+                } else {
+                    result.message
+                }
+                HomeLlmMockOutcome.Failure(category = category, message = message)
             }
         }
     }

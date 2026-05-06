@@ -24,24 +24,54 @@ class Gemma4LocalClient(
         val request = requestMapper.map(rawText, sourceScreen = "camera")
         val started = SystemClock.elapsedRealtime()
 
-        if (!availabilityChecker.isAvailable()) {
+        val availability = availabilityChecker.check()
+        if (!availability.available) {
+            if (availability.issue == Gemma4LocalAvailabilityIssue.TIMEOUT) {
+                // Le health-check peut timeout alors que l'inference reelle finit quelques secondes plus tard.
+                // Dans ce cas, on tente quand meme l'appel d'analyse pour eviter les faux negatifs.
+                Log.w(
+                    TAG,
+                    "availability_timeout_non_blocking requestId=${request.requestId} details=${availability.details}"
+                )
+            } else {
+            val failureMessage = when (availability.issue) {
+                Gemma4LocalAvailabilityIssue.MODEL_MISSING_OR_INVALID ->
+                    Gemma4LocalMessages.MODEL_APP_PRIVATE_IMPORT_REQUIRED
+                Gemma4LocalAvailabilityIssue.TIMEOUT ->
+                    Gemma4LocalMessages.MODEL_EXECUTION_FAILED
+                Gemma4LocalAvailabilityIssue.RUNTIME_UNAVAILABLE ->
+                    Gemma4LocalMessages.API_UNAVAILABLE
+                Gemma4LocalAvailabilityIssue.UNKNOWN, null ->
+                    Gemma4LocalMessages.MODEL_EXECUTION_FAILED
+            }
+            val failureType = when (availability.issue) {
+                Gemma4LocalAvailabilityIssue.MODEL_MISSING_OR_INVALID -> AnalyseTextuelleErrorType.INVALID_RESPONSE
+                Gemma4LocalAvailabilityIssue.RUNTIME_UNAVAILABLE -> AnalyseTextuelleErrorType.API_UNAVAILABLE
+                Gemma4LocalAvailabilityIssue.TIMEOUT -> AnalyseTextuelleErrorType.TIMEOUT
+                Gemma4LocalAvailabilityIssue.UNKNOWN, null -> AnalyseTextuelleErrorType.UNKNOWN
+            }
+            Log.w(
+                TAG,
+                "availability_failed requestId=${request.requestId} issue=${availability.issue} details=${availability.details}"
+            )
             val latency = SystemClock.elapsedRealtime() - started
             val result = AnalyseTextuelleResult(
                 requestId = request.requestId,
                 status = AnalyseTextuelleStatus.FAILED,
-                errorType = AnalyseTextuelleErrorType.API_UNAVAILABLE,
-                userMessage = Gemma4LocalMessages.API_UNAVAILABLE
+                errorType = failureType,
+                userMessage = failureMessage
             )
             metricsLogger.log(
                 ApiCallMetric(
                     requestId = request.requestId,
                     outcome = AnalyseTextuelleStatus.FAILED,
                     latencyMs = latency,
-                    errorType = AnalyseTextuelleErrorType.API_UNAVAILABLE,
+                    errorType = failureType,
                     deviceClass = deviceClassResolver.resolve()
                 )
             )
             return result
+            }
         }
 
         return try {
