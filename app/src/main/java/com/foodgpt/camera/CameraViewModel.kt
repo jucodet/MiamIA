@@ -233,8 +233,8 @@ class CameraViewModel(
                     val uiItems = mapper.toUi(result.items)
                     val itemLabels = uiItems.map { it.text }
                     val transcriptText = result.items.joinToString("\n") { it.normalizedText }
-                    val canonicalAnchor = Regex("ingr[ée]dients?\\s*:", RegexOption.IGNORE_CASE).find(transcriptText)
-                    if (canonicalAnchor == null) {
+                    val extraction = segmentPreparationService.prepare(result.scanId, transcriptText)
+                    if (!extraction.anchorFound) {
                         lastRawTranscript = transcriptText
                         lastItemsPreview = itemLabels
                         _scanState.value = ScanState.Success(
@@ -243,7 +243,6 @@ class CameraViewModel(
                         )
                         return@launch
                     }
-                    val extraction = segmentPreparationService.prepare(result.scanId, transcriptText)
                     val previewDecision = submissionGate.evaluate(
                         scanId = result.scanId,
                         extraction = extraction,

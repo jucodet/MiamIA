@@ -1,61 +1,65 @@
-# Feature Specification: homepage-llm-mock-trigger
+# Feature Specification: home-camera-llm-panel
 
-**Feature Branch**: `016-home-llm-button`  
+**Feature Branch**: `016-home-camera-llm-panel`  
 **Domain Context**: `user-guidance-experience`  
 **Target Domain Folder**: `specs/domains/user-guidance-experience`  
 **Created**: 2026-05-06  
 **Status**: Draft  
-**Input**: User description: "Le test bouchonné du pipeline LLM doit être lancé après clic sur un bouton sur la homepage, et doit afficher la réponse du LLM."
+**Input**: User description: "Homepage avec preview camera reel immediat et mise au point, bouton prise de photo sur flux existant, bouton Test LLM qui relance HomeLlmMockRunner, bouton desactive pendant execution, resultat sur panneau dedie, fallback explicite si camera indisponible."
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Lancer le test depuis la homepage (Priority: P1)
+### User Story 1 - Visualiser et piloter la capture depuis la homepage (Priority: P1)
 
-En tant qu'utilisatrice, je veux cliquer sur un bouton dédié depuis la homepage pour lancer le test bouchonné du pipeline LLM local sans passer par le flux caméra/OCR.
+En tant qu'utilisatrice, je veux voir un aperçu caméra réel immédiatement sur la homepage avec contrôle de mise au point, puis capturer une photo via le bouton dédié au flux existant.
 
-**Why this priority**: Le bouton de déclenchement est le point d'entrée principal de la fonctionnalité et conditionne toute la valeur utilisateur.
+**Why this priority**: La capture est le parcours principal de la homepage et doit rester fluide et explicite.
 
-**Independent Test**: Peut être testé en ouvrant la homepage et en déclenchant le test via le bouton, sans dépendance à d'autres parcours de l'application.
-
-**Acceptance Scenarios**:
-
-1. **Given** l'application est ouverte sur la homepage, **When** l'utilisatrice clique sur le bouton de test LLM, **Then** le processus de test bouchonné démarre immédiatement.
-2. **Given** le bouton est disponible, **When** l'utilisatrice clique dessus, **Then** le système n'exige aucune capture photo ni saisie d'ingrédients manuelle.
-
----
-
-### User Story 2 - Voir clairement la réponse LLM (Priority: P2)
-
-En tant qu'utilisatrice, je veux voir la réponse du LLM affichée à l'écran à la fin du test pour confirmer visuellement que le pipeline fonctionne.
-
-**Why this priority**: L'affichage de la réponse est la preuve fonctionnelle attendue du déclenchement.
-
-**Independent Test**: Peut être testé en simulant une réponse LLM et en vérifiant qu'elle s'affiche de façon lisible sur l'écran ciblé.
+**Independent Test**: Peut être testé en ouvrant la homepage, en vérifiant la preview live, le focus, puis en déclenchant la capture via le bouton photo existant.
 
 **Acceptance Scenarios**:
 
-1. **Given** le test est exécuté avec succès, **When** la réponse est reçue, **Then** la réponse LLM s'affiche intégralement dans une zone de résultat dédiée.
-2. **Given** une réponse multi-lignes, **When** elle est affichée, **Then** le format reste lisible pour l'utilisatrice.
+1. **Given** l'application est ouverte sur la homepage et la caméra est disponible, **When** l'écran est affiché, **Then** un flux caméra réel est visible immédiatement dans un cadre d'aperçu.
+2. **Given** le flux est affiché, **When** l'utilisatrice ajuste la mise au point, **Then** le cadre reflète la zone mise au point.
+3. **Given** le bouton de prise de photo est visible sous le cadre, **When** l'utilisatrice clique dessus, **Then** le flux existant de prise de photo est lancé.
 
 ---
 
-### User Story 3 - Comprendre les erreurs de lancement ou d'exécution (Priority: P3)
+### User Story 2 - Relancer le test LLM et afficher le resultat (Priority: P2)
 
-En tant qu'utilisatrice, je veux obtenir un message d'erreur clair si le test échoue pour savoir que la demande a été prise en compte mais non aboutie.
+En tant qu'utilisatrice, je veux lancer un test LLM depuis la homepage et voir le résultat sur un panneau dédié pour confirmer le bon fonctionnement du pipeline.
+
+**Why this priority**: Le bouton Test LLM est un contrôle qualité utilisateur visible directement sur la homepage.
+
+**Independent Test**: Peut être testé en cliquant sur le bouton Test LLM, en vérifiant sa désactivation pendant l'exécution et l'affichage final du résultat dans le panneau dédié.
+
+**Acceptance Scenarios**:
+
+1. **Given** la homepage est visible, **When** l'utilisatrice clique sur le bouton Test LLM, **Then** le test réutilise exactement le runner de test LLM existant.
+2. **Given** une exécution est confirmée en cours, **When** l'état d'exécution est actif, **Then** le bouton Test LLM est désactivé jusqu'à la fin de cette exécution.
+3. **Given** le test se termine avec succès, **When** la réponse est disponible, **Then** elle s'affiche lisiblement dans un panneau de résultat dédié.
+
+---
+
+### User Story 3 - Comprendre les indisponibilites et erreurs (Priority: P3)
+
+En tant qu'utilisatrice, je veux recevoir un message explicite quand la caméra est indisponible ou quand le test LLM échoue pour comprendre immédiatement ce qui bloque.
 
 **Why this priority**: Sans feedback explicite, l'utilisatrice ne peut pas distinguer un échec d'une absence d'action.
 
-**Independent Test**: Peut être testé en simulant un échec du pipeline et en vérifiant l'affichage d'un message d'erreur actionnable.
+**Independent Test**: Peut être testé en simulant une indisponibilité caméra et un échec de test LLM pour vérifier les messages explicites attendus.
 
 **Acceptance Scenarios**:
 
-1. **Given** un échec pendant l'exécution du test, **When** l'échec est détecté, **Then** un message explicite s'affiche sur la homepage ou l'écran de résultat.
+1. **Given** la caméra est indisponible, **When** la homepage se charge, **Then** un message explicite remplace le cadre d'aperçu caméra.
+2. **Given** une erreur survient pendant l'exécution du test LLM, **When** l'échec est détecté, **Then** un message d'erreur explicite s'affiche dans le panneau dédié.
 
 ---
 
 ### Edge Cases
 
-- Que se passe-t-il si l'utilisatrice clique plusieurs fois rapidement sur le bouton?
+- Que se passe-t-il si l'utilisatrice clique plusieurs fois rapidement sur le bouton Test LLM?
+- Que se passe-t-il si la caméra devient indisponible pendant une session deja ouverte?
 - Que se passe-t-il si la réponse LLM est vide ou indisponible?
 - Que se passe-t-il si la homepage est quittée avant la fin de la réponse?
 
@@ -63,33 +67,39 @@ En tant qu'utilisatrice, je veux obtenir un message d'erreur clair si le test é
 
 ### Functional Requirements
 
-- **FR-001**: Le système MUST exposer sur la homepage un bouton dédié au lancement du test bouchonné du pipeline LLM.
-- **FR-002**: Le système MUST lancer le test immédiatement après le clic utilisateur sur ce bouton.
-- **FR-003**: Le système MUST empêcher les déclenchements concurrents du même test pendant qu'une exécution est déjà en cours.
-- **FR-004**: Le système MUST afficher la réponse LLM reçue dans une zone de résultat visible par l'utilisatrice.
-- **FR-005**: Le système MUST afficher un état explicite pendant l'exécution (en cours, succès ou échec).
-- **FR-006**: Le système MUST afficher un message d'erreur compréhensible si aucune réponse exploitable n'est obtenue.
-- **FR-007**: Le système MUST permettre de relancer un nouveau test après la fin d'une exécution précédente.
+- **FR-001**: Le système MUST afficher sur la homepage un cadre d'aperçu caméra basé sur un flux réel immédiat quand la caméra est disponible.
+- **FR-002**: Le système MUST permettre un contrôle de mise au point depuis ce cadre d'aperçu.
+- **FR-003**: Le système MUST afficher sous le cadre un bouton de prise de photo qui lance le flux existant de capture.
+- **FR-004**: Le système MUST afficher sous le bouton de prise de photo un bouton Test LLM dédié.
+- **FR-005**: Le système MUST relancer le test LLM via le runner existant de la homepage sans introduire de nouveau parcours utilisateur.
+- **FR-006**: Le système MUST désactiver le bouton Test LLM pendant toute exécution confirmée.
+- **FR-007**: Le système MUST afficher le résultat du test (succès ou erreur) dans un panneau dédié distinct du cadre caméra.
+- **FR-008**: Le système MUST afficher un message explicite a la place du cadre d'aperçu si la caméra est indisponible.
+- **FR-009**: Le système MUST permettre une nouvelle exécution Test LLM après la fin de l'exécution en cours.
 
 ### Key Entities *(include if feature involves data)*
 
-- **HomepageLlmTestTrigger**: Représente l'action utilisateur de clic sur le bouton de lancement.
-- **HomepageTestRunState**: Représente l'état courant de l'exécution (`idle`, `running`, `success`, `failure`).
-- **HomepageLlmResponseView**: Représente le contenu de réponse affiché à l'utilisatrice.
-- **HomepageLlmErrorView**: Représente le message d'échec affiché en cas d'erreur.
+- **HomepageCameraPreviewState**: Représente l'état du cadre caméra (`available`, `unavailable`).
+- **HomepageCaptureAction**: Représente l'action utilisateur sur le bouton de prise de photo vers le flux existant.
+- **HomepageLlmTestTrigger**: Représente l'action utilisateur de clic sur le bouton Test LLM.
+- **HomepageLlmRunState**: Représente l'état courant du test (`idle`, `running`, `success`, `failure`).
+- **HomepageLlmResultPanel**: Représente le panneau dédié d'affichage du résultat (message de succès ou d'erreur).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% des clics valides sur le bouton de test déclenchent une tentative d'exécution.
-- **SC-002**: Dans au moins 95% des exécutions réussies, la réponse LLM est affichée en moins de 30 secondes après le clic.
-- **SC-003**: 100% des exécutions en échec affichent un message d'erreur explicite en moins de 2 secondes après détection de l'échec.
-- **SC-004**: 100% des clics répétés pendant une exécution active ne créent pas d'exécution concurrente supplémentaire.
+- **SC-001**: Dans au moins 95% des ouvertures de homepage avec caméra disponible, le flux d'aperçu est visible en moins de 2 secondes.
+- **SC-002**: 100% des activations du bouton de prise de photo déclenchent le flux existant de capture.
+- **SC-003**: 100% des clics valides sur le bouton Test LLM déclenchent une tentative d'exécution unique.
+- **SC-004**: 100% des clics répétés sur Test LLM pendant une exécution confirmée n'ouvrent pas d'exécution concurrente.
+- **SC-005**: Dans au moins 95% des exécutions Test LLM réussies, le résultat est visible dans le panneau dédié en moins de 30 secondes.
+- **SC-006**: 100% des indisponibilités caméra et des échecs Test LLM affichent un message explicite en moins de 2 secondes après détection.
 
 ## Assumptions
 
-- La homepage est déjà le point d'entrée principal pour l'utilisatrice.
-- Le test bouchonné utilise une entrée d'ingrédients mockée déjà définie dans le domaine d'analyse.
-- La définition de "réponse exploitable" est portée par le domaine d'analyse et consommée par l'interface.
-- Le flux s'exécute en local et ne dépend pas d'une connectivité réseau externe pour ce scénario.
+- La homepage reste le point d'entrée principal pour l'utilisatrice.
+- Le flux de prise de photo existant est déjà opérationnel et réutilisable sans changement de périmètre.
+- Le test LLM réutilise le runner existant de la homepage.
+- La définition de "résultat exploitable" est portée par le domaine d'analyse et seulement présentée par l'interface.
+- Le scénario reste local et ne dépend pas d'une connectivité réseau externe.

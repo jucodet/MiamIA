@@ -4,18 +4,17 @@ class IngredientSegmentPreparationService(
     private val normalizer: IngredientAnchorNormalizer = IngredientAnchorNormalizer(),
     private val boundaryResolver: IngredientSegmentBoundaryResolver = IngredientSegmentBoundaryResolver()
 ) {
-    private val canonicalAnchorRegex = Regex("ingr[ée]dients?\\s*:", RegexOption.IGNORE_CASE)
 
     fun prepare(scanId: String, ocrText: String): IngredientSegmentExtraction {
-        val anchorIndex = canonicalAnchorRegex.find(ocrText)?.range?.first
-            ?: normalizer.findFirstAnchorIndex(ocrText)
+        val anchorIndex = normalizer.findFirstPhraseAnchorIndex(ocrText)
             ?: return IngredientSegmentExtraction(
                 scanId = scanId,
                 anchorFound = false,
                 anchorIndex = null,
                 endIndex = null,
                 segmentText = null,
-                fallbackMode = IngredientSegmentFallbackMode.ANCHOR_MISSING_BLOCKED
+                fallbackMode = IngredientSegmentFallbackMode.ANCHOR_MISSING_BLOCKED,
+                boundaryEndReason = IngredientSegmentBoundaryEndReason.NONE
             )
 
         val boundary = boundaryResolver.resolveEnd(ocrText, anchorIndex)
@@ -26,7 +25,8 @@ class IngredientSegmentPreparationService(
             anchorIndex = anchorIndex,
             endIndex = boundary.endIndexExclusive,
             segmentText = segment,
-            fallbackMode = boundary.fallbackMode
+            fallbackMode = IngredientSegmentFallbackMode.NONE,
+            boundaryEndReason = boundary.boundaryEndReason
         )
     }
 }

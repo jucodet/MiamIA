@@ -11,7 +11,7 @@ class IngredientAnchorContractTest {
     fun contract_fields_are_populated_for_anchor_output() {
         val out = pipeline.detectAnchors("scan-contract", IngredientAnchorFixtures.INTRO_THEN_LIST_WITH_SPACE.trimIndent())
         assertEquals("scan-contract", out.scanId)
-        assertEquals("FIRST_CANONICAL_MATCH", out.selectionRule)
+        assertEquals("FIRST_LINE_START_ANCHOR", out.selectionRule)
         assertTrue(out.candidates.isNotEmpty())
     }
 

@@ -1,4 +1,4 @@
-# Specification Quality Checklist: home-camera-llm-panel
+# Specification Quality Checklist: ingredient-phrase-segment
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-05-06  
@@ -31,5 +31,4 @@
 
 ## Notes
 
-- Validation relancee apres integration des contraintes camera live, bouton photo, bouton Test LLM et panneau de resultat dedie.
-- Toutes les verifications passent. La specification est prete pour `/speckit.clarify` ou `/speckit.plan`.
+- Validation complétée : la spécification est prête pour `/speckit.clarify` ou `/speckit.plan`.

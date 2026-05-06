@@ -1,13 +1,19 @@
 package com.foodgpt.recognition
 
-class IngredientExtractionPipeline {
-    private val canonicalAnchorRegex = Regex("ingr[ée]dients?\\s*:", RegexOption.IGNORE_CASE)
+import com.foodgpt.analysis.ingredientsegment.IngredientSegmentPreparationService
+
+class IngredientExtractionPipeline(
+    private val segmentPrep: IngredientSegmentPreparationService = IngredientSegmentPreparationService()
+) {
+    private val lineStartAnchorRegex =
+        Regex("""(?m)(^\s*)(?i)(ingr[ée]dients|ingr[ée]dient|ingredients|ingredient)\b""")
 
     fun detectAnchors(scanId: String, rawText: String): IngredientAnchorDetectionResult {
-        val candidates = canonicalAnchorRegex.findAll(rawText).map {
+        val candidates = lineStartAnchorRegex.findAll(rawText).map { match ->
+            val g2 = match.groups[2]!!
             IngredientAnchorCandidate(
-                startIndex = it.range.first,
-                rawMatch = it.value,
+                startIndex = g2.range.first,
+                rawMatch = g2.value,
                 isCanonical = true
             )
         }.toList()
@@ -15,7 +21,7 @@ class IngredientExtractionPipeline {
         return IngredientAnchorDetectionResult(
             scanId = scanId,
             candidates = candidates,
-            selectionRule = "FIRST_CANONICAL_MATCH",
+            selectionRule = "FIRST_LINE_START_ANCHOR",
             selectedStartIndex = selected?.startIndex,
             anchorFound = selected != null,
             blockedReason = if (selected == null) "NO_CANONICAL_ANCHOR" else "NONE"
@@ -23,10 +29,14 @@ class IngredientExtractionPipeline {
     }
 
     fun extractOrderedItems(rawText: String, confidence: Float): List<IngredientRecognitionItem> {
-        val selectedStart = canonicalAnchorRegex.find(rawText)?.range?.first
-        val anchoredText = if (selectedStart != null) rawText.substring(selectedStart) else rawText
-        return anchoredText
-            .substringAfter(":", anchoredText)
+        val prep = segmentPrep.prepare("extract-$confidence", rawText)
+        val segment = prep.segmentText?.trim().orEmpty()
+        val listPart = if (segment.isNotEmpty()) {
+            extractListPayload(segment)
+        } else {
+            rawText
+        }
+        return listPart
             .split(",", ";")
             .map { it.trim() }
             .filter { it.isNotBlank() }
@@ -41,5 +51,14 @@ class IngredientExtractionPipeline {
                     isAllergenMarked = token.any { it.isUpperCase() } || token.contains("ble", ignoreCase = true)
                 )
             }
+    }
+
+    private fun extractListPayload(segment: String): String {
+        val afterColon = segment.substringAfter(":", "").trim()
+        if (afterColon.isNotEmpty()) return afterColon
+        return segment.replaceFirst(
+            Regex("""(?i)^\s*(ingr[ée]dients|ingr[ée]dient|ingredients|ingredient)\b\s*:?\s*"""),
+            ""
+        ).trim()
     }
 }

@@ -2,7 +2,10 @@ package com.foodgpt.welcome
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class US3NoCrashWhenCatalogEmptyTest {
 
     @Test

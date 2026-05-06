@@ -3,7 +3,8 @@ package com.foodgpt.analysis.ingredientsegment
 import android.util.Log
 
 class AnalysisSubmissionGate {
-    private val ingredientsLabelOnlyRegex = Regex("^ingr[ée]dients?\\s*:?$", RegexOption.IGNORE_CASE)
+    private val ingredientsLabelOnlyRegex =
+        Regex("""^\s*(ingr[ée]dients|ingr[ée]dient|ingredients|ingredient)\s*:?\s*$""", RegexOption.IGNORE_CASE)
 
     fun evaluate(
         scanId: String,

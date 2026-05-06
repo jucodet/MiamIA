@@ -18,6 +18,7 @@ class IngredientSegmentPreparationContractTest {
         assertTrue(out.anchorFound)
         assertNotNull(out.anchorIndex)
         assertNotNull(out.endIndex)
+        assertEquals(IngredientSegmentBoundaryEndReason.LINE_END, out.boundaryEndReason)
         assertEquals("ingredients: sucre, farine, sel", out.segmentText)
     }
 }

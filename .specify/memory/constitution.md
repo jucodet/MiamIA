@@ -76,6 +76,7 @@ Le modèle métier et les frontières de domaines priment sur la commodité tech
   - une note de risque (si changement sensible) et un plan de rollback si nécessaire.
 - Pour la documentation Spec Kit:
   - Pour toute nouvelle feature, `speckit-design-map` DOIT etre la premiere etape (routage bounded context + dossier domaine cible).
+  - Après routage en mode intake, `speckit-specify` DOIT etre enchaîné immédiatement dans le même tour (sans étape utilisateur intermédiaire).
   - `speckit-design-map` DOIT être exécuté avant toute consolidation SSOT par domaine.
   - `spec-refactor` DOIT reconstruire les specs de domaines depuis les specs features (les specs de domaine sont des sorties, pas des entrées).
   - Toute ambiguïté de frontière DOIT être explicitée dans `specs/domains/domain-map.md`.

@@ -16,7 +16,9 @@ class Gemma4LocalApiContractFailureTest {
     fun analyzeText_returnsFailureWhenUnavailable() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val gateway = Gemma4LocalApiGateway { "unused" }
-        val probe = Gemma4LocalAvailabilityProbe { false }
+        val probe = object : Gemma4LocalAvailabilityProbe {
+            override suspend fun ping(): Boolean = false
+        }
         val client = Gemma4LocalClient(
             availabilityChecker = Gemma4LocalAvailabilityChecker(probe),
             requestMapper = Gemma4LocalRequestMapper(),

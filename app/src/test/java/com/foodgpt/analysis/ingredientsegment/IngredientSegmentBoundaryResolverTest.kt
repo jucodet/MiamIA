@@ -6,13 +6,44 @@ import org.junit.Test
 
 class IngredientSegmentBoundaryResolverTest {
 
+    private val resolver = IngredientSegmentBoundaryResolver()
     private val service = IngredientSegmentPreparationService()
 
     @Test
-    fun `uses end of text when newline is absent after anchor`() {
+    fun `resolver ends at sentence terminator before newline`() {
+        val text = "Ingrédients: a, b.\nSuite"
+        val anchor = text.indexOf("Ingrédients")
+        val out = resolver.resolveEnd(text, anchor)
+
+        assertEquals(IngredientSegmentBoundaryEndReason.SENTENCE_TERMINATOR, out.boundaryEndReason)
+        assertEquals("Ingrédients: a, b.", text.substring(anchor, out.endIndexExclusive))
+    }
+
+    @Test
+    fun `resolver ends at line end when no terminal punctuation`() {
+        val text = "Ingredients x, y\nNext line"
+        val anchor = text.indexOf("Ingredients")
+        val out = resolver.resolveEnd(text, anchor)
+
+        assertEquals(IngredientSegmentBoundaryEndReason.LINE_END, out.boundaryEndReason)
+        assertEquals("Ingredients x, y", text.substring(anchor, out.endIndexExclusive))
+    }
+
+    @Test
+    fun `resolver ends at eof for single line without punctuation`() {
+        val text = "Ingredient a, b, c"
+        val anchor = text.indexOf("Ingredient")
+        val out = resolver.resolveEnd(text, anchor)
+
+        assertEquals(IngredientSegmentBoundaryEndReason.TEXT_END, out.boundaryEndReason)
+        assertEquals(text.length, out.endIndexExclusive)
+    }
+
+    @Test
+    fun `service uses text end when newline is absent after anchor`() {
         val out = service.prepare("scan-eof", OcrFixtures.NO_NEWLINE_AFTER_ANCHOR)
 
-        assertEquals(IngredientSegmentFallbackMode.NO_NEWLINE_TO_EOF, out.fallbackMode)
-        assertEquals("ingredients: sucre, farine, sel, huile", out.segmentText)
+        assertEquals(IngredientSegmentBoundaryEndReason.TEXT_END, out.boundaryEndReason)
+        assertEquals("Ingredients: sucre, farine, sel, huile", out.segmentText)
     }
 }

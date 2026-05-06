@@ -12,13 +12,21 @@ enum class IngredientSegmentFallbackMode {
     NO_NEWLINE_TO_EOF
 }
 
+enum class IngredientSegmentBoundaryEndReason {
+    NONE,
+    SENTENCE_TERMINATOR,
+    LINE_END,
+    TEXT_END
+}
+
 data class IngredientSegmentExtraction(
     val scanId: String,
     val anchorFound: Boolean,
     val anchorIndex: Int?,
     val endIndex: Int?,
     val segmentText: String?,
-    val fallbackMode: IngredientSegmentFallbackMode
+    val fallbackMode: IngredientSegmentFallbackMode,
+    val boundaryEndReason: IngredientSegmentBoundaryEndReason = IngredientSegmentBoundaryEndReason.NONE
 )
 
 enum class SubmissionBlockedReason {
