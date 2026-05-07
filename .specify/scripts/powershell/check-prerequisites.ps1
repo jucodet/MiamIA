@@ -88,7 +88,7 @@ if ($PathsOnly) {
 # Validate required directories and files
 if (-not (Test-Path $paths.FEATURE_DIR -PathType Container)) {
     Write-Output "ERROR: Feature directory not found: $($paths.FEATURE_DIR)"
-    Write-Output "Run /speckit-design-map first to route to a domain, then /speckit.specify."
+    Write-Output "Run /speckit-design first to route to a domain, then /speckit.specify."
     exit 1
 }
 

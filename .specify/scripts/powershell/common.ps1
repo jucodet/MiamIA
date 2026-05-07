@@ -248,7 +248,7 @@ function Get-FeaturePathsEnv {
         }
     } else {
         [Console]::Error.WriteLine("ERROR: Missing routed domain directory.")
-        [Console]::Error.WriteLine("Run /speckit-design-map first to set .specify/feature.json, then /speckit.specify.")
+        [Console]::Error.WriteLine("Run /speckit-design first to set .specify/feature.json, then /speckit.specify.")
         exit 1
     }
     

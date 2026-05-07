@@ -1,5 +1,5 @@
 ---
-name: "speckit-design-map"
+name: "speckit-design"
 description: "Route une demande vers le bounded context et dossier specs/domains cible, persiste .specify/feature.json, sortie minimale, puis enchaîne speckit-specify si l’intention produit est présente."
 disable-model-invocation: true
 compatibility: "Requires spec-kit project structure with specs/ directory"
@@ -8,7 +8,7 @@ metadata:
   source: "custom"
 ---
 
-# Speckit Design Map
+# Speckit Design
 
 ## Rôle
 

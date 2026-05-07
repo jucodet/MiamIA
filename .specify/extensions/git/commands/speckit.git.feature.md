@@ -4,7 +4,7 @@ description: "Create a feature branch with sequential or timestamp numbering"
 
 # Create Feature Branch
 
-Create and switch to a new git feature branch for the given specification. This command handles **branch creation only** — domain routing is handled by `/speckit-design-map`, then spec authoring is done by `/speckit.specify` in the routed domain folder.
+Create and switch to a new git feature branch for the given specification. This command handles **branch creation only** — domain routing is handled by `/speckit-design`, then spec authoring is done by `/speckit.specify` in the routed domain folder.
 
 ## User Input
 

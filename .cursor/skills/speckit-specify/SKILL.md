@@ -76,14 +76,14 @@ Given that feature description, do this:
 
 3. **Resolve and use the routed domain spec directory (no feature folder generation)**:
 
-   `/speckit.specify` must run after `/speckit-design-map` for new features.
+   `/speckit.specify` must run after `/speckit-design` for new features.
 
    **Resolution order for `SPECIFY_FEATURE_DIRECTORY`**:
    1. If `SPECIFY_FEATURE_DIRECTORY` is explicitly provided, use it as-is
    2. Otherwise, read `.specify/feature.json` and require `feature_directory`
    3. Validate that resolved path matches `specs/domains/<domain>` (domain-scoped workflow)
    4. If missing/invalid, stop with explicit error:
-      - `Specify refused: missing domain routing. Run /speckit-design-map first.`
+      - `Specify refused: missing domain routing. Run /speckit-design first.`
 
    **Create or reuse target spec file**:
    - Ensure `SPECIFY_FEATURE_DIRECTORY` exists
@@ -252,7 +252,7 @@ Given that feature description, do this:
        ```
    - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
 
-**NOTE:** Branch creation is handled by the `before_specify` hook (git extension). Domain routing is handled by `/speckit-design-map`. This command writes into the routed domain spec file.
+**NOTE:** Branch creation is handled by the `before_specify` hook (git extension). Domain routing is handled by `/speckit-design`. This command writes into the routed domain spec file.
 
 ## Quick Guidelines
 

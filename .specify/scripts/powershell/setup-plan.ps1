@@ -29,7 +29,7 @@ $resolvedFeatureDir = [System.IO.Path]::GetFullPath($paths.FEATURE_DIR)
 $resolvedDomainRoot = [System.IO.Path]::GetFullPath($domainSpecsRoot)
 if (-not $resolvedFeatureDir.StartsWith($resolvedDomainRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
     [Console]::Error.WriteLine("ERROR: Plan refused: planning must be domain-scoped.")
-    [Console]::Error.WriteLine("Run /speckit-design-map then /speckit.specify to target specs/domains/<domain>/spec.md.")
+    [Console]::Error.WriteLine("Run /speckit-design then /speckit.specify to target specs/domains/<domain>/spec.md.")
     exit 1
 }
 
