@@ -1,15 +1,16 @@
 <!--
 Sync Impact Report
 
-- Version change: N/A → 0.1.0
-- Modified principles: N/A (template filled)
-- Added sections: N/A (template filled)
+- Version change: 0.1.0 → 0.2.0
+- Modified principles:
+  - V. Simplicité, lisibilité, et évolutivité contrôlée (clarifié pour cohabiter avec DDD)
+- Added sections:
+  - VI. Frontières DDD et autonomie des domaines
 - Removed sections: N/A
 - Templates requiring updates:
-  - ✅ e:\Dev\projects\FoodGPT\.specify\templates\tasks-template.md (ATDD/tests non optionnels + wording)
-  - ⚠ e:\Dev\projects\FoodGPT\.specify\templates\plan-template.md (Constitution Check: à renseigner dynamiquement par /speckit.plan)
-  - ⚠ e:\Dev\projects\FoodGPT\.specify\templates\spec-template.md (déjà aligné ATDD; rien à changer)
-  - ⚠ e:\Dev\projects\FoodGPT\.specify\templates\commands\*.md (dossier absent)
+  - ⚠ .specify/templates/plan-template.md (ajouter un contrôle explicite des frontières DDD)
+  - ⚠ .specify/templates/spec-template.md (ajouter un champ de rattachement de domaine/bounded context)
+  - ⚠ .specify/templates/tasks-template.md (ajouter tâches de validation de frontières + contrats inter-domaines)
 - Follow-up TODOs:
   - TODO(RATIFICATION_DATE): date de ratification initiale inconnue.
 -->
@@ -54,6 +55,15 @@ On privilégie des solutions simples, testables, et faciles à faire évoluer.
 - Les interfaces (API internes/externes) DOIVENT être stables et couvertes par des tests d’acceptation/contrat.
 - Le refactor est encouragé lorsqu’il réduit le risque ou accélère la livraison future, sans casser les scénarios.
 
+### VI. Frontières DDD et autonomie des domaines
+Le modèle métier et les frontières de domaines priment sur la commodité technique.
+
+- Toute fonctionnalité DOIT être rattachée à un domaine métier explicite (`specs/domains/<domain>`).
+- Les bounded contexts DOIVENT rester autonomes: vocabulaire, invariants, et règles propres.
+- Le partage direct de modèles entre domaines DOIT être évité; utiliser des contrats explicites et/ou une couche d’anti-corruption.
+- La duplication de code entre domaines est AUTORISÉE (et peut être préférée) lorsqu’elle protège la clarté des frontières métier.
+- Un composant "commun" n’est acceptable que s’il représente une capacité réellement partagée et non une fuite de frontière.
+
 ## Standards de livraison (Qualité, ATDD, Performance)
 
 - Chaque feature DOIT être décrite dans une spec avec:
@@ -64,15 +74,22 @@ On privilégie des solutions simples, testables, et faciles à faire évoluer.
   - tests d’acceptation/parcours pertinents,
   - une vérification des erreurs/edge cases,
   - une note de risque (si changement sensible) et un plan de rollback si nécessaire.
+- Pour la documentation Spec Kit:
+  - Pour toute nouvelle feature, `speckit-design` DOIT etre la premiere etape (routage bounded context + dossier domaine cible).
+  - Après routage en mode intake, `speckit-specify` DOIT etre enchaîné immédiatement dans le même tour (sans étape utilisateur intermédiaire).
+  - `speckit-design` DOIT être exécuté avant toute consolidation SSOT par domaine.
+  - `spec-refactor` DOIT reconstruire les specs de domaines depuis les specs features (les specs de domaine sont des sorties, pas des entrées).
+  - Toute ambiguïté de frontière DOIT être explicitée dans `specs/domains/domain-map.md`.
 
 ## Workflow de développement (gates)
 
 - Avant implémentation: scénarios d’acceptation rédigés (et alignés sur l’UX attendue).
+- Avant consolidation SSOT: structure `specs/domains/<domain>/spec.md` existante et validée.
 - Pendant implémentation: itérations courtes; maintenir une branche livrable à tout moment.
 - Avant merge:
   - scénarios d’acceptation passent,
   - pas de régression UX/perf détectée,
-  - PR relue avec focus sur lisibilité, tests, et risques.
+  - PR relue avec focus sur lisibilité, tests, risques, et respect des frontières DDD.
 
 ## Governance
 
@@ -87,4 +104,4 @@ On privilégie des solutions simples, testables, et faciles à faire évoluer.
   - approuver via PR,
   - mettre à jour le Sync Impact Report en tête de fichier.
 
-**Version**: 0.1.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-04-19
+**Version**: 0.2.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-05-05

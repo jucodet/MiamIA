@@ -1,0 +1,9 @@
+source_feature,source_artifact,target_file,target_section,status
+010,spec.md,spec.md,Scope,mapped
+012,spec.md,spec.md,Scope,mapped
+015,spec.md,plan.md,Objectives,partial
+photo-capture-llm-result-flow,tasks.md,app/src/main/java/com/foodgpt/navigation/CameraFlowRoutes.kt,implementation,done
+photo-capture-llm-result-flow,tasks.md,app/src/main/java/com/foodgpt/result/LlmResultScreen.kt,implementation,done
+photo-capture-llm-result-flow,contracts/capture-llm-result-navigation-contract.md,app/src/main/java/com/foodgpt/MainActivity.kt,NavHost camera tab,done
+photo-capture-llm-result-flow,contracts/capture-llm-result-navigation-contract.md,app/src/main/java/com/foodgpt/camera/CameraViewModel.kt,LLM nav + runner,done
+photo-capture-llm-result-flow,contracts/capture-llm-result-navigation-contract.md,app/src/main/java/com/foodgpt/camera/CameraScreen.kt,layout + loader + lifecycle,done

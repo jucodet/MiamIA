@@ -10,23 +10,21 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.ViewModelProvider
+import com.foodgpt.camera.CameraLlmResultNavigation
+import com.foodgpt.camera.CameraLlmResultPayloadStore
 import com.foodgpt.camera.CameraScreen
 import com.foodgpt.camera.CameraViewModel
 import com.foodgpt.camera.ScanState
@@ -40,8 +38,9 @@ import com.foodgpt.gemma4local.Gemma4LocalErrorMapper
 import com.foodgpt.gemma4local.Gemma4LocalMetricsLogger
 import com.foodgpt.gemma4local.GemmaModelImportManager
 import com.foodgpt.gemma4local.Gemma4LocalRequestMapper
-import com.foodgpt.healthcritique.HealthCritiqueScreen
+import com.foodgpt.gemma4local.HybridGemma4LocalGateway
 import com.foodgpt.healthcritique.HealthCritiqueViewModel
+import com.foodgpt.home.CompositionEngineHomeLlmMockRunner
 import com.foodgpt.home.HomeSpecPriorityResolver
 import com.foodgpt.permissions.CameraPermissionHandler
 import com.foodgpt.recognition.AiEdgeGalleryRecognizer
@@ -50,6 +49,8 @@ import com.foodgpt.recognition.IngredientExtractionPipeline
 import com.foodgpt.recognition.IngredientRecognitionCoordinator
 import com.foodgpt.recognition.LocalOcrFallbackRecognizer
 import com.foodgpt.recognition.RecognitionEngineSelector
+import com.foodgpt.navigation.CameraFlowRoutes
+import com.foodgpt.result.LlmResultScreen
 import com.foodgpt.scan.TemporaryImageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
@@ -94,7 +95,8 @@ class MainActivity : ComponentActivity() {
             }
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Import du modele impossible.", Toast.LENGTH_SHORT).show()
+            val reason = modelImportManager.getLastImportErrorMessage() ?: "Import du modele impossible."
+            Toast.makeText(this, reason, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -122,7 +124,7 @@ class MainActivity : ComponentActivity() {
                         repository = repository
                     )
                 }
-                val localGateway = AndroidGemma4LocalGateway(applicationContext)
+                val localGateway = HybridGemma4LocalGateway(applicationContext)
                 val localClient = Gemma4LocalClient(
                     availabilityChecker = Gemma4LocalAvailabilityChecker(localGateway),
                     requestMapper = Gemma4LocalRequestMapper(),
@@ -132,9 +134,15 @@ class MainActivity : ComponentActivity() {
                     gateway = localGateway
                 )
                 val compositionEngine = Gemma4LocalCompositionEngine(localClient)
+                val homeLlmRunner = CompositionEngineHomeLlmMockRunner(compositionEngine)
                 cameraViewModel = ViewModelProvider(
                     this@MainActivity,
-                    CameraViewModel.factory(application, coordinator, compositionEngine)
+                    CameraViewModel.factory(
+                        application,
+                        coordinator,
+                        compositionEngine,
+                        homeLlmRunner
+                    )
                 )[CameraViewModel::class.java]
                 healthCritiqueViewModel = ViewModelProvider(
                     this@MainActivity,
@@ -158,54 +166,53 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } else {
-                LaunchedEffect(Unit) {
-                    cameraViewModel.lastValidatedSegmentForHealth.collectLatest { segment ->
-                        healthCritiqueViewModel.setValidatedSegmentFromScan(segment)
+                MaterialTheme {
+                    LaunchedEffect(Unit) {
+                        cameraViewModel.lastValidatedSegmentForHealth.collectLatest { segment ->
+                            healthCritiqueViewModel.setValidatedSegmentFromScan(segment)
+                        }
                     }
-                }
-                var selectedTab by remember { mutableIntStateOf(0) }
-                Scaffold(
-                    topBar = {
-                        TabRow(
-                            selectedTabIndex = selectedTab,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Tab(
-                                selected = selectedTab == 0,
-                                onClick = { selectedTab = 0 },
-                                text = { Text("Caméra") },
-                            )
-                            Tab(
-                                selected = selectedTab == 1,
-                                onClick = { selectedTab = 1 },
-                                text = { Text("Critique santé") },
+                    val cameraNavController = rememberNavController()
+                    LaunchedEffect(cameraViewModel) {
+                        cameraViewModel.navigateToLlmResult.collect {
+                            cameraNavController.navigate(CameraFlowRoutes.LlmResult)
+                        }
+                    }
+                    NavHost(
+                        navController = cameraNavController,
+                        startDestination = CameraFlowRoutes.Capture,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        composable(CameraFlowRoutes.Capture) {
+                            CameraScreen(
+                                viewModel = cameraViewModel,
+                                onCreateTempImage = { imageManager.createTempImageFile() },
+                                onRequestCameraPermission = {
+                                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                                },
+                                onOpenAppSettings = {
+                                    startActivity(
+                                        permissionHandler.buildAppSettingsIntent(this@MainActivity)
+                                    )
+                                },
+                                onChooseGemmaModel = {
+                                    chooseGemmaModelLauncher.launch(arrayOf("*/*"))
+                                },
                             )
                         }
-                    },
-                ) { innerPadding ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                    ) {
-                        when (selectedTab) {
-                            0 ->
-                                CameraScreen(
-                                    viewModel = cameraViewModel,
-                                    onCreateTempImage = { imageManager.createTempImageFile() },
-                                    onRequestCameraPermission = {
-                                        permissionLauncher.launch(Manifest.permission.CAMERA)
-                                    },
-                                    onOpenAppSettings = {
-                                        startActivity(permissionHandler.buildAppSettingsIntent(this@MainActivity))
-                                    },
-                                    onChooseGemmaModel = {
-                                        chooseGemmaModelLauncher.launch(arrayOf("*/*"))
-                                    },
+                        composable(CameraFlowRoutes.LlmResult) {
+                            val payload = CameraLlmResultPayloadStore.getAndClear()
+                                ?: CameraLlmResultNavigation(
+                                    body = "Aucun contenu à afficher.",
+                                    isError = true,
+                                    errorCategoryWire = null
                                 )
-
-                            else ->
-                                HealthCritiqueScreen(viewModel = healthCritiqueViewModel)
+                            LlmResultScreen(
+                                body = payload.body,
+                                isError = payload.isError,
+                                errorCategoryWire = payload.errorCategoryWire,
+                                onBack = { cameraNavController.popBackStack() }
+                            )
                         }
                     }
                 }

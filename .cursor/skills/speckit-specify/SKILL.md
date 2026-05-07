@@ -74,36 +74,27 @@ Given that feature description, do this:
 
    If the user explicitly provided `GIT_BRANCH_NAME`, pass it through to the hook so the branch script uses the exact value as the branch name (bypassing all prefix/suffix generation).
 
-3. **Create the spec feature directory**:
+3. **Resolve and use the routed domain spec directory (no feature folder generation)**:
 
-   Specs live under the default `specs/` directory unless the user explicitly provides `SPECIFY_FEATURE_DIRECTORY`.
+   `/speckit.specify` must run after `/speckit-design` for new features.
 
    **Resolution order for `SPECIFY_FEATURE_DIRECTORY`**:
-   1. If the user explicitly provided `SPECIFY_FEATURE_DIRECTORY` (e.g., via environment variable, argument, or configuration), use it as-is
-   2. Otherwise, auto-generate it under `specs/`:
-      - Check `.specify/init-options.json` for `branch_numbering`
-      - If `"timestamp"`: prefix is `YYYYMMDD-HHMMSS` (current timestamp)
-      - If `"sequential"` or absent: prefix is `NNN` (next available 3-digit number after scanning existing directories in `specs/`)
-      - Construct the directory name: `<prefix>-<short-name>` (e.g., `003-user-auth` or `20260319-143022-user-auth`)
-      - Set `SPECIFY_FEATURE_DIRECTORY` to `specs/<directory-name>`
+   1. If `SPECIFY_FEATURE_DIRECTORY` is explicitly provided, use it as-is
+   2. Otherwise, read `.specify/feature.json` and require `feature_directory`
+   3. Validate that resolved path matches `specs/domains/<domain>` (domain-scoped workflow)
+   4. If missing/invalid, stop with explicit error:
+      - `Specify refused: missing domain routing. Run /speckit-design first.`
 
-   **Create the directory and spec file**:
-   - `mkdir -p SPECIFY_FEATURE_DIRECTORY`
-   - Copy `.specify/templates/spec-template.md` to `SPECIFY_FEATURE_DIRECTORY/spec.md` as the starting point
+   **Create or reuse target spec file**:
+   - Ensure `SPECIFY_FEATURE_DIRECTORY` exists
    - Set `SPEC_FILE` to `SPECIFY_FEATURE_DIRECTORY/spec.md`
-   - Persist the resolved path to `.specify/feature.json`:
-     ```json
-     {
-       "feature_directory": "<resolved feature dir>"
-     }
-     ```
-     Write the actual resolved directory path value (for example, `specs/003-user-auth`), not the literal string `SPECIFY_FEATURE_DIRECTORY`.
-     This allows downstream commands (`/speckit.plan`, `/speckit.tasks`, etc.) to locate the feature directory without relying on git branch name conventions.
+   - If `SPEC_FILE` is missing, copy `.specify/templates/spec-template.md` to create it
+   - Persist/refresh `.specify/feature.json` with the resolved domain directory path
 
    **IMPORTANT**:
-   - You must only create one feature per `/speckit.specify` invocation
-   - The spec directory name and the git branch name are independent — they may be the same but that is the user's choice
-   - The spec directory and file are always created by this command, never by the hook
+   - Do not create a new `specs/<number>-<feature>` directory in this workflow
+   - The specification must be written only in the resolved domain file under `specs/domains/`
+   - One `/speckit.specify` invocation updates exactly one routed domain spec
 
 4. Load `.specify/templates/spec-template.md` to understand required sections.
 
@@ -227,7 +218,7 @@ Given that feature description, do this:
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
 
 8. **Report completion** to the user with:
-   - `SPECIFY_FEATURE_DIRECTORY` — the feature directory path
+   - `SPECIFY_FEATURE_DIRECTORY` — the routed domain directory path
    - `SPEC_FILE` — the spec file path
    - Checklist results summary
    - Readiness for the next phase (`/speckit.clarify` or `/speckit.plan`)
@@ -261,7 +252,7 @@ Given that feature description, do this:
        ```
    - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
 
-**NOTE:** Branch creation is handled by the `before_specify` hook (git extension). Spec directory and file creation are always handled by this core command.
+**NOTE:** Branch creation is handled by the `before_specify` hook (git extension). Domain routing is handled by `/speckit-design`. This command writes into the routed domain spec file.
 
 ## Quick Guidelines
 

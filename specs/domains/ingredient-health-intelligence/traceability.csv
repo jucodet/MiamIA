@@ -1,0 +1,4 @@
+source_feature,source_artifact,target_file,target_section,status
+002,spec.md,spec.md,Functional Requirements,mapped
+009,spec.md,spec.md,Purpose,mapped
+015,spec.md,plan.md,Dependencies,partial

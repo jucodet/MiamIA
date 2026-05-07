@@ -18,7 +18,9 @@ class Gemma4LocalApiContractSuccessTest {
         val gateway = Gemma4LocalApiGateway { _ ->
             "###LISTE\n- eau\n###ANALYSE\nAnalyse courte."
         }
-        val probe = Gemma4LocalAvailabilityProbe { true }
+        val probe = object : Gemma4LocalAvailabilityProbe {
+            override suspend fun ping(): Boolean = true
+        }
         val client = Gemma4LocalClient(
             availabilityChecker = Gemma4LocalAvailabilityChecker(probe),
             requestMapper = Gemma4LocalRequestMapper(),

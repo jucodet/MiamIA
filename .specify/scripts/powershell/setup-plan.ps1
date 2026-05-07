@@ -23,6 +23,16 @@ if ($Help) {
 # Get all paths and variables from common functions
 $paths = Get-FeaturePathsEnv
 
+# Enforce domain-scoped planning only
+$domainSpecsRoot = Join-Path $paths.REPO_ROOT "specs/domains"
+$resolvedFeatureDir = [System.IO.Path]::GetFullPath($paths.FEATURE_DIR)
+$resolvedDomainRoot = [System.IO.Path]::GetFullPath($domainSpecsRoot)
+if (-not $resolvedFeatureDir.StartsWith($resolvedDomainRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+    [Console]::Error.WriteLine("ERROR: Plan refused: planning must be domain-scoped.")
+    [Console]::Error.WriteLine("Run /speckit-design then /speckit.specify to target specs/domains/<domain>/spec.md.")
+    exit 1
+}
+
 # Check if we're on a proper feature branch (only for git repos)
 if (-not (Test-FeatureBranch -Branch $paths.CURRENT_BRANCH -HasGit $paths.HAS_GIT)) { 
     exit 1 

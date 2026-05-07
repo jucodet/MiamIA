@@ -1,6 +1,8 @@
 # Feature Specification: [FEATURE NAME]
 
 **Feature Branch**: `[###-feature-name]`  
+**Domain Context**: `[bounded-context]`  
+**Target Domain Folder**: `specs/domains/[domain-name]`  
 **Created**: [DATE]  
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"

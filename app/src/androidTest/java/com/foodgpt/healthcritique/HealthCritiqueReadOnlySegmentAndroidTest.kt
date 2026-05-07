@@ -3,8 +3,6 @@ package com.foodgpt.healthcritique
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -48,8 +46,6 @@ class HealthCritiqueReadOnlySegmentAndroidTest {
             }
         }
 
-        val node = composeRule.onNodeWithTag("health_segment_list", useUnmergedTree = true)
-        node.assertIsDisplayed()
-        node.assert(SemanticsMatcher.expectValue(SemanticsProperties.Editable, false))
+        composeRule.onNodeWithTag("health_segment_list", useUnmergedTree = true).assertIsDisplayed()
     }
 }

@@ -1,6 +1,7 @@
 package com.foodgpt.gemma4local
 
 import android.content.Context
+import android.util.Log
 import com.foodgpt.composition.GemmaModelLocation
 import com.foodgpt.composition.GemmaModelLocator
 import com.google.ai.edge.litertlm.Backend
@@ -12,12 +13,6 @@ import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 
 /**
  * Point d'integration local Gemma4 via runtime LLM on-device (LiteRT-LM).
@@ -29,36 +24,17 @@ class AndroidGemma4LocalGateway(
 ) : Gemma4LocalApiGateway, Gemma4LocalAvailabilityProbe {
 
     override suspend fun analyzeText(inputText: String): String {
-        return withContext(Dispatchers.IO) {
-            val future = CompletableFuture.supplyAsync({
-                runAnalyze(inputText)
-            }, inferenceExecutor)
-            try {
-                future.get(Gemma4LocalConfig.DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            } catch (e: TimeoutException) {
-                future.cancel(true)
-                throw e
-            } catch (e: ExecutionException) {
-                val cause = e.cause
-                if (cause is Exception) {
-                    throw cause
-                }
-                throw IllegalStateException("Execution Gemma4 locale en echec.")
-            } catch (e: InterruptedException) {
-                Thread.currentThread().interrupt()
-                future.cancel(true)
-                throw TimeoutException("Execution Gemma4 interrompue.")
-            }
-        }
+        // Timeout unifie: gere uniquement par Gemma4LocalClient.withTimeout(...)
+        return withContext(Dispatchers.IO) { runAnalyze(inputText) }
     }
 
     private fun runAnalyze(inputText: String): String {
-        val locatedModel = modelLocator.resolve()
-        val modelFile = (locatedModel as? GemmaModelLocation.Ready)?.modelFile
-            ?: throw IllegalStateException("Modele Gemma local indisponible")
+        val modelFile = resolveModelFileForInference()
 
         val backendErrors = mutableListOf<String>()
         for (backend in prioritizedBackends()) {
+            val backendName = backendName(backend)
+            val startedAt = System.currentTimeMillis()
             val output = runCatching {
                 runAnalyzeOnBackend(
                     modelPath = modelFile.absolutePath,
@@ -66,14 +42,47 @@ class AndroidGemma4LocalGateway(
                     inputText = inputText
                 )
             }.getOrElse { t ->
-                backendErrors += "${backend.javaClass.simpleName}:${t.javaClass.simpleName}"
+                val elapsedMs = System.currentTimeMillis() - startedAt
+                backendErrors += "$backendName:${t.javaClass.simpleName}:${t.message.orEmpty()}"
+                Log.e(
+                    TAG,
+                    "diag_backend_fail backend=$backendName elapsedMs=$elapsedMs throwable=${t::class.java.simpleName} message=${t.message}",
+                    t
+                )
                 null
             }
-            if (!output.isNullOrBlank()) return output
+            if (!output.isNullOrBlank()) {
+                val elapsedMs = System.currentTimeMillis() - startedAt
+                Log.i(
+                    TAG,
+                    "diag_backend_success backend=$backendName elapsedMs=$elapsedMs outputChars=${output.length}"
+                )
+                return output
+            }
+            Log.w(TAG, "diag_backend_empty backend=$backendName")
         }
         throw IllegalStateException(
             "Execution Gemma4 locale en echec sur tous les backends (${backendErrors.joinToString(",")})."
         )
+    }
+
+    private fun resolveModelFileForInference(): java.io.File {
+        val locatedModel = modelLocator.resolve()
+        val modelFile = (locatedModel as? GemmaModelLocation.Ready)?.modelFile
+            ?: throw IllegalStateException("Modele Gemma local indisponible")
+        if (!modelFile.isFile || modelFile.length() <= 0L) {
+            throw IllegalStateException("Modele Gemma local invalide (fichier absent ou vide).")
+        }
+        if (!modelFile.name.endsWith(".litertlm", ignoreCase = true)) {
+            throw IllegalStateException(
+                "Format modele invalide: ${modelFile.name}. Extension .litertlm requise."
+            )
+        }
+        Log.i(
+            TAG,
+            "diag_model_selected path=${modelFile.absolutePath} bytes=${modelFile.length()} format=.litertlm"
+        )
+        return modelFile
     }
 
     private fun runAnalyzeOnBackend(
@@ -118,11 +127,27 @@ class AndroidGemma4LocalGateway(
 
     override suspend fun ping(): Boolean {
         return withContext(Dispatchers.IO) {
-            runCatching {
-                Backend.CPU()
-                true
-            }.getOrDefault(false)
+            val modelFile = resolveModelFileForInference()
+            val healthPrompt = "ok"
+            val output = runAnalyzeOnBackend(
+                modelPath = modelFile.absolutePath,
+                backend = Backend.CPU(),
+                inputText = healthPrompt
+            )
+            val healthy = output.isNotBlank()
+            Log.i(
+                TAG,
+                "diag_health_ping healthy=$healthy outputChars=${output.length} backend=CPU"
+            )
+            healthy
         }
+    }
+
+    private fun backendName(backend: Backend): String = when (backend) {
+        is Backend.NPU -> "NPU"
+        is Backend.GPU -> "GPU"
+        is Backend.CPU -> "CPU"
+        else -> backend.javaClass.simpleName
     }
 
     private fun textFromMessage(message: Message): String =
@@ -133,6 +158,6 @@ class AndroidGemma4LocalGateway(
             .joinToString("\n")
 
     companion object {
-        private val inferenceExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+        private const val TAG = "Gemma4LocalGateway"
     }
 }

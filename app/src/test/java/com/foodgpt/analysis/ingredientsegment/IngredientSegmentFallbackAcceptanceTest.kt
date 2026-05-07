@@ -15,5 +15,6 @@ class IngredientSegmentFallbackAcceptanceTest {
 
         assertFalse(out.anchorFound)
         assertEquals(IngredientSegmentFallbackMode.ANCHOR_MISSING_BLOCKED, out.fallbackMode)
+        assertEquals(IngredientSegmentBoundaryEndReason.NONE, out.boundaryEndReason)
     }
 }

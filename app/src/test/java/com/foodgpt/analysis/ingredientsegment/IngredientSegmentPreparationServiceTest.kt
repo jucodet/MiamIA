@@ -14,4 +14,12 @@ class IngredientSegmentPreparationServiceTest {
 
         assertEquals("ingredients: eau", out.segmentText)
     }
+
+    @Test
+    fun `returns anchor missing when no line start anchor`() {
+        val out = service.prepare("scan-none", OcrFixtures.NO_ANCHOR.trimIndent())
+
+        assertEquals(IngredientSegmentFallbackMode.ANCHOR_MISSING_BLOCKED, out.fallbackMode)
+        assertEquals(false, out.anchorFound)
+    }
 }
