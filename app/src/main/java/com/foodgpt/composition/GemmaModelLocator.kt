@@ -5,25 +5,6 @@ import android.util.Log
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
-
-sealed class GemmaModelLocation {
-    data class Ready(val modelFile: File) : GemmaModelLocation()
-    data object NotFound : GemmaModelLocation()
-    data class LoadFailed(val reason: String) : GemmaModelLocation()
-}
-
-/**
- * Vérifie la présence du modèle dans `assets/gemma/` et le **matérialise** sur le système de fichiers
- * (LiteRT-LM exige un chemin fichier absolu, pas `asset://`).
- *
- * Si une copie existe déjà avec la **même taille** que l’asset embarqué (via `openFd().declaredLength`,
- * fiable tant que `noCompress` inclut `.litertlm` dans le Gradle), la recopie est **évitée**.
- */
-class GemmaModelLocator(private val context: Context) {
-
-    fun resolve(): GemmaModelLocation {
-        val assetPath = GemmaModelPaths.expectedAssetPath()
-        return try {
             val outDir = File(context.filesDir, GemmaModelPaths.ASSET_DIRECTORY).apply { mkdirs() }
             val outFile = File(outDir, GemmaModelPaths.EXPECTED_MODEL_FILENAME)
             if (outFile.isFile && outFile.length() > 0L) {
@@ -34,15 +15,6 @@ class GemmaModelLocator(private val context: Context) {
                 return GemmaModelLocation.Ready(outFile)
             }
             val assetBytes = assetDeclaredLengthBytes(assetPath)
-            val reuseExisting =
-                assetBytes != null &&
-                    assetBytes > 0L &&
-                    outFile.isFile &&
-                    outFile.length() == assetBytes
-            if (!reuseExisting) {
-                // openFd() échoue si l’asset est compressé dans l’APK ; open() en flux suffit pour copier.
-                context.assets.open(assetPath).use { input ->
-                    outFile.outputStream().use { output -> input.copyTo(output) }
                 }
             }
             if (!outFile.exists() || outFile.length() == 0L) {
@@ -69,10 +41,6 @@ class GemmaModelLocator(private val context: Context) {
             GemmaModelLocation.LoadFailed(e.message ?: "asset_open_failed")
         }
     }
-
-    private fun assetDeclaredLengthBytes(assetPath: String): Long? =
-        try {
-            context.assets.openFd(assetPath).use { it.declaredLength }
         } catch (_: IOException) {
             null
         }

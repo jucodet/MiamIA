@@ -133,6 +133,7 @@
 - [x] T028 Aligner le gating de navigation sur la présence réelle de la route capture (et non sur `ON_START/ON_STOP` activité) via `DisposableEffect` entrée/sortie d’écran dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt`
 - [x] T029 Forcer le parcours Gemma sur le runtime GenAI local ML Kit (sans fallback `.litertlm` app-private) dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\gemma4local\HybridGemma4LocalGateway.kt`
 - [x] T030 Supprimer le message d’erreur “import .litertlm” du flux caméra et reclasser tout échec de disponibilité en indisponibilité runtime ML Kit local dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\gemma4local\Gemma4LocalClient.kt`, `Gemma4LocalAvailabilityChecker.kt`, `Gemma4LocalMessages.kt`
+- [x] T031 Aligner le client local sur le rework traversant: health-check non bloquant et tentative systématique d’appel réel `generateContent` via gateway ML Kit local dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\gemma4local\Gemma4LocalClient.kt`
 - [x] T031 Couvrir le cas “transcription longue” sur l’écran résultat : zone texte scrollable contrainte pour préserver l’accès aux contrôles + test UI dédié dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\result\LlmResultScreen.kt` et `e:\Dev\projects\FoodGpt\app\src\androidTest\java\com\foodgpt\result\LlmResultScreenUiTest.kt`
 
 ---
