@@ -7,28 +7,22 @@ import com.google.mlkit.genai.prompt.Generation
 
 /**
  * Gateway hybride:
- * 1) essaie le runtime manage ML Kit GenAI (mode "device-managed"),
- * 2) sinon repli sur le mode fichier prive `.litertlm` existant.
+ * 1) utilise le runtime local ML Kit GenAI (mode "device-managed").
  */
 class HybridGemma4LocalGateway(
-    context: Context,
-    private val fileBackedGateway: AndroidGemma4LocalGateway = AndroidGemma4LocalGateway(context)
+    context: Context
 ) : Gemma4LocalApiGateway, Gemma4LocalAvailabilityProbe {
 
     private val managedModel by lazy { Generation.getClient() }
 
     override suspend fun analyzeText(inputText: String): String {
-        val managedOutput = runManagedInferenceOrNull(inputText)
-        if (!managedOutput.isNullOrBlank()) {
-            return managedOutput
-        }
-        return fileBackedGateway.analyzeText(inputText)
+        val output = runManagedInferenceOrNull(inputText)
+        if (!output.isNullOrBlank()) return output
+        throw IllegalStateException("Runtime GenAI local indisponible ou reponse vide.")
     }
 
     override suspend fun ping(): Boolean {
-        val managedHealthy = runManagedHealthCheck()
-        if (managedHealthy) return true
-        return fileBackedGateway.ping()
+        return runManagedHealthCheck()
     }
 
     private suspend fun runManagedInferenceOrNull(inputText: String): String? {
