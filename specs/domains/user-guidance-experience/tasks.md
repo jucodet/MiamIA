@@ -129,6 +129,8 @@
 - [x] T024 Retirer `TabRow` / onglets Accueil·Caméra·Critique santé ; `NavHost` capture → résultat comme racine unique dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\MainActivity.kt` (plus de `HomeViewModel` / `HomeScreen` dans le chrome principal ; `HealthCritiqueViewModel` conservé pour le flux segment ← scan)
 - [x] T025 [P] Adapter les tests instrumentés caméra (plus de clic sur « Caméra » ; vérifier l’absence des libellés d’onglets) dans `e:\Dev\projects\FoodGpt\app\src\androidTest\java\com\foodgpt\camera\`
 - [x] T026 [P] Réparer la compilation `androidTest` health critique : `FakeHealthCritiqueLlmRunner` dédié `androidTest` + assertion lecture seule simplifiée dans `e:\Dev\projects\FoodGpt\app\src\androidTest\java\com\foodgpt\healthcritique\`
+- [x] T027 Corriger le fallback résultat vide : mémoriser le payload de navigation sur l’écran résultat (éviter `getAndClear()` à chaque recomposition) et afficher un repli utile basé sur OCR si payload absent dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\MainActivity.kt` et `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraViewModel.kt` + test `CameraLlmFlowViewModelTest`
+- [x] T028 Aligner le gating de navigation sur la présence réelle de la route capture (et non sur `ON_START/ON_STOP` activité) via `DisposableEffect` entrée/sortie d’écran dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt`
 
 ---
 

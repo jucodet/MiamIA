@@ -9,6 +9,7 @@ import com.foodgpt.composition.CompositionBilan
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -90,5 +91,18 @@ class CameraLlmFlowViewModelTest {
             Shadows.shadowOf(Looper.getMainLooper()).idle()
         }
         assertTrue(sawBilan)
+    }
+
+    @Test
+    fun fallbackPayload_usesTranscriptWhenAvailable() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val vm = CameraViewModel(app, coordinator = null, compositionEngine = engineReturningSuccess())
+        vm.debugSeedTranscript("Ingredients: eau, sucre", listOf("eau", "sucre"))
+
+        val payload = vm.buildLlmResultFallbackPayload()
+
+        assertTrue(payload.isError)
+        assertEquals("non-analysable-response", payload.errorCategoryWire)
+        assertTrue(payload.body.contains("Ingredients: eau, sucre"))
     }
 }

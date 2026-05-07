@@ -201,12 +201,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(CameraFlowRoutes.LlmResult) {
-                            val payload = CameraLlmResultPayloadStore.getAndClear()
-                                ?: CameraLlmResultNavigation(
-                                    body = "Aucun contenu à afficher.",
-                                    isError = true,
-                                    errorCategoryWire = null
-                                )
+                            val payload = remember {
+                                CameraLlmResultPayloadStore.getAndClear()
+                                    ?: cameraViewModel.buildLlmResultFallbackPayload()
+                            }
                             LlmResultScreen(
                                 body = payload.body,
                                 isError = payload.isError,

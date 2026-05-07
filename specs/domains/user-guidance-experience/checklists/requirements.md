@@ -1,7 +1,7 @@
-# Specification Quality Checklist: photo-capture-llm-result-flow + accueil capture sans onglets
+# Specification Quality Checklist: photo-capture-llm-result-flow + anti-écran-vide-résultat
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
-**Created**: 2026-05-06  
+**Created**: 2026-05-07  
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,5 +31,5 @@
 
 ## Notes
 
-- Validation après extension : premier écran = prise de photo au lancement, suppression de la barre d'onglets principale (FR-015), retour cohérent sur la capture (FR-016), SC-007 ; périmètre inchangé sur loader, résultat LLM et ordre des boutons.
+- Validation après extension : ajout des garde-fous anti écran vide après OCR réussi (FR-017 à FR-019, SC-008), tout en conservant le parcours capture, loader et navigation résultat déjà spécifiés.
 - Spécification prête pour `/speckit.clarify` ou `/speckit.plan`.

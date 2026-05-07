@@ -30,9 +30,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.foodgpt.additives.ui.AdditiveKpiPanel
 import com.foodgpt.home.HomeSpacingRules
 import com.foodgpt.home.MediaPipeStatusIndicator
@@ -52,18 +49,11 @@ fun CameraScreen(
     val previewSession by viewModel.previewSession.collectAsState()
     val welcomeState by viewModel.welcomeUiState.collectAsState()
     val mediaPipeStatus by viewModel.mediaPipeStatus.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> viewModel.setCaptureRouteActive(true)
-                Lifecycle.Event.ON_STOP -> viewModel.setCaptureRouteActive(false)
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    // Le flag suit la présence effective de la route capture dans la navigation Compose.
+    DisposableEffect(Unit) {
+        viewModel.setCaptureRouteActive(true)
+        onDispose { viewModel.setCaptureRouteActive(false) }
     }
 
     Column(

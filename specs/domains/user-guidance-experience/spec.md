@@ -5,7 +5,7 @@
 **Target Domain Folder**: `specs/domains/user-guidance-experience`  
 **Created**: 2026-05-06  
 **Status**: Draft  
-**Input**: User description: "Je veux arriver sur l'écran de prise de photo avec le bouton de prise de photo dessous et avec le bouton de test LLM juste en dessous. Une fois la photo prise et analysée par le LLM, je suis redirigé vers un écran qui m'affiche l'output du LLM. Pendant l'analyse par le LLM, je veux un loader m'indiquant que le processus est en cours." — *Évolution*: « l'écran d'accueil doit être l'écran de prise de photo. Supprime les onglets. »
+**Input**: User description: "Je veux arriver sur l'écran de prise de photo avec le bouton de prise de photo dessous et avec le bouton de test LLM juste en dessous. Une fois la photo prise et analysée par le LLM, je suis redirigé vers un écran qui m'affiche l'output du LLM. Pendant l'analyse par le LLM, je veux un loader m'indiquant que le processus est en cours." — *Évolutions*: « l'écran d'accueil doit être l'écran de prise de photo. Supprime les onglets. » + « la photo est bien prise, le texte est bien capturé mais je suis redirigé sur un écran "Analyse - Erreur, Aucun contenu à afficher" ; ce cas doit être évité par un affichage utile. »
 
 ## Clarifications
 
@@ -54,6 +54,7 @@ En tant qu'utilisatrice, après une photo, je veux voir un indicateur de chargem
 3. **Given** l'analyse LLM échoue, **When** l'échec est connu et l'utilisatrice est restée sur l'écran de capture jusqu'à la fin du chargement, **Then** l'utilisatrice voit un message explicite sur l'écran de résultat ou un écran d'erreur cohérent avec ce parcours.
 4. **Given** le loader est affiché, **When** l'utilisatrice attend, **Then** aucune deuxième analyse concurrente n'est lancée sans action explicite supplémentaire.
 5. **Given** le loader est affiché après une photo, **When** l'utilisatrice quitte l'écran de capture (retour arrière ou équivalent) avant la fin du traitement, **Then** à l'issue du traitement aucune ouverture automatique de l'écran de résultat n'a lieu.
+6. **Given** la capture est validée et le texte OCR est disponible, **When** la navigation vers l'écran d'analyse/résultat se produit, **Then** l'écran n'affiche pas un état "Aucun contenu à afficher" sans proposer de contenu exploitable ou une récupération guidée.
 
 ---
 
@@ -94,6 +95,7 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - Clics rapides répétés sur le bouton photo ou test LLM pendant un chargement.
 - Sortie de l'écran de capture pendant le loader : pas de navigation automatique vers l'écran résultat à la fin du traitement ; aucune pop-up ou écran résultat inattendu.
 - Sortie LLM vide ou partielle : feedback explicite sur l'écran de résultat.
+- OCR présent mais charge utile d'analyse absente à la navigation : présenter un contenu de repli exploitable ou une erreur actionnable, jamais un écran vide bloquant.
 - Durée d'analyse très longue : le loader reste visible ou le système indique clairement que le traitement continue.
 - Retour arrière depuis un écran secondaire (ex. résultat LLM) : comportement cohérent avec une pile de navigation simple, sans réintroduction d'onglets.
 - Utilisatrice habituée à une ancienne version à onglets : le premier écran reste la capture ; aucune exigence de tutoriel dans ce périmètre.
@@ -118,6 +120,9 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - **FR-014**: Le système MUST, si l'utilisatrice quitte l'écran de capture pendant l'affichage du chargement LLM (parcours photo ou test LLM), ne pas ouvrir automatiquement l'écran de résultat lorsque le traitement se termine ensuite.
 - **FR-015**: Le système MUST ne pas utiliser de barre d'onglets (ou équivalent de navigation par onglets entre sections majeures) comme structure de navigation principale de l'application.
 - **FR-016**: Le système MUST conserver l'écran de prise de photo comme contexte d'accueil après retour depuis les écrans du flux décrit (ex. résultat LLM), sauf si l'utilisatrice a quitté l'application ou une règle système impose un autre état.
+- **FR-017**: Le système MUST interdire l'affichage d'un écran d'analyse/résultat vide après une capture réussie avec texte OCR disponible ; une navigation vers cet écran n'est autorisée que si un contenu affichable ou un état d'erreur actionnable est prêt.
+- **FR-018**: Le système MUST, lorsqu'aucun contenu d'analyse n'est disponible mais que le texte OCR a bien été capturé, afficher un état de repli utile (ex. texte reconnu et prochaine action claire) au lieu du message bloquant "Aucun contenu à afficher".
+- **FR-019**: Le système MUST, lorsqu'une erreur d'analyse survient, afficher un message explicite avec action immédiate de récupération dans le même flux utilisateur (retenter l'analyse, revenir à la capture, ou équivalent), plutôt qu'un simple constat sans suite.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -139,6 +144,7 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - **SC-005**: 100 % des appuis sur test LLM pendant une exécution confirmée en cours ne déclenchent pas d'exécution concurrente.
 - **SC-006**: 100 % des indisponibilités caméra affichent un message explicite en moins de 2 secondes après détection ; pour les échecs d'analyse ou de test, la même exigence s'applique **lorsque l'utilisatrice est restée sur l'écran de capture jusqu'à la détection de l'échec**.
 - **SC-007**: Dans au moins 95 % des lancements à froid, l'utilisatrice voit l'écran de prise de photo (sans barre d'onglets principale) en moins de 3 secondes après l'icône d'application, sur matériel représentatif du produit.
+- **SC-008**: Dans 100 % des cas de capture réussie avec texte OCR disponible, l'écran d'analyse/résultat affiche un contenu utile ou une erreur actionnable ; le taux d'apparition d'un écran "Aucun contenu à afficher" sans issue est de 0 %.
 
 ## Assumptions
 
@@ -148,3 +154,4 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - Le parcours reste local (pas de dépendance à une connectivité réseau externe pour valider le flux de base).
 - Après abandon du flux (quitte l'écran capture pendant le chargement), aucune exigence de récupération ultérieure du résultat n'est imposée dans ce périmètre ; une évolution produit pourrait la définir.
 - Les parcours ou contenus auparavant accessibles uniquement via d'autres onglets ne sont pas réimplémentés dans ce périmètre sous une autre forme ; une évolution distincte peut réintroduire des accès secondaires (menu, raccourci) sans remettre une barre d'onglets principale, sauf nouvelle décision produit.
+- Le texte OCR validé est considéré comme contenu de base disponible pour éviter un écran de résultat vide lorsque l'analyse détaillée n'est pas encore exploitable.
