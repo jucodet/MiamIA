@@ -132,6 +132,7 @@
 - [x] T027 Corriger le fallback résultat vide : mémoriser le payload de navigation sur l’écran résultat (éviter `getAndClear()` à chaque recomposition) et afficher un repli utile basé sur OCR si payload absent dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\MainActivity.kt` et `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraViewModel.kt` + test `CameraLlmFlowViewModelTest`
 - [x] T028 Aligner le gating de navigation sur la présence réelle de la route capture (et non sur `ON_START/ON_STOP` activité) via `DisposableEffect` entrée/sortie d’écran dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\camera\CameraScreen.kt`
 - [x] T029 Forcer le parcours Gemma sur le runtime GenAI local ML Kit (sans fallback `.litertlm` app-private) dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\gemma4local\HybridGemma4LocalGateway.kt`
+- [x] T030 Supprimer le message d’erreur “import .litertlm” du flux caméra et reclasser tout échec de disponibilité en indisponibilité runtime ML Kit local dans `e:\Dev\projects\FoodGpt\app\src\main\java\com\foodgpt\gemma4local\Gemma4LocalClient.kt`, `Gemma4LocalAvailabilityChecker.kt`, `Gemma4LocalMessages.kt`
 
 ---
 

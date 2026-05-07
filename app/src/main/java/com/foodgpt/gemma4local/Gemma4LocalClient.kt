@@ -36,7 +36,7 @@ class Gemma4LocalClient(
             } else {
             val failureMessage = when (availability.issue) {
                 Gemma4LocalAvailabilityIssue.MODEL_MISSING_OR_INVALID ->
-                    Gemma4LocalMessages.MODEL_APP_PRIVATE_IMPORT_REQUIRED
+                    Gemma4LocalMessages.API_UNAVAILABLE
                 Gemma4LocalAvailabilityIssue.TIMEOUT ->
                     Gemma4LocalMessages.MODEL_EXECUTION_FAILED
                 Gemma4LocalAvailabilityIssue.RUNTIME_UNAVAILABLE ->

@@ -48,15 +48,9 @@ class Gemma4LocalAvailabilityChecker(
                 details = "Health check timeout exception."
             )
         } catch (t: Throwable) {
-            val message = t.message.orEmpty()
-            val issue = when {
-                message.contains("Modele Gemma local", ignoreCase = true) -> Gemma4LocalAvailabilityIssue.MODEL_MISSING_OR_INVALID
-                message.contains("Format modele invalide", ignoreCase = true) -> Gemma4LocalAvailabilityIssue.MODEL_MISSING_OR_INVALID
-                else -> Gemma4LocalAvailabilityIssue.UNKNOWN
-            }
             Gemma4LocalAvailabilityStatus(
                 available = false,
-                issue = issue,
+                issue = Gemma4LocalAvailabilityIssue.RUNTIME_UNAVAILABLE,
                 details = "${t::class.java.simpleName}:${t.message.orEmpty()}"
             )
         }
