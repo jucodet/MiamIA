@@ -41,7 +41,7 @@ En tant qu'utilisatrice, je veux que le premier écran de l'application soit l'�
 
 ### User Story 2 - Suivre l'analyse LLM puis consulter le résultat sur un écran dédié (Priority: P1)
 
-En tant qu'utilisatrice, après une photo, je veux voir un indicateur de chargement pendant l'analyse LLM, puis être conduite automatiquement vers un écran qui affiche clairement la sortie du LLM.
+En tant qu'utilisatrice, après une photo, je veux voir un indicateur de chargement pendant l'analyse LLM, puis être conduite automatiquement vers un écran qui affiche clairement la sortie du LLM, y compris lorsque la transcription est longue.
 
 **Why this priority**: La promesse centrale est la lisibilité du résultat après capture, avec feedback pendant le traitement.
 
@@ -55,6 +55,7 @@ En tant qu'utilisatrice, après une photo, je veux voir un indicateur de chargem
 4. **Given** le loader est affiché, **When** l'utilisatrice attend, **Then** aucune deuxième analyse concurrente n'est lancée sans action explicite supplémentaire.
 5. **Given** le loader est affiché après une photo, **When** l'utilisatrice quitte l'écran de capture (retour arrière ou équivalent) avant la fin du traitement, **Then** à l'issue du traitement aucune ouverture automatique de l'écran de résultat n'a lieu.
 6. **Given** la capture est validée et le texte OCR est disponible, **When** la navigation vers l'écran d'analyse/résultat se produit, **Then** l'écran n'affiche pas un état "Aucun contenu à afficher" sans proposer de contenu exploitable ou une récupération guidée.
+7. **Given** la sortie de transcription est très longue, **When** l'écran de résultat est affiché, **Then** le contenu textuel reste lisible dans une zone qui n'expulse pas les contrôles hors écran et permet d'atteindre les actions situées en dessous.
 
 ---
 
@@ -95,6 +96,7 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - Clics rapides répétés sur le bouton photo ou test LLM pendant un chargement.
 - Sortie de l'écran de capture pendant le loader : pas de navigation automatique vers l'écran résultat à la fin du traitement ; aucune pop-up ou écran résultat inattendu.
 - Sortie LLM vide ou partielle : feedback explicite sur l'écran de résultat.
+- Sortie de transcription très volumineuse : le contenu ne déborde pas visuellement et les contrôles sous le texte restent atteignables.
 - OCR présent mais charge utile d'analyse absente à la navigation : présenter un contenu de repli exploitable ou une erreur actionnable, jamais un écran vide bloquant.
 - Durée d'analyse très longue : le loader reste visible ou le système indique clairement que le traitement continue.
 - Retour arrière depuis un écran secondaire (ex. résultat LLM) : comportement cohérent avec une pile de navigation simple, sans réintroduction d'onglets.
@@ -123,6 +125,8 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - **FR-017**: Le système MUST interdire l'affichage d'un écran d'analyse/résultat vide après une capture réussie avec texte OCR disponible ; une navigation vers cet écran n'est autorisée que si un contenu affichable ou un état d'erreur actionnable est prêt.
 - **FR-018**: Le système MUST, lorsqu'aucun contenu d'analyse n'est disponible mais que le texte OCR a bien été capturé, afficher un état de repli utile (ex. texte reconnu et prochaine action claire) au lieu du message bloquant "Aucun contenu à afficher".
 - **FR-019**: Le système MUST, lorsqu'une erreur d'analyse survient, afficher un message explicite avec action immédiate de récupération dans le même flux utilisateur (retenter l'analyse, revenir à la capture, ou équivalent), plutôt qu'un simple constat sans suite.
+- **FR-020**: Le système MUST, sur l'écran de résultat, contenir une transcription longue dans une zone de lecture adaptée afin d'éviter tout dépassement d'écran qui masquerait ou expulserait les contrôles affichés sous le contenu.
+- **FR-021**: Le système MUST permettre à l'utilisatrice d'accéder aux contrôles situés sous la transcription, même lorsque le texte occupe plusieurs écrans de hauteur, sans perte d'action disponible.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -132,6 +136,7 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - **LlmTestIntent**: Action sur le bouton test LLM.
 - **LlmProcessingState**: `inactif`, `en_cours` (loader présenté sur le contexte « écran de capture » jusqu’à l’état terminal), `termine_succès`, `termine_échec`.
 - **LlmResultPresentation**: Contenu présenté sur l'écran de résultat (sortie principale et message d'erreur le cas échéant).
+- **ResultContentViewport**: Zone de lecture qui affiche le contenu long sans débordement hors écran et préserve l'accès aux contrôles situés en dessous.
 
 ## Success Criteria *(mandatory)*
 
@@ -145,6 +150,7 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - **SC-006**: 100 % des indisponibilités caméra affichent un message explicite en moins de 2 secondes après détection ; pour les échecs d'analyse ou de test, la même exigence s'applique **lorsque l'utilisatrice est restée sur l'écran de capture jusqu'à la détection de l'échec**.
 - **SC-007**: Dans au moins 95 % des lancements à froid, l'utilisatrice voit l'écran de prise de photo (sans barre d'onglets principale) en moins de 3 secondes après l'icône d'application, sur matériel représentatif du produit.
 - **SC-008**: Dans 100 % des cas de capture réussie avec texte OCR disponible, l'écran d'analyse/résultat affiche un contenu utile ou une erreur actionnable ; le taux d'apparition d'un écran "Aucun contenu à afficher" sans issue est de 0 %.
+- **SC-009**: Dans 100 % des parcours où la transcription dépasse la hauteur visible initiale, aucune action principale placée sous le texte n'est perdue hors écran ; l'utilisatrice peut l'atteindre via le défilement du contenu.
 
 ## Assumptions
 
@@ -155,3 +161,4 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - Après abandon du flux (quitte l'écran capture pendant le chargement), aucune exigence de récupération ultérieure du résultat n'est imposée dans ce périmètre ; une évolution produit pourrait la définir.
 - Les parcours ou contenus auparavant accessibles uniquement via d'autres onglets ne sont pas réimplémentés dans ce périmètre sous une autre forme ; une évolution distincte peut réintroduire des accès secondaires (menu, raccourci) sans remettre une barre d'onglets principale, sauf nouvelle décision produit.
 - Le texte OCR validé est considéré comme contenu de base disponible pour éviter un écran de résultat vide lorsque l'analyse détaillée n'est pas encore exploitable.
+- En cas de transcription très longue, le besoin produit prioritaire est la préservation de la lisibilité du texte et de l'accessibilité des actions situées sous ce texte.

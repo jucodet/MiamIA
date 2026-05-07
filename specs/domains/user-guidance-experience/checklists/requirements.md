@@ -1,4 +1,4 @@
-# Specification Quality Checklist: photo-capture-llm-result-flow + anti-écran-vide-résultat
+# Specification Quality Checklist: photo-capture-llm-result-flow + anti-écran-vide-résultat + transcription-longue
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-05-07  
@@ -32,4 +32,5 @@
 ## Notes
 
 - Validation après extension : ajout des garde-fous anti écran vide après OCR réussi (FR-017 à FR-019, SC-008), tout en conservant le parcours capture, loader et navigation résultat déjà spécifiés.
+- Validation complémentaire : ajout de la contrainte d'affichage transcription longue sans dépassement d'écran (FR-020, FR-021, SC-009) avec maintien de l'accès aux contrôles sous le contenu.
 - Spécification prête pour `/speckit.clarify` ou `/speckit.plan`.
