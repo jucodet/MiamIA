@@ -2,33 +2,35 @@ package com.foodgpt.composition
 
 /**
  * Extrait [CompositionBilan] depuis une sortie texte du modèle (sections balisées).
+ * Tolère les variations de formatage courantes (espaces, `#` multiples, deux-points).
  */
 object GemmaBilanParser {
 
-    private const val MARKER_LIST = "###LISTE"
-    private const val MARKER_ANALYSIS = "###ANALYSE"
-    /** Aligné avec [com.foodgpt.additives.AdditiveKpiParser.MARKER_ADDITIVES] (spec 003). */
-    private const val MARKER_ADDITIVES_RISK = "###ADDITIFS_RISQUE"
+    private val LISTE_PATTERN = Regex("""#{1,4}\s*LISTE\s*:?""", RegexOption.IGNORE_CASE)
+    private val ANALYSE_PATTERN = Regex("""#{1,4}\s*ANALYSE\s*:?""", RegexOption.IGNORE_CASE)
+    private val ADDITIFS_PATTERN = Regex("""#{1,4}\s*ADDITIFS[_\s]*RISQUE\s*:?""", RegexOption.IGNORE_CASE)
 
     fun parse(modelOutput: String, disclaimer: String = CompositionMessages.DISCLAIMER_DEFAULT): CompositionBilan? {
         val trimmed = modelOutput.trim()
         if (trimmed.isEmpty()) return null
-        val lower = trimmed.lowercase()
-        val listIdx = lower.indexOf(MARKER_LIST.lowercase())
-        val analysisIdx = lower.indexOf(MARKER_ANALYSIS.lowercase())
-        if (listIdx == -1 || analysisIdx == -1 || analysisIdx <= listIdx) return null
 
-        val listBlock = trimmed.substring(listIdx + MARKER_LIST.length, analysisIdx).trim()
-        val afterAnalysisStart = trimmed.substring(analysisIdx + MARKER_ANALYSIS.length)
-        val addiRelIdx = afterAnalysisStart.lowercase().indexOf(MARKER_ADDITIVES_RISK.lowercase())
-        val analysisBlock = if (addiRelIdx == -1) {
+        val listMatch = LISTE_PATTERN.find(trimmed)
+        val analysisMatch = ANALYSE_PATTERN.find(trimmed)
+
+        if (listMatch == null || analysisMatch == null) return null
+        if (analysisMatch.range.first <= listMatch.range.last) return null
+
+        val listBlock = trimmed.substring(listMatch.range.last + 1, analysisMatch.range.first).trim()
+        val afterAnalysisStart = trimmed.substring(analysisMatch.range.last + 1)
+        val additivesMatch = ADDITIFS_PATTERN.find(afterAnalysisStart)
+        val analysisBlock = if (additivesMatch == null) {
             afterAnalysisStart.trim()
         } else {
-            afterAnalysisStart.substring(0, addiRelIdx).trim()
+            afterAnalysisStart.substring(0, additivesMatch.range.first).trim()
         }
 
         val lines = listBlock.lines()
-            .map { it.trim().removePrefix("-").trim() }
+            .map { it.trim().removePrefix("-").removePrefix("*").removePrefix("•").trim() }
             .filter { it.isNotEmpty() }
 
         if (lines.isEmpty() || analysisBlock.isBlank()) return null
