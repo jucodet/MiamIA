@@ -28,10 +28,16 @@ import com.foodgpt.camera.CameraLlmResultPayloadStore
 import com.foodgpt.camera.CameraScreen
 import com.foodgpt.camera.CameraViewModel
 import com.foodgpt.camera.ScanState
-import com.foodgpt.composition.GemmaModelLocator
-import com.foodgpt.composition.LiteRtGemmaEngine
+import com.foodgpt.composition.Gemma4LocalCompositionEngine
 import com.foodgpt.data.repository.ScanSessionRepository
+import com.foodgpt.gemma4local.DeviceClassResolver
+import com.foodgpt.gemma4local.Gemma4LocalAvailabilityChecker
+import com.foodgpt.gemma4local.Gemma4LocalClient
+import com.foodgpt.gemma4local.Gemma4LocalErrorMapper
+import com.foodgpt.gemma4local.Gemma4LocalMetricsLogger
 import com.foodgpt.gemma4local.GemmaModelImportManager
+import com.foodgpt.gemma4local.Gemma4LocalRequestMapper
+import com.foodgpt.gemma4local.HybridGemma4LocalGateway
 import com.foodgpt.healthcritique.HealthCritiqueViewModel
 import com.foodgpt.home.CompositionEngineHomeLlmMockRunner
 import com.foodgpt.home.HomeSpecPriorityResolver
@@ -117,8 +123,16 @@ class MainActivity : ComponentActivity() {
                         repository = repository
                     )
                 }
-                val modelLocator = GemmaModelLocator(applicationContext)
-                val compositionEngine = LiteRtGemmaEngine(applicationContext, modelLocator)
+                val localGateway = HybridGemma4LocalGateway(applicationContext)
+                val localClient = Gemma4LocalClient(
+                    availabilityChecker = Gemma4LocalAvailabilityChecker(localGateway),
+                    requestMapper = Gemma4LocalRequestMapper(),
+                    errorMapper = Gemma4LocalErrorMapper(),
+                    metricsLogger = Gemma4LocalMetricsLogger(),
+                    deviceClassResolver = DeviceClassResolver(applicationContext),
+                    gateway = localGateway
+                )
+                val compositionEngine = Gemma4LocalCompositionEngine(localClient)
                 val homeLlmRunner = CompositionEngineHomeLlmMockRunner(compositionEngine)
                 cameraViewModel = ViewModelProvider(
                     this@MainActivity,
