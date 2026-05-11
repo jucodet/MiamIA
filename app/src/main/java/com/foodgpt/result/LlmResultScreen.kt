@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -36,6 +37,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -213,67 +216,34 @@ private fun StreamingContent(state: StreamingBilanState.Streaming) {
         visible = state.partialIngredients.isNotEmpty(),
         enter = fadeIn()
     ) {
-        Card(
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("streaming_ingredients_card")
+        StreamingSectionCard(
+            icon = Icons.AutoMirrored.Filled.List,
+            iconTint = Color(0xFF1565C0),
+            title = "Ingrédients identifiés",
+            badge = "${state.partialIngredients.size}",
+            isLoading = state.sectionReached == StreamingSection.LISTE,
+            testTag = "streaming_ingredients_card"
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF1565C0).copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                state.partialIngredients.forEach { line ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.List,
-                            contentDescription = null,
-                            tint = Color(0xFF1565C0),
-                            modifier = Modifier.size(18.dp)
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF1565C0),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(end = 8.dp, top = 1.dp)
                         )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Ingrédients identifiés",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (state.sectionReached == StreamingSection.LISTE) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
+                        Text(
+                            text = line,
+                            style = MaterialTheme.typography.bodyMedium
                         )
-                    }
-                }
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
-                    state.partialIngredients.forEach { line ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Text(
-                                text = "•",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF1565C0),
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(end = 8.dp, top = 1.dp)
-                            )
-                            Text(
-                                text = line,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
                     }
                 }
             }
@@ -284,54 +254,156 @@ private fun StreamingContent(state: StreamingBilanState.Streaming) {
         visible = state.partialAnalysis != null,
         enter = fadeIn()
     ) {
-        Card(
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("streaming_analysis_card")
+        StreamingSectionCard(
+            icon = Icons.Filled.Science,
+            iconTint = Color(0xFF6A1B9A),
+            title = "Synthèse",
+            isLoading = state.sectionReached == StreamingSection.ANALYSE,
+            testTag = "streaming_analysis_card"
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF6A1B9A).copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
+            if (state.partialAnalysis != null) {
+                Text(
+                    text = state.partialAnalysis,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+    }
+
+    AnimatedVisibility(
+        visible = state.partialHealthImpacts.isNotEmpty(),
+        enter = fadeIn()
+    ) {
+        StreamingSectionCard(
+            icon = Icons.Filled.FavoriteBorder,
+            iconTint = Color(0xFF00796B),
+            title = "Verdict par ingrédient",
+            badge = "${state.partialHealthImpacts.size}",
+            isLoading = state.sectionReached == StreamingSection.IMPACT_SANTE,
+            testTag = "streaming_health_impact_card"
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                state.partialHealthImpacts.forEach { impact ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Science,
-                            contentDescription = null,
-                            tint = Color(0xFF6A1B9A),
-                            modifier = Modifier.size(18.dp)
+                        Surface(
+                            color = impactLevelColor(impact.level).copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = impactLevelEmoji(impact.level),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = impact.ingredient,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = impact.note,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StreamingSectionCard(
+    icon: ImageVector,
+    iconTint: Color,
+    title: String,
+    testTag: String,
+    badge: String? = null,
+    isLoading: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(testTag)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(iconTint.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                if (badge != null) {
+                    Surface(
+                        color = iconTint.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = badge,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = iconTint,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Analyse",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f)
-                    )
+                }
+                if (isLoading) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp
                     )
                 }
-                if (state.partialAnalysis != null) {
-                    Text(
-                        text = state.partialAnalysis,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
             }
+            content()
         }
     }
+}
+
+private fun impactLevelColor(level: String): Color = when (level) {
+    "VERT" -> Color(0xFF43A047)
+    "ORANGE" -> Color(0xFFFF9800)
+    "ROUGE" -> Color(0xFFE53935)
+    else -> Color(0xFF9E9E9E)
+}
+
+private fun impactLevelEmoji(level: String): String = when (level) {
+    "VERT" -> "\u2705"
+    "ORANGE" -> "\u26A0\uFE0F"
+    "ROUGE" -> "\u274C"
+    else -> "\u2753"
 }
 
 @Composable

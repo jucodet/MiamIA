@@ -9,6 +9,7 @@ sealed class StreamingBilanState {
         val partialText: String = "",
         val partialIngredients: List<String> = emptyList(),
         val partialAnalysis: String? = null,
+        val partialHealthImpacts: List<StreamingHealthImpact> = emptyList(),
         val sectionReached: StreamingSection = StreamingSection.NONE
     ) : StreamingBilanState()
 
@@ -23,9 +24,16 @@ sealed class StreamingBilanState {
     ) : StreamingBilanState()
 }
 
+data class StreamingHealthImpact(
+    val level: String,
+    val ingredient: String,
+    val note: String
+)
+
 enum class StreamingSection {
     NONE,
     LISTE,
     ANALYSE,
+    IMPACT_SANTE,
     DONE
 }
