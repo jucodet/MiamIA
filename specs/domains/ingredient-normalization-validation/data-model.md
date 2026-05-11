@@ -1,79 +1,47 @@
-# Data Model: ingredient-phrase-segment
+# Data Model - ingredient-normalization-validation (017-ocr-dot-end-capture)
 
-## Entities
+## Entities existantes — pas de modification structurelle
 
-### IngredientExtractionSession
+Ce changement ne crée pas de nouvelles entités ni de nouveaux champs. Les structures existantes dans `IngredientSegmentModels.kt` sont suffisantes.
 
-- **Description**: session fonctionnelle qui relie le texte OCR d'entrée, la proposition de segment et la validation utilisateur.
+### 0) OcrRawText
+
+- **Description**: texte brut d'une capture d'étiquette OCR.
 - **Fields**:
-  - `sessionId` (string, unique)
-  - `rawText` (string, required)
-  - `status` (`ready_for_proposal` | `proposal_ready` | `blocked_no_anchor` | `blocked_empty_segment` | `validated`)
-  - `createdAt` (datetime)
-  - `updatedAt` (datetime)
-- **Validation Rules**:
-  - `rawText` non vide pour tenter l'isolation.
-  - `validated` interdit sans proposition non vide.
+  - `scanId` (string, unique)
+  - `content` (string)
+  - `capturedAtEpochMs` (long)
+- **Impact 017**: aucun.
 
-## Value Objects
+### 1) IngredientSegmentExtraction
 
-### IngredientAnchorMatch
-
-- **Description**: résultat de détection de la première ancre reconnue.
+- **Description**: résultat de l'extraction du segment ingrédients.
 - **Fields**:
-  - `token` (`Ingrédient` | `Ingrédients` | `Ingredient` | `Ingredients`)
-  - `startIndex` (int, >= 0)
-  - `lineIndex` (int, >= 0)
-- **Validation Rules**:
-  - représente uniquement la première occurrence dans l'ordre de lecture.
+  - `scanId` (string)
+  - `anchorFound` (boolean)
+  - `anchorIndex` (int, nullable)
+  - `endIndex` (int, nullable)
+  - `segmentText` (string, nullable)
+  - `fallbackMode` (enum: `NONE`, `ANCHOR_MISSING_BLOCKED`, `NO_NEWLINE_TO_EOF`)
+  - `boundaryEndReason` (enum: `NONE`, `SENTENCE_TERMINATOR`, `LINE_END`, `TEXT_END`)
+- **Impact 017**: la valeur `SENTENCE_TERMINATOR` inclut désormais uniquement les `.` suivis d'un espace/newline (ou en fin de texte), et les `!` / `?` inconditionnels. Sémantique externe inchangée.
 
-### SegmentBoundary
+### 2) IngredientSegmentBoundaryResolver.Resolution
 
-- **Description**: bornes calculées du segment à proposer.
+- **Description**: résultat intermédiaire du calcul de borne de fin.
 - **Fields**:
-  - `startIndex` (int)
-  - `endIndex` (int, exclusif)
-  - `endReason` (`sentence_terminator` | `line_end` | `text_end`)
-- **Validation Rules**:
-  - `endIndex > startIndex`
-  - `endReason` suit la hiérarchie: ponctuation de phrase > fin de ligne > fin de texte.
+  - `endIndexExclusive` (int)
+  - `boundaryEndReason` (enum `IngredientSegmentBoundaryEndReason`)
+- **Impact 017**: le contrat « `endIndexExclusive` pointe après le terminateur » est préservé. Le `.` interne ne produit plus de `Resolution` prématurée.
 
-### IngredientSegmentProposal
+## Invariant révisé (FR-003)
 
-- **Description**: segment extrait avant confirmation.
-- **Fields**:
-  - `text` (string)
-  - `anchor` (`IngredientAnchorMatch`)
-  - `boundary` (`SegmentBoundary`)
-- **Validation Rules**:
-  - `text` non vide.
-  - cohérence index avec `rawText`.
+Le `.` est un terminateur de phrase **si et seulement si** :
+1. Il est suivi d'un espace (`' '`) ou d'un retour à la ligne (`'\n'`), **ou**
+2. Il est le dernier caractère du texte disponible (pas de caractère après).
 
-### ValidatedIngredientSegment
+Les `!` et `?` restent des terminateurs inconditionnels (pas de condition contextuelle).
 
-- **Description**: segment final confirmé (ou corrigé) par l'utilisatrice.
-- **Fields**:
-  - `text` (string, required)
-  - `confirmedByUser` (boolean, true)
-  - `sourceProposalHash` (string)
-- **Validation Rules**:
-  - `confirmedByUser` doit être vrai pour autoriser l'analyse aval.
+## State transitions
 
-## Relationships
-
-- `IngredientExtractionSession` 1 -> 0..1 `IngredientSegmentProposal`
-- `IngredientExtractionSession` 1 -> 0..1 `ValidatedIngredientSegment`
-- `IngredientSegmentProposal` 1 -> 1 `IngredientAnchorMatch`
-- `IngredientSegmentProposal` 1 -> 1 `SegmentBoundary`
-
-## State Transitions
-
-- `ready_for_proposal` -> `proposal_ready` (ancre trouvée + segment non vide)
-- `ready_for_proposal` -> `blocked_no_anchor` (aucune ancre reconnue)
-- `ready_for_proposal` -> `blocked_empty_segment` (bornes invalides ou texte vide)
-- `proposal_ready` -> `validated` (confirmation explicite utilisateur)
-- `proposal_ready` -> `ready_for_proposal` (reprise/correction et nouvelle tentative)
-
-## Traceability Notes
-
-- Toute session doit permettre de reconstruire `rawText -> proposal(text + boundary + anchor) -> validatedSegment`.
+Pas de changement dans les transitions d'état (`IngredientSegmentFallbackMode`, `SubmissionBlockedReason`). Le flux `prepare()` → `resolveEnd()` → `AnalysisSubmissionGate.evaluate()` reste identique.
