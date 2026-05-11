@@ -29,7 +29,6 @@ import com.foodgpt.ingredients.ScanFailureMessageBuilder
 import com.foodgpt.permissions.CameraPermissionHandler
 import com.foodgpt.recognition.IngredientRecognitionCoordinator
 import com.foodgpt.recognition.ScanFailureClassifier
-import com.foodgpt.gemma4local.AndroidGemma4LocalGateway
 import com.foodgpt.gemma4local.Gemma4LocalAvailabilityChecker
 import com.foodgpt.composition.CompositionBilan
 import com.foodgpt.home.HomeLlmFailureCategory
