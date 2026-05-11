@@ -71,7 +71,7 @@ dependencies {
     // LiteRT-LM — inférence Gemma locale (spec 009 ; `LiteRtGemmaEngine`).
     // Ne pas ajouter `litert` séparément : une autre version peut fusionner un
     // `liblitertlm_jni.so` incompatible et provoquer « No implementation found … nativeCheckLoaded ».
-    implementation("com.google.ai.edge.litertlm:litertlm-android:0.10.0")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.11.0")
 
 
     implementation("androidx.camera:camera-core:1.4.2")
