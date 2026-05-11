@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -48,6 +49,12 @@ import com.foodgpt.recognition.IngredientRecognitionCoordinator
 import com.foodgpt.recognition.LocalOcrFallbackRecognizer
 import com.foodgpt.recognition.RecognitionEngineSelector
 import com.foodgpt.navigation.CameraFlowRoutes
+import com.foodgpt.navigation.OnboardingRoutes
+import com.foodgpt.onboarding.LlmModelReadinessState
+import com.foodgpt.onboarding.ModelDownloadOnboardingScreen
+import com.foodgpt.onboarding.ModelDownloadViewModel
+import com.foodgpt.onboarding.ModelDownloadWaitingScreen
+import com.foodgpt.onboarding.NetworkOfflineScreen
 import com.foodgpt.result.LlmResultScreen
 import com.foodgpt.scan.TemporaryImageManager
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +69,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var cameraViewModel: CameraViewModel
 
     private lateinit var healthCritiqueViewModel: HealthCritiqueViewModel
+
+    private lateinit var modelDownloadViewModel: ModelDownloadViewModel
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -108,6 +117,10 @@ class MainActivity : ComponentActivity() {
             val imageManager = remember { TemporaryImageManager(applicationContext) }
             var uiReady by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
+                modelDownloadViewModel = ViewModelProvider(
+                    this@MainActivity
+                )[ModelDownloadViewModel::class.java]
+
                 val coordinator = withContext(Dispatchers.IO) {
                     val db = app.database
                     val repository = ScanSessionRepository(db.scanSessionDao())
@@ -123,7 +136,6 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 val localGateway = HybridGemma4LocalGateway(applicationContext)
-                localGateway.ensureModelDownloaded()
                 val localClient = Gemma4LocalClient(
                     availabilityChecker = Gemma4LocalAvailabilityChecker(localGateway),
                     requestMapper = Gemma4LocalRequestMapper(),
@@ -171,6 +183,10 @@ class MainActivity : ComponentActivity() {
                             healthCritiqueViewModel.setValidatedSegmentFromScan(segment)
                         }
                     }
+                    val onboardingState by modelDownloadViewModel.state.collectAsState()
+                    val needsOnboarding = onboardingState !is LlmModelReadinessState.Ready
+                    val startDest = if (needsOnboarding) OnboardingRoutes.Confirm else CameraFlowRoutes.Capture
+
                     val cameraNavController = rememberNavController()
                     LaunchedEffect(cameraViewModel) {
                         cameraViewModel.navigateToLlmResult.collect {
@@ -182,11 +198,66 @@ class MainActivity : ComponentActivity() {
                             cameraNavController.navigate(CameraFlowRoutes.HealthCritiqueResult)
                         }
                     }
+                    LaunchedEffect(onboardingState) {
+                        when (onboardingState) {
+                            is LlmModelReadinessState.Ready -> {
+                                if (cameraNavController.currentDestination?.route != CameraFlowRoutes.Capture) {
+                                    cameraNavController.navigate(CameraFlowRoutes.Capture) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                            }
+                            is LlmModelReadinessState.Offline -> {
+                                if (cameraNavController.currentDestination?.route != OnboardingRoutes.Offline) {
+                                    cameraNavController.navigate(OnboardingRoutes.Offline) {
+                                        popUpTo(OnboardingRoutes.Confirm) { inclusive = true }
+                                    }
+                                }
+                            }
+                            is LlmModelReadinessState.Downloading -> {
+                                if (cameraNavController.currentDestination?.route != OnboardingRoutes.Downloading) {
+                                    cameraNavController.navigate(OnboardingRoutes.Downloading)
+                                }
+                            }
+                            else -> {}
+                        }
+                    }
                     NavHost(
                         navController = cameraNavController,
-                        startDestination = CameraFlowRoutes.Capture,
+                        startDestination = startDest,
                         modifier = Modifier.fillMaxSize()
                     ) {
+                        composable(OnboardingRoutes.Confirm) {
+                            val state = onboardingState
+                            val networkType = if (state is LlmModelReadinessState.ConfirmationRequired)
+                                state.networkType
+                            else
+                                com.foodgpt.onboarding.NetworkType.WIFI
+                            ModelDownloadOnboardingScreen(
+                                networkType = networkType,
+                                isResumable = modelDownloadViewModel.isResumable,
+                                onConfirm = { modelDownloadViewModel.confirmDownload() },
+                                onDecline = { modelDownloadViewModel.declineDownload() }
+                            )
+                        }
+                        composable(OnboardingRoutes.Offline) {
+                            NetworkOfflineScreen(
+                                onRetry = { modelDownloadViewModel.retryNetworkCheck() }
+                            )
+                        }
+                        composable(OnboardingRoutes.Downloading) {
+                            val state = onboardingState
+                            val progress = if (state is LlmModelReadinessState.Downloading)
+                                state.progress
+                            else
+                                null
+                            val error = if (state is LlmModelReadinessState.Error) state else null
+                            ModelDownloadWaitingScreen(
+                                progress = progress,
+                                error = error,
+                                onRetry = { modelDownloadViewModel.retryDownload() }
+                            )
+                        }
                         composable(CameraFlowRoutes.Capture) {
                             CameraScreen(
                                 viewModel = cameraViewModel,

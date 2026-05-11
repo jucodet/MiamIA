@@ -2,11 +2,6 @@ package com.foodgpt.result
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -50,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -61,6 +55,8 @@ import com.foodgpt.camera.BilanResultCard
 import com.foodgpt.camera.CameraViewModel
 import com.foodgpt.camera.StreamingBilanState
 import com.foodgpt.camera.StreamingSection
+import com.foodgpt.ui.shared.AnimatedWhisk
+import com.foodgpt.ui.shared.WAITING_PHRASES
 import kotlinx.coroutines.delay
 
 @Composable
@@ -128,19 +124,6 @@ fun LlmResultScreen(
     }
 }
 
-private val WAITING_PHRASES = listOf(
-    "Distillation des essences en cours...",
-    "Interrogatoire musclé des colorants artificiels en cours...",
-    "Négociation diplomatique avec les fibres pour qu'elles restent calmes...",
-    "Traduction du langage complexe des étiquettes (le 'E452' refuse de parler)...",
-    "Traque intensive des calories clandestines qui tentent de se cacher...",
-    "Scan moléculaire terminé : les vitamines ont l'air de bonne humeur.",
-    "Tentative de corruption par un carré de chocolat détectée (et refusée)...",
-    "Calcul de la vitesse à laquelle ce sucre va rejoindre vos hanches...",
-    "Analyse de la relation toxique entre votre foie et ces additifs...",
-    "Consultation de l'Oracle de la Nutrition (il hésite entre 'Bio' et 'Pourquoi pas ?')...",
-    "Déglaçage algorithmique de vos ingrédients en cours...",
-)
 
 @Composable
 private fun StreamingHeader() {
@@ -190,25 +173,6 @@ private fun StreamingHeader() {
     }
 }
 
-@Composable
-private fun AnimatedWhisk(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "whisk_rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = -20f,
-        targetValue = 20f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 300, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "whisk_angle"
-    )
-
-    Text(
-        text = "\uD83E\uDD44",
-        modifier = modifier.rotate(rotation),
-        style = MaterialTheme.typography.headlineMedium
-    )
-}
 
 @Composable
 private fun StreamingContent(state: StreamingBilanState.Streaming) {

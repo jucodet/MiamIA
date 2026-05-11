@@ -22,12 +22,22 @@ class GemmaModelDownloader(private val context: Context) {
 
     suspend fun ensureModelAvailable(): File {
         resolveLocalModel()?.let { return it }
-        return downloadModel()
+        return downloadModel(null)
     }
 
-    private suspend fun downloadModel(): File = withContext(Dispatchers.IO) {
+    suspend fun downloadModelWithProgress(
+        onProgress: (percent: Int, downloadedBytes: Long, totalBytes: Long) -> Unit
+    ): File {
+        resolveLocalModel()?.let { return it }
+        return downloadModel(onProgress)
+    }
+
+    private suspend fun downloadModel(
+        onProgress: ((Int, Long, Long) -> Unit)?
+    ): File = withContext(Dispatchers.IO) {
         val target = targetFile()
         val temp = File(target.parentFile, "${target.name}.downloading")
+        if (temp.exists()) temp.delete()
         target.parentFile?.mkdirs()
 
         Log.i(TAG, "download_start url=$MODEL_URL")
@@ -61,9 +71,12 @@ class GemmaModelDownloader(private val context: Context) {
                     downloaded += n
                     if (totalBytes > 0) {
                         val percent = (downloaded * 100 / totalBytes).toInt()
-                        if (percent != lastLogPercent && percent % 10 == 0) {
+                        if (percent != lastLogPercent) {
+                            onProgress?.invoke(percent, downloaded, totalBytes)
+                            if (percent % 10 == 0) {
+                                Log.i(TAG, "download_progress $percent% ($downloaded/$totalBytes)")
+                            }
                             lastLogPercent = percent
-                            Log.i(TAG, "download_progress $percent% ($downloaded/$totalBytes)")
                         }
                     }
                 }

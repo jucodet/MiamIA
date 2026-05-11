@@ -27,6 +27,12 @@ class CompositionEngineHomeLlmMockRunner(
                     result.bilan.ingredientLines.forEach { appendLine("- $it") }
                     appendLine("###ANALYSE")
                     appendLine(result.bilan.compositionAnalysis)
+                    if (result.bilan.healthImpacts.isNotEmpty()) {
+                        appendLine("###IMPACT_SANTE")
+                        result.bilan.healthImpacts.forEach { impact ->
+                            appendLine("${impact.level}|${impact.ingredient}|${impact.note}")
+                        }
+                    }
                     appendLine("###DISCLAIMER")
                     append(result.bilan.disclaimer)
                 }
