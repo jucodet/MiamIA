@@ -50,25 +50,27 @@ class GemmaModelDownloader(private val context: Context) {
             var downloaded = 0L
             var lastLogPercent = -1
 
-            conn.inputStream.buffered().use { input ->
-                temp.outputStream().buffered().use { output ->
-                    val buffer = ByteArray(131_072)
-                    while (true) {
-                        val n = input.read(buffer)
-                        if (n == -1) break
-                        output.write(buffer, 0, n)
-                        downloaded += n
-                        if (totalBytes > 0) {
-                            val percent = (downloaded * 100 / totalBytes).toInt()
-                            if (percent != lastLogPercent && percent % 10 == 0) {
-                                lastLogPercent = percent
-                                Log.i(TAG, "download_progress $percent% ($downloaded/$totalBytes)")
-                            }
+            val input = conn.inputStream.buffered()
+            val output = temp.outputStream().buffered()
+            try {
+                val buffer = ByteArray(131_072)
+                while (true) {
+                    val n = input.read(buffer)
+                    if (n == -1) break
+                    output.write(buffer, 0, n)
+                    downloaded += n
+                    if (totalBytes > 0) {
+                        val percent = (downloaded * 100 / totalBytes).toInt()
+                        if (percent != lastLogPercent && percent % 10 == 0) {
+                            lastLogPercent = percent
+                            Log.i(TAG, "download_progress $percent% ($downloaded/$totalBytes)")
                         }
                     }
-                    output.flush()
-                    output.fd.sync()
                 }
+                output.flush()
+            } finally {
+                output.close()
+                input.close()
             }
 
             if (temp.length() <= 0L) {
