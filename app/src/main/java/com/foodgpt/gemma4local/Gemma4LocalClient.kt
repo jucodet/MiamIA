@@ -20,7 +20,7 @@ class Gemma4LocalClient(
     private val deviceClassResolver: DeviceClassResolver,
     private val gateway: Gemma4LocalApiGateway
 ) {
-    suspend fun analyze(rawText: String): AnalyseTextuelleResult {
+    suspend fun analyze(rawText: String, onStreamPartial: ((String) -> Unit)? = null): AnalyseTextuelleResult {
         val request = requestMapper.map(rawText, sourceScreen = "camera")
         val started = SystemClock.elapsedRealtime()
 
@@ -30,13 +30,15 @@ class Gemma4LocalClient(
                 TAG,
                 "availability_non_blocking requestId=${request.requestId} issue=${availability.issue} details=${availability.details}"
             )
-            // Le health-check peut être faux négatif selon l'état du runtime.
-            // On tente toujours l'appel réel ML Kit local pour éviter un blocage prématuré.
         }
 
         return try {
             val output = withTimeout(Gemma4LocalConfig.DEFAULT_TIMEOUT_MS) {
-                gateway.analyzeText(request.inputText)
+                if (onStreamPartial != null && gateway is HybridGemma4LocalGateway) {
+                    gateway.analyzeTextStreaming(request.inputText, onStreamPartial)
+                } else {
+                    gateway.analyzeText(request.inputText)
+                }
             }.trim()
             val latency = SystemClock.elapsedRealtime() - started
             val result = if (output.isNotEmpty()) {

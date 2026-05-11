@@ -13,7 +13,7 @@ class Gemma4LocalCompositionEngine(
         maxInferenceMs: Long,
         onStreamPartial: ((String) -> Unit)?
     ): AnalyzeCompositionResult {
-        val localResult = localClient.analyze(rawText)
+        val localResult = localClient.analyze(rawText, onStreamPartial)
         return if (localResult.status == AnalyseTextuelleStatus.SUCCESS && !localResult.outputText.isNullOrBlank()) {
             Log.d(TAG, "gemma_raw_output length=${localResult.outputText.length} text=[${localResult.outputText.take(500)}]")
             val parsed = GemmaBilanParser.parse(localResult.outputText)
