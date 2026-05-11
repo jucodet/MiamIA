@@ -309,21 +309,34 @@ fun CameraScreen(
             is ScanState.SegmentConfirmationRequired -> {
                 val confirmation = state as ScanState.SegmentConfirmationRequired
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Verifier la ligne ingredients", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = confirmation.segmentPreview,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.testTag("segment_preview_text")
-                    )
+                    Text("Vérifier la liste d'ingrédients", style = MaterialTheme.typography.titleMedium)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false)
+                            .heightIn(max = 280.dp)
+                            .verticalScroll(rememberScrollState())
+                            .testTag("segment_preview_scroll")
+                    ) {
+                        Text(
+                            text = confirmation.segmentPreview,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("segment_preview_text")
+                        )
+                    }
                     Button(
                         onClick = viewModel::confirmSegmentAndAnalyze,
-                        modifier = Modifier.testTag("confirm_segment_button")
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("confirm_segment_button")
                     ) {
                         Text("Confirmer et analyser")
                     }
                     OutlinedButton(
                         onClick = viewModel::rejectSegmentConfirmation,
-                        modifier = Modifier.testTag("reject_segment_button")
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("reject_segment_button")
                     ) {
                         Text("Reprendre la photo")
                     }
