@@ -23,8 +23,17 @@ class HybridGemma4LocalGateway(
     private val downloader: GemmaModelDownloader = GemmaModelDownloader(context)
 ) : Gemma4LocalApiGateway, Gemma4LocalAvailabilityProbe {
 
+    /**
+     * Telecharge le modele si absent. Appeler AVANT analyzeText (au demarrage app).
+     * Le telechargement peut prendre plusieurs minutes pour ~2.6 GB.
+     */
+    suspend fun ensureModelDownloaded() {
+        downloader.ensureModelAvailable()
+    }
+
     override suspend fun analyzeText(inputText: String): String {
-        val modelFile = downloader.ensureModelAvailable()
+        val modelFile = downloader.resolveLocalModel()
+            ?: throw IllegalStateException("Modele Gemma local indisponible")
         return withContext(Dispatchers.IO) { runAnalyze(modelFile, inputText) }
     }
 

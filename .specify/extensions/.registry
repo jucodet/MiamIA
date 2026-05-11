@@ -18,6 +18,20 @@
       },
       "registered_skills": [],
       "installed_at": "2026-04-19T14:42:00.762980+00:00"
+    },
+    "diagram": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:a2ab4ddf44a45c8bfd7f0a0a75e3aa2075d0135e1e288c6d70974f8b37d0621d",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {},
+      "registered_skills": [
+        "speckit-diagram-workflow",
+        "speckit-diagram-status",
+        "speckit-diagram-dependencies"
+      ],
+      "installed_at": "2026-05-11T09:01:41.518645+00:00"
     }
   }
 }

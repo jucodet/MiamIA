@@ -124,6 +124,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 val localGateway = HybridGemma4LocalGateway(applicationContext)
+                localGateway.ensureModelDownloaded()
                 val localClient = Gemma4LocalClient(
                     availabilityChecker = Gemma4LocalAvailabilityChecker(localGateway),
                     requestMapper = Gemma4LocalRequestMapper(),
