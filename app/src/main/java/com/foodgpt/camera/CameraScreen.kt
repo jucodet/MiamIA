@@ -139,69 +139,20 @@ fun CameraScreen(
             }
 
             is ScanState.CompositionAnalyzing -> {
-                val analyzing = state as ScanState.CompositionAnalyzing
-                key(previewSession) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(360.dp)
-                            .testTag("photo_preview_box")
-                    ) {
-                        CameraPreviewBox(
-                            onPreviewViewCreated = { previewView ->
-                                viewModel.attachPreview(previewView, lifecycleOwner)
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.padding(16.dp)
-                            ) {
-                                CircularProgressIndicator()
-                                Text(
-                                    "Analyse LLM en cours…",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.testTag("llm_loading_overlay_label")
-                                )
-                                if (analyzing.partialResponse.isNotBlank()) {
-                                    Text(
-                                        text = analyzing.partialResponse,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .heightIn(max = 120.dp)
-                                            .verticalScroll(rememberScrollState())
-                                            .testTag("composition_streaming_draft")
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                Button(
-                    onClick = { viewModel.capturePhoto(onCreateTempImage()) },
-                    enabled = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("capture_photo_button")
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Prendre la photo")
-                }
-                OutlinedButton(
-                    onClick = viewModel::runCameraTabLlmMockTest,
-                    enabled = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
-                        .testTag("camera_tab_llm_test_button")
-                ) {
-                    Text("Test LLM")
+                    CircularProgressIndicator(
+                        modifier = Modifier.testTag("composition_analyzing_spinner")
+                    )
+                    Text(
+                        "Analyse en cours — résultat sur l'écran suivant…",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("llm_loading_overlay_label")
+                    )
                 }
             }
 

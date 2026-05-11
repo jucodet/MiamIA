@@ -30,7 +30,6 @@ import com.foodgpt.permissions.CameraPermissionHandler
 import com.foodgpt.recognition.IngredientRecognitionCoordinator
 import com.foodgpt.recognition.ScanFailureClassifier
 import com.foodgpt.gemma4local.Gemma4LocalAvailabilityChecker
-import com.foodgpt.composition.CompositionBilan
 import com.foodgpt.home.HomeLlmFailureCategory
 import com.foodgpt.home.HomeLlmMockOutcome
 import com.foodgpt.home.HomeLlmMockRunner
@@ -108,6 +107,9 @@ class CameraViewModel(
     private val submissionGate = AnalysisSubmissionGate()
 
     private val _captureRouteActive = MutableStateFlow(false)
+
+    private val _streamingBilan = MutableStateFlow<StreamingBilanState>(StreamingBilanState.Idle)
+    val streamingBilan: StateFlow<StreamingBilanState> = _streamingBilan.asStateFlow()
 
     private val _navigateToLlmResult = MutableSharedFlow<CameraLlmResultNavigation>(extraBufferCapacity = 1)
     val navigateToLlmResult: SharedFlow<CameraLlmResultNavigation> = _navigateToLlmResult.asSharedFlow()
@@ -205,20 +207,27 @@ class CameraViewModel(
         if (!cameraTabLlmTestInFlight.compareAndSet(false, true)) return
         viewModelScope.launch {
             _scanState.value = ScanState.CompositionAnalyzing()
+            _streamingBilan.value = StreamingBilanState.Streaming()
+            navigateToResultScreen()
             try {
                 when (val outcome = runner.run()) {
                     is HomeLlmMockOutcome.Success -> {
-                        offerLlmResultIfActive(
-                            body = outcome.responseText,
-                            isError = false,
-                            errorCategoryWire = null
+                        val parsed = StreamingBilanParser.parsePartial(outcome.responseText)
+                        _streamingBilan.value = parsed.copy(
+                            sectionReached = StreamingSection.DONE
                         )
+                        val bilan = com.foodgpt.composition.GemmaBilanParser.parse(outcome.responseText)
+                        if (bilan != null) {
+                            _streamingBilan.value = StreamingBilanState.Complete(
+                                bilan = bilan,
+                                rawTranscript = outcome.responseText
+                            )
+                        }
                     }
                     is HomeLlmMockOutcome.Failure -> {
-                        offerLlmResultIfActive(
-                            body = outcome.message,
-                            isError = true,
-                            errorCategoryWire = outcome.category.wireValue
+                        _streamingBilan.value = StreamingBilanState.Error(
+                            message = outcome.message,
+                            errorCategory = outcome.category.wireValue
                         )
                     }
                 }
@@ -234,35 +243,22 @@ class CameraViewModel(
         }
     }
 
-    private fun formatBilanForResult(bilan: CompositionBilan): String = buildString {
-        appendLine("###LISTE")
-        bilan.ingredientLines.forEach { appendLine("- $it") }
-        appendLine("###ANALYSE")
-        appendLine(bilan.compositionAnalysis)
-        appendLine("###DISCLAIMER")
-        append(bilan.disclaimer)
+    private fun navigateToResultScreen() {
+        val signal = CameraLlmResultNavigation(body = "", isError = false)
+        if (!_navigateToLlmResult.tryEmit(signal)) {
+            viewModelScope.launch {
+                _navigateToLlmResult.emit(signal)
+            }
+        }
     }
 
-    private fun offerLlmResultIfActive(
-        body: String,
-        isError: Boolean,
-        errorCategoryWire: String?,
-        bilan: CompositionBilan? = null,
-        rawTranscript: String? = null
-    ) {
-        if (!_captureRouteActive.value) return
-        val payload = CameraLlmResultNavigation(
-            body = body,
-            isError = isError,
-            errorCategoryWire = errorCategoryWire,
-            bilan = bilan,
-            rawTranscript = rawTranscript
-        )
-        CameraLlmResultPayloadStore.set(payload)
-        if (!_navigateToLlmResult.tryEmit(payload)) {
-            viewModelScope.launch {
-                _navigateToLlmResult.emit(payload)
-            }
+    fun resetStreamingBilan() {
+        _streamingBilan.value = StreamingBilanState.Idle
+        _previewSession.value += 1
+        _scanState.value = if (permissionHandler.hasCameraPermission(getApplication())) {
+            ScanState.CameraReady
+        } else {
+            ScanState.PermissionDenied
         }
     }
 
@@ -280,15 +276,6 @@ class CameraViewModel(
                 isError = true,
                 errorCategoryWire = HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
             )
-        }
-    }
-
-    private fun resetToCaptureAfterNav() {
-        _previewSession.value += 1
-        _scanState.value = if (permissionHandler.hasCameraPermission(getApplication())) {
-            ScanState.CameraReady
-        } else {
-            ScanState.PermissionDenied
         }
     }
 
@@ -458,7 +445,9 @@ class CameraViewModel(
         rawText: String,
         itemsPreview: List<String>
     ) {
-        // Le délai est appliqué dans le moteur (code JNI bloquant : withTimeout coroutine ne suffit pas).
+        _streamingBilan.value = StreamingBilanState.Streaming()
+        navigateToResultScreen()
+
         val outcome = engine.analyze(
             rawText,
             FeatureConfig.COMPOSITION_ANALYSIS_TIMEOUT_MS
@@ -470,6 +459,7 @@ class CameraViewModel(
                     cur
                 }
             }
+            _streamingBilan.value = StreamingBilanParser.parsePartial(partial)
         }
         clearAdditiveKpiDisplay()
         when (outcome) {
@@ -477,14 +467,11 @@ class CameraViewModel(
                 val emptyReject = CompositionResultValidator.rejectEmptyStructure(outcome.bilan)
                 if (emptyReject != null) {
                     _lastValidatedSegmentForHealth.value = null
-                    if (_captureRouteActive.value) {
-                        offerLlmResultIfActive(
-                            emptyReject.message,
-                            true,
-                            HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
-                        )
-                        resetToCaptureAfterNav()
-                    } else {
+                    _streamingBilan.value = StreamingBilanState.Error(
+                        message = emptyReject.message,
+                        errorCategory = HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+                    )
+                    if (!_captureRouteActive.value) {
                         _scanState.value = ScanState.CompositionLimit(
                             message = emptyReject.message,
                             rawTranscript = rawText
@@ -494,16 +481,11 @@ class CameraViewModel(
                     when (val v = CompositionResultValidator.validateAgainstSource(outcome.bilan, rawText)) {
                         is AnalyzeCompositionResult.BilanSuccess -> {
                             _lastValidatedSegmentForHealth.value = rawText
-                            if (_captureRouteActive.value) {
-                                offerLlmResultIfActive(
-                                    body = formatBilanForResult(v.bilan),
-                                    isError = false,
-                                    errorCategoryWire = null,
-                                    bilan = v.bilan,
-                                    rawTranscript = rawText
-                                )
-                                resetToCaptureAfterNav()
-                            } else {
+                            _streamingBilan.value = StreamingBilanState.Complete(
+                                bilan = v.bilan,
+                                rawTranscript = rawText
+                            )
+                            if (!_captureRouteActive.value) {
                                 val kpi = withContext(Dispatchers.Default) {
                                     BuildAdditiveKpiDisplay(v.bilan, rawText)
                                 }
@@ -517,14 +499,11 @@ class CameraViewModel(
                         }
                         is AnalyzeCompositionResult.CompositionLimit -> {
                             _lastValidatedSegmentForHealth.value = null
-                            if (_captureRouteActive.value) {
-                                offerLlmResultIfActive(
-                                    v.message,
-                                    true,
-                                    HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
-                                )
-                                resetToCaptureAfterNav()
-                            } else {
+                            _streamingBilan.value = StreamingBilanState.Error(
+                                message = v.message,
+                                errorCategory = HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+                            )
+                            if (!_captureRouteActive.value) {
                                 _scanState.value = ScanState.CompositionLimit(
                                     message = v.message,
                                     rawTranscript = rawText
@@ -533,14 +512,11 @@ class CameraViewModel(
                         }
                         else -> {
                             _lastValidatedSegmentForHealth.value = null
-                            if (_captureRouteActive.value) {
-                                offerLlmResultIfActive(
-                                    CompositionMessages.COMPOSITION_LIMIT_GENERIC,
-                                    true,
-                                    HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
-                                )
-                                resetToCaptureAfterNav()
-                            } else {
+                            _streamingBilan.value = StreamingBilanState.Error(
+                                message = CompositionMessages.COMPOSITION_LIMIT_GENERIC,
+                                errorCategory = HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+                            )
+                            if (!_captureRouteActive.value) {
                                 _scanState.value = ScanState.CompositionLimit(
                                     CompositionMessages.COMPOSITION_LIMIT_GENERIC,
                                     rawText
@@ -553,15 +529,16 @@ class CameraViewModel(
             is AnalyzeCompositionResult.GemmaError -> {
                 _lastValidatedSegmentForHealth.value = null
                 val uiMessage = Gemma4LocalUiMessageResolver.resolve(outcome.code, outcome.message)
-                if (_captureRouteActive.value) {
-                    val wire = if (outcome.code == GemmaErrorCode.GEMMA_TIMEOUT) {
-                        HomeLlmFailureCategory.TIMEOUT.wireValue
-                    } else {
-                        HomeLlmFailureCategory.RUNTIME_UNAVAILABLE.wireValue
-                    }
-                    offerLlmResultIfActive(uiMessage, true, wire)
-                    resetToCaptureAfterNav()
+                val wire = if (outcome.code == GemmaErrorCode.GEMMA_TIMEOUT) {
+                    HomeLlmFailureCategory.TIMEOUT.wireValue
                 } else {
+                    HomeLlmFailureCategory.RUNTIME_UNAVAILABLE.wireValue
+                }
+                _streamingBilan.value = StreamingBilanState.Error(
+                    message = uiMessage,
+                    errorCategory = wire
+                )
+                if (!_captureRouteActive.value) {
                     _scanState.value = ScanState.GemmaUnavailable(
                         code = outcome.code,
                         message = uiMessage,
@@ -571,14 +548,11 @@ class CameraViewModel(
             }
             is AnalyzeCompositionResult.CompositionLimit -> {
                 _lastValidatedSegmentForHealth.value = null
-                if (_captureRouteActive.value) {
-                    offerLlmResultIfActive(
-                        outcome.message,
-                        true,
-                        HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
-                    )
-                    resetToCaptureAfterNav()
-                } else {
+                _streamingBilan.value = StreamingBilanState.Error(
+                    message = outcome.message,
+                    errorCategory = HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+                )
+                if (!_captureRouteActive.value) {
                     _scanState.value = ScanState.CompositionLimit(
                         message = outcome.message,
                         rawTranscript = rawText
