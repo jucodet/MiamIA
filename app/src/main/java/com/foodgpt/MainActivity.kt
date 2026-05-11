@@ -30,7 +30,6 @@ import com.foodgpt.camera.CameraViewModel
 import com.foodgpt.camera.ScanState
 import com.foodgpt.composition.Gemma4LocalCompositionEngine
 import com.foodgpt.data.repository.ScanSessionRepository
-import com.foodgpt.gemma4local.AndroidGemma4LocalGateway
 import com.foodgpt.gemma4local.DeviceClassResolver
 import com.foodgpt.gemma4local.Gemma4LocalAvailabilityChecker
 import com.foodgpt.gemma4local.Gemma4LocalClient
@@ -125,6 +124,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 val localGateway = HybridGemma4LocalGateway(applicationContext)
+                localGateway.ensureModelDownloaded()
                 val localClient = Gemma4LocalClient(
                     availabilityChecker = Gemma4LocalAvailabilityChecker(localGateway),
                     requestMapper = Gemma4LocalRequestMapper(),
@@ -201,12 +201,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(CameraFlowRoutes.LlmResult) {
-                            val payload = CameraLlmResultPayloadStore.getAndClear()
-                                ?: CameraLlmResultNavigation(
-                                    body = "Aucun contenu à afficher.",
-                                    isError = true,
-                                    errorCategoryWire = null
-                                )
+                            val payload = remember {
+                                CameraLlmResultPayloadStore.getAndClear()
+                                    ?: cameraViewModel.buildLlmResultFallbackPayload()
+                            }
                             LlmResultScreen(
                                 body = payload.body,
                                 isError = payload.isError,

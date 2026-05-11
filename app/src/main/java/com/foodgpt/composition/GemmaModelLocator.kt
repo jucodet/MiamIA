@@ -16,7 +16,7 @@ sealed class GemmaModelLocation {
  * Vérifie la présence du modèle dans `assets/gemma/` et le **matérialise** sur le système de fichiers
  * (LiteRT-LM exige un chemin fichier absolu, pas `asset://`).
  *
- * Si une copie existe déjà avec la **même taille** que l’asset embarqué (via `openFd().declaredLength`,
+ * Si une copie existe déjà avec la **même taille** que l'asset embarqué (via `openFd().declaredLength`,
  * fiable tant que `noCompress` inclut `.litertlm` dans le Gradle), la recopie est **évitée**.
  */
 class GemmaModelLocator(private val context: Context) {
@@ -40,7 +40,6 @@ class GemmaModelLocator(private val context: Context) {
                     outFile.isFile &&
                     outFile.length() == assetBytes
             if (!reuseExisting) {
-                // openFd() échoue si l’asset est compressé dans l’APK ; open() en flux suffit pour copier.
                 context.assets.open(assetPath).use { input ->
                     outFile.outputStream().use { output -> input.copyTo(output) }
                 }

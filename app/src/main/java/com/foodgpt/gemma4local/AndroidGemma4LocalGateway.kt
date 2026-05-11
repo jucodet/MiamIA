@@ -24,7 +24,6 @@ class AndroidGemma4LocalGateway(
 ) : Gemma4LocalApiGateway, Gemma4LocalAvailabilityProbe {
 
     override suspend fun analyzeText(inputText: String): String {
-        // Timeout unifie: gere uniquement par Gemma4LocalClient.withTimeout(...)
         return withContext(Dispatchers.IO) { runAnalyze(inputText) }
     }
 

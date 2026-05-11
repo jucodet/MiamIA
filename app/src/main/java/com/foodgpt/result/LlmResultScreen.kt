@@ -2,9 +2,9 @@ package com.foodgpt.result
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -48,10 +48,11 @@ fun LlmResultScreen(
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 480.dp)
+                .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .testTag("llm_result_body")
         )
+        Spacer(modifier = Modifier.weight(0.01f))
         Button(
             onClick = onBack,
             modifier = Modifier

@@ -29,7 +29,6 @@ import com.foodgpt.ingredients.ScanFailureMessageBuilder
 import com.foodgpt.permissions.CameraPermissionHandler
 import com.foodgpt.recognition.IngredientRecognitionCoordinator
 import com.foodgpt.recognition.ScanFailureClassifier
-import com.foodgpt.gemma4local.AndroidGemma4LocalGateway
 import com.foodgpt.gemma4local.Gemma4LocalAvailabilityChecker
 import com.foodgpt.composition.CompositionBilan
 import com.foodgpt.home.HomeLlmFailureCategory
@@ -259,6 +258,23 @@ class CameraViewModel(
         }
     }
 
+    fun buildLlmResultFallbackPayload(): CameraLlmResultNavigation {
+        val transcript = lastRawTranscript?.trim().orEmpty()
+        return if (transcript.isNotEmpty()) {
+            CameraLlmResultNavigation(
+                body = "Analyse indisponible pour l'instant. Texte reconnu :\n\n$transcript",
+                isError = true,
+                errorCategoryWire = HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+            )
+        } else {
+            CameraLlmResultNavigation(
+                body = "Analyse indisponible pour le moment. Revenez a la capture et relancez l'analyse.",
+                isError = true,
+                errorCategoryWire = HomeLlmFailureCategory.NON_ANALYSABLE_RESPONSE.wireValue
+            )
+        }
+    }
+
     private fun resetToCaptureAfterNav() {
         _previewSession.value += 1
         _scanState.value = if (permissionHandler.hasCameraPermission(getApplication())) {
@@ -297,6 +313,7 @@ class CameraViewModel(
             _scanState.value = ScanState.PermissionDenied
             return
         }
+        if (_scanState.value is ScanState.CompositionAnalyzing) return
         bindJob?.cancel()
         bindJob = viewModelScope.launch {
             _scanState.value = ScanState.PreviewInitializing
