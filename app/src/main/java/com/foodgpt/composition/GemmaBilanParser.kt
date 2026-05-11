@@ -29,9 +29,19 @@ object GemmaBilanParser {
             afterAnalysisStart.substring(0, additivesMatch.range.first).trim()
         }
 
-        val lines = listBlock.lines()
+        val rawLines = listBlock.lines()
             .map { it.trim().removePrefix("-").removePrefix("*").removePrefix("•").trim() }
             .filter { it.isNotEmpty() }
+
+        val lines = rawLines.flatMap { line ->
+            val cleaned = line.removePrefix("ingrédients").removePrefix("ingredients")
+                .trimStart { it == ':' || it == ' ' }
+            if (cleaned.count { it == ',' } >= 2) {
+                cleaned.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            } else {
+                listOf(cleaned.ifEmpty { line })
+            }
+        }.filter { it.isNotEmpty() }
 
         if (lines.isEmpty() || analysisBlock.isBlank()) return null
 
