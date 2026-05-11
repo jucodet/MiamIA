@@ -30,7 +30,6 @@ import com.foodgpt.camera.CameraViewModel
 import com.foodgpt.camera.ScanState
 import com.foodgpt.composition.Gemma4LocalCompositionEngine
 import com.foodgpt.data.repository.ScanSessionRepository
-import com.foodgpt.gemma4local.AndroidGemma4LocalGateway
 import com.foodgpt.gemma4local.DeviceClassResolver
 import com.foodgpt.gemma4local.Gemma4LocalAvailabilityChecker
 import com.foodgpt.gemma4local.Gemma4LocalClient
