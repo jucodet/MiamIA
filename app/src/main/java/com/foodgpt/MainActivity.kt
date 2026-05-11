@@ -38,6 +38,7 @@ import com.foodgpt.gemma4local.Gemma4LocalMetricsLogger
 import com.foodgpt.gemma4local.GemmaModelImportManager
 import com.foodgpt.gemma4local.Gemma4LocalRequestMapper
 import com.foodgpt.gemma4local.HybridGemma4LocalGateway
+import com.foodgpt.healthcritique.HealthCritiqueResultScreen
 import com.foodgpt.healthcritique.HealthCritiqueViewModel
 import com.foodgpt.home.CompositionEngineHomeLlmMockRunner
 import com.foodgpt.home.HomeSpecPriorityResolver
@@ -178,6 +179,11 @@ class MainActivity : ComponentActivity() {
                             cameraNavController.navigate(CameraFlowRoutes.LlmResult)
                         }
                     }
+                    LaunchedEffect(healthCritiqueViewModel) {
+                        healthCritiqueViewModel.navigateToResult.collect {
+                            cameraNavController.navigate(CameraFlowRoutes.HealthCritiqueResult)
+                        }
+                    }
                     NavHost(
                         navController = cameraNavController,
                         startDestination = CameraFlowRoutes.Capture,
@@ -210,6 +216,12 @@ class MainActivity : ComponentActivity() {
                                 isError = payload.isError,
                                 errorCategoryWire = payload.errorCategoryWire,
                                 onBack = { cameraNavController.popBackStack() }
+                            )
+                        }
+                        composable(CameraFlowRoutes.HealthCritiqueResult) {
+                            HealthCritiqueResultScreen(
+                                viewModel = healthCritiqueViewModel,
+                                onBack = { cameraNavController.popBackStack() },
                             )
                         }
                     }

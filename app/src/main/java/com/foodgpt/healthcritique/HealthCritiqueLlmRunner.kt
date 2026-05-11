@@ -14,5 +14,6 @@ fun interface HealthCritiqueLlmRunner {
         systemInstruction: String,
         userMessage: String,
         maxInferenceMs: Long,
+        onStreamPartial: ((String) -> Unit)? = null,
     ): HealthCritiqueLlmGenerateResult
 }

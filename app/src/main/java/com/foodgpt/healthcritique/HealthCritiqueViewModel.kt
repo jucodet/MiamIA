@@ -5,8 +5,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import android.content.Context
 import com.foodgpt.BuildConfig
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -27,6 +30,12 @@ class HealthCritiqueViewModel(
 
     private val _ui = MutableStateFlow(HealthCritiqueScreenState())
     val ui: StateFlow<HealthCritiqueScreenState> = _ui.asStateFlow()
+
+    private val _streamingText = MutableStateFlow("")
+    val streamingText: StateFlow<String> = _streamingText.asStateFlow()
+
+    private val _navigateToResult = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val navigateToResult: SharedFlow<Unit> = _navigateToResult.asSharedFlow()
 
     /** Segment validé courant (null = pas encore de bilan prêt côté scan). */
     private var validatedSegmentFromScan: String? = null
@@ -57,9 +66,16 @@ class HealthCritiqueViewModel(
             }
         }
         val systemPreview = promptBuilder.buildSystemInstruction()
+        _streamingText.value = ""
         _ui.update { it.copy(isLoading = true, result = null, lastSystemPrompt = systemPreview) }
+        _navigateToResult.tryEmit(Unit)
         viewModelScope.launch {
-            val outcome = engine.analyze(ingredientText = segmentSnapshot)
+            val outcome = engine.analyze(
+                ingredientText = segmentSnapshot,
+                onStreamPartial = { partial ->
+                    _streamingText.value = partial
+                },
+            )
             _ui.update { st ->
                 st.copy(isLoading = false, result = outcome)
             }
