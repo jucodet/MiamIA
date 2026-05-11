@@ -1,7 +1,16 @@
 package com.foodgpt.result
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,22 +38,27 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.foodgpt.camera.BilanResultCard
 import com.foodgpt.camera.CameraViewModel
 import com.foodgpt.camera.StreamingBilanState
 import com.foodgpt.camera.StreamingSection
+import kotlinx.coroutines.delay
 
 @Composable
 fun LlmResultScreen(
@@ -111,33 +125,86 @@ fun LlmResultScreen(
     }
 }
 
+private val WAITING_PHRASES = listOf(
+    "Distillation des essences en cours...",
+    "Interrogatoire musclé des colorants artificiels en cours...",
+    "Négociation diplomatique avec les fibres pour qu'elles restent calmes...",
+    "Traduction du langage complexe des étiquettes (le 'E452' refuse de parler)...",
+    "Traque intensive des calories clandestines qui tentent de se cacher...",
+    "Scan moléculaire terminé : les vitamines ont l'air de bonne humeur.",
+    "Tentative de corruption par un carré de chocolat détectée (et refusée)...",
+    "Calcul de la vitesse à laquelle ce sucre va rejoindre vos hanches...",
+    "Analyse de la relation toxique entre votre foie et ces additifs...",
+    "Consultation de l'Oracle de la Nutrition (il hésite entre 'Bio' et 'Pourquoi pas ?')...",
+    "Déglaçage algorithmique de vos ingrédients en cours...",
+)
+
 @Composable
 private fun StreamingHeader() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    val shuffledPhrases = remember { WAITING_PHRASES.shuffled() }
+    var phraseIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5_000)
+            phraseIndex = (phraseIndex + 1) % shuffledPhrases.size
+        }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(28.dp),
-            strokeWidth = 3.dp
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AnimatedWhisk(modifier = Modifier.size(36.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "Analyse en cours…",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.testTag("llm_result_title")
             )
+        }
+
+        AnimatedContent(
+            targetState = phraseIndex,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(400)) togetherWith
+                    fadeOut(animationSpec = tween(400))
+            },
+            label = "phrase_rotation"
+        ) { index ->
             Text(
-                text = "Les résultats apparaissent au fur et à mesure",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = shuffledPhrases[index % shuffledPhrases.size],
+                style = MaterialTheme.typography.bodyMedium,
+                fontStyle = FontStyle.Italic,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("streaming_waiting_phrase")
             )
         }
     }
+}
+
+@Composable
+private fun AnimatedWhisk(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "whisk_rotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = -20f,
+        targetValue = 20f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 300, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "whisk_angle"
+    )
+
+    Text(
+        text = "\uD83E\uDD44",
+        modifier = modifier.rotate(rotation),
+        style = MaterialTheme.typography.headlineMedium
+    )
 }
 
 @Composable
