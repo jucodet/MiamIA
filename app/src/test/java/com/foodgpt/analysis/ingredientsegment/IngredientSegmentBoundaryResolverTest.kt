@@ -20,13 +20,13 @@ class IngredientSegmentBoundaryResolverTest {
     }
 
     @Test
-    fun `resolver ends at line end when no terminal punctuation`() {
+    fun `resolver scans across newline when no terminator on first line`() {
         val text = "Ingredients x, y\nNext line"
         val anchor = text.indexOf("Ingredients")
         val out = resolver.resolveEnd(text, anchor)
 
-        assertEquals(IngredientSegmentBoundaryEndReason.LINE_END, out.boundaryEndReason)
-        assertEquals("Ingredients x, y", text.substring(anchor, out.endIndexExclusive))
+        assertEquals(IngredientSegmentBoundaryEndReason.TEXT_END, out.boundaryEndReason)
+        assertEquals(text.length, out.endIndexExclusive)
     }
 
     @Test
@@ -69,15 +69,15 @@ class IngredientSegmentBoundaryResolverTest {
         assertEquals(text.length, out.endIndexExclusive)
     }
 
-    // --- BC-03: dot internal abbreviation (vit.B12) → not a terminator, LINE_END ---
+    // --- BC-03: dot internal abbreviation (vit.B12) → not a terminator, scans across lines ---
     @Test
     fun `BC-03 dot inside abbreviation is not a terminator`() {
         val text = OcrFixtures.DOT_INTERNAL_ABBREVIATION
         val anchor = text.indexOf("Ingredients")
         val out = resolver.resolveEnd(text, anchor)
 
-        assertEquals(IngredientSegmentBoundaryEndReason.LINE_END, out.boundaryEndReason)
-        assertEquals("Ingredients: vit.B12, iron, zinc", text.substring(anchor, out.endIndexExclusive))
+        assertEquals(IngredientSegmentBoundaryEndReason.TEXT_END, out.boundaryEndReason)
+        assertEquals(text.length, out.endIndexExclusive)
     }
 
     // --- BC-04: dot at EOF = SENTENCE_TERMINATOR ---

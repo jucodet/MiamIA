@@ -19,12 +19,12 @@ class IngredientSegmentPhraseBoundaryAcceptanceTest {
     }
 
     @Test
-    fun `US1 line end when no sentence punctuation before newline`() {
+    fun `US1 capture crosses newline when no terminator found`() {
         val out = service.prepare("scan-line", OcrFixtures.EN_LINE_END.trimIndent())
 
         assertTrue(out.anchorFound)
-        assertEquals(IngredientSegmentBoundaryEndReason.LINE_END, out.boundaryEndReason)
-        assertEquals("Ingredients sugar, salt", out.segmentText)
+        assertEquals(IngredientSegmentBoundaryEndReason.TEXT_END, out.boundaryEndReason)
+        assertEquals("Ingredients sugar, salt\nMay contain nuts", out.segmentText)
     }
 
     @Test
