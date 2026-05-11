@@ -313,6 +313,7 @@ class CameraViewModel(
             _scanState.value = ScanState.PermissionDenied
             return
         }
+        if (_scanState.value is ScanState.CompositionAnalyzing) return
         bindJob?.cancel()
         bindJob = viewModelScope.launch {
             _scanState.value = ScanState.PreviewInitializing
