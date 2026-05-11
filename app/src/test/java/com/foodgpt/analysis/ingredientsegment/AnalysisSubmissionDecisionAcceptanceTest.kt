@@ -1,5 +1,6 @@
 package com.foodgpt.analysis.ingredientsegment
 
+import com.foodgpt.analysis.ingredientsegment.fixtures.OcrFixtures
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -10,6 +11,7 @@ import org.robolectric.RobolectricTestRunner
 class AnalysisSubmissionDecisionAcceptanceTest {
 
     private val gate = AnalysisSubmissionGate()
+    private val service = IngredientSegmentPreparationService()
 
     @Test
     fun `submission is blocked when not confirmed`() {
@@ -27,5 +29,17 @@ class AnalysisSubmissionDecisionAcceptanceTest {
 
         assertFalse(blocked.submissionAllowed)
         assertTrue(allowed.submissionAllowed)
+    }
+
+    @Test
+    fun `gate accepts segment with internal dot after user confirmation`() {
+        val extraction = service.prepare("scan-dot-gate", OcrFixtures.DOT_INTERNAL_ADDITIVE)
+
+        assertTrue(extraction.anchorFound)
+        assertTrue(extraction.segmentText!!.contains("E.621"))
+
+        val decision = gate.evaluate("scan-dot-gate", extraction, userConfirmed = true)
+
+        assertTrue(decision.submissionAllowed)
     }
 }

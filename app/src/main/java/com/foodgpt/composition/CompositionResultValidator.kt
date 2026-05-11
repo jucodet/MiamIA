@@ -15,11 +15,15 @@ object CompositionResultValidator {
 
     fun validateAgainstSource(bilan: CompositionBilan, rawText: String): AnalyzeCompositionResult {
         val normalizedSource = rawText.lowercase()
-        val suspicious = bilan.ingredientLines.any { line ->
+        val checkable = bilan.ingredientLines.filter { it.trim().length >= 4 }
+        if (checkable.isEmpty()) return AnalyzeCompositionResult.BilanSuccess(bilan)
+
+        val missingCount = checkable.count { line ->
             val token = line.lowercase().trim()
-            token.length >= 4 && !normalizedSource.contains(token)
+            !normalizedSource.contains(token)
         }
-        if (suspicious) {
+        val missingRatio = missingCount.toDouble() / checkable.size
+        if (missingRatio > 0.5) {
             return AnalyzeCompositionResult.CompositionLimit(
                 CompositionMessages.COMPOSITION_LIMIT_GENERIC
             )

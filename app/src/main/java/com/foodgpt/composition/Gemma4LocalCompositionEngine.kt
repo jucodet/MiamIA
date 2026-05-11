@@ -1,5 +1,6 @@
 package com.foodgpt.composition
 
+import android.util.Log
 import com.foodgpt.gemma4local.Gemma4LocalClient
 import com.foodgpt.gemma4local.model.AnalyseTextuelleErrorType
 import com.foodgpt.gemma4local.model.AnalyseTextuelleStatus
@@ -12,11 +13,15 @@ class Gemma4LocalCompositionEngine(
         maxInferenceMs: Long,
         onStreamPartial: ((String) -> Unit)?
     ): AnalyzeCompositionResult {
-        val localResult = localClient.analyze(rawText)
+        val localResult = localClient.analyze(rawText, onStreamPartial)
         return if (localResult.status == AnalyseTextuelleStatus.SUCCESS && !localResult.outputText.isNullOrBlank()) {
+            Log.d(TAG, "gemma_raw_output length=${localResult.outputText.length} text=[${localResult.outputText.take(500)}]")
             val parsed = GemmaBilanParser.parse(localResult.outputText)
             if (parsed != null) AnalyzeCompositionResult.BilanSuccess(parsed)
-            else AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
+            else {
+                Log.w(TAG, "parse_failed full_output=[${localResult.outputText}]")
+                AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
+            }
         } else {
             val mappedCode = when (localResult.errorType) {
                 AnalyseTextuelleErrorType.TIMEOUT -> GemmaErrorCode.GEMMA_TIMEOUT
@@ -30,5 +35,9 @@ class Gemma4LocalCompositionEngine(
                 localResult.userMessage.ifBlank { CompositionMessages.GEMMA_LOAD_FAILED_USER }
             )
         }
+    }
+
+    companion object {
+        private const val TAG = "CompositionEngine"
     }
 }

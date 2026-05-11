@@ -19,12 +19,12 @@ class IngredientSegmentPhraseBoundaryAcceptanceTest {
     }
 
     @Test
-    fun `US1 line end when no sentence punctuation before newline`() {
+    fun `US1 capture crosses newline when no terminator found`() {
         val out = service.prepare("scan-line", OcrFixtures.EN_LINE_END.trimIndent())
 
         assertTrue(out.anchorFound)
-        assertEquals(IngredientSegmentBoundaryEndReason.LINE_END, out.boundaryEndReason)
-        assertEquals("Ingredients sugar, salt", out.segmentText)
+        assertEquals(IngredientSegmentBoundaryEndReason.TEXT_END, out.boundaryEndReason)
+        assertEquals("Ingredients sugar, salt\nMay contain nuts", out.segmentText)
     }
 
     @Test
@@ -42,5 +42,23 @@ class IngredientSegmentPhraseBoundaryAcceptanceTest {
 
         assertTrue(out.anchorFound)
         assertEquals("Ingrédients: eau.", out.segmentText)
+    }
+
+    @Test
+    fun `US1-2 internal dot in additive code does not end capture`() {
+        val out = service.prepare("scan-dot-int", OcrFixtures.DOT_INTERNAL_ADDITIVE)
+
+        assertTrue(out.anchorFound)
+        assertEquals(IngredientSegmentBoundaryEndReason.TEXT_END, out.boundaryEndReason)
+        assertEquals("Ingrédients: eau, colorant E.621, sucre, sel", out.segmentText)
+    }
+
+    @Test
+    fun `US1-1 dot followed by space ends capture at first contextual dot`() {
+        val out = service.prepare("scan-dot-sp", OcrFixtures.DOT_SPACE_END)
+
+        assertTrue(out.anchorFound)
+        assertEquals(IngredientSegmentBoundaryEndReason.SENTENCE_TERMINATOR, out.boundaryEndReason)
+        assertEquals("Ingrédients: eau, sucre.", out.segmentText)
     }
 }

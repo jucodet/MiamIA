@@ -12,6 +12,7 @@ class FakeHealthCritiqueLlmRunner(
         systemInstruction: String,
         userMessage: String,
         maxInferenceMs: Long,
+        onStreamPartial: ((String) -> Unit)?,
     ): HealthCritiqueLlmGenerateResult {
         recordedUserMessages.add(userMessage)
         return response

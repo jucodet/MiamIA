@@ -40,4 +40,19 @@ object OcrFixtures {
         Ingrédients: eau.
         Ingredients: sugar, flour
     """
+
+    /** Point interne additif (E.621) — ne doit PAS déclencher la fin de capture. */
+    const val DOT_INTERNAL_ADDITIVE = "Ingrédients: eau, colorant E.621, sucre, sel"
+
+    /** Point interne abréviation (vit.B12) + fin de ligne — capture jusqu'au newline. */
+    const val DOT_INTERNAL_ABBREVIATION = "Ingredients: vit.B12, iron, zinc\nNext section"
+
+    /** Point suivi d'un espace — termine la capture au `. `. */
+    const val DOT_SPACE_END = "Ingrédients: eau, sucre. Traces de lait."
+
+    /** Point suivi d'un retour à la ligne — termine la capture au `.\n`. */
+    const val DOT_NEWLINE_END = "Ingrédients: eau, sucre.\nTraces de lait."
+
+    /** Point en fin absolue de texte — termine la capture. */
+    const val DOT_EOF_END = "Ingrédients: eau, sucre."
 }

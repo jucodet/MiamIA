@@ -20,6 +20,7 @@ class HealthCritiqueEngine(
         requestId: String = UUID.randomUUID().toString(),
         ingredientText: String?,
         maxInferenceMs: Long = HealthCritiqueConfig.DEFAULT_MAX_INFERENCE_MS,
+        onStreamPartial: ((String) -> Unit)? = null,
     ): HealthCritiqueResult {
         val now = System.currentTimeMillis()
         when (val v = validator.validate(ingredientText)) {
@@ -42,7 +43,7 @@ class HealthCritiqueEngine(
         }
         val system = promptBuilder.buildSystemInstruction()
         val user = promptBuilder.buildUserMessage(canonicalList)
-        return when (val out = llmRunner.generate(system, user, maxInferenceMs)) {
+        return when (val out = llmRunner.generate(system, user, maxInferenceMs, onStreamPartial)) {
             is HealthCritiqueLlmGenerateResult.Success -> {
                 val parsed = sectionParser.parse(out.text)
                 HealthCritiqueResult.CritiqueReady(

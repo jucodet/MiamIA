@@ -1,7 +1,7 @@
-# Specification Quality Checklist: ingredient-phrase-segment
+# Specification Quality Checklist: ocr-dot-end-capture
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning  
-**Created**: 2026-05-06  
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-05-11
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,4 +31,6 @@
 
 ## Notes
 
-- Validation complétée : la spécification est prête pour `/speckit.clarify` ou `/speckit.plan`.
+- FR-003 has been refined: the `.` character now requires a trailing space or newline to qualify as end-of-capture. This avoids false positives on common OCR patterns like additive codes and abbreviations.
+- SC-001 explicitly requires at least one test case with an internal dot (e.g. « E.621 ») that must NOT trigger end of capture.
+- `!` and `?` remain unconditional end-of-sentence markers (no ambiguity risk in food label context).

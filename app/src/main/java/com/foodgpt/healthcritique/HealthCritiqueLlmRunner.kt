@@ -9,10 +9,11 @@ sealed class HealthCritiqueLlmGenerateResult {
     ) : HealthCritiqueLlmGenerateResult()
 }
 
-fun interface HealthCritiqueLlmRunner {
+interface HealthCritiqueLlmRunner {
     suspend fun generate(
         systemInstruction: String,
         userMessage: String,
         maxInferenceMs: Long,
+        onStreamPartial: ((String) -> Unit)? = null,
     ): HealthCritiqueLlmGenerateResult
 }

@@ -1,48 +1,64 @@
-# Quickstart: ingredient-phrase-segment
+# Quickstart - ocr-dot-end-capture (017)
 
-## But
+## Goal
 
-Valider rapidement que l'isolation du segment ingrédients applique la règle canonique:
-première ancre reconnue (`Ingrédient`, `Ingrédients`, `Ingredient`, `Ingredients`) puis borne de fin (`fin de phrase` -> `fin de ligne` -> `fin du texte`).
+Valider manuellement que la logique de fin de capture du segment ingrédients traite correctement le `.` contextuel : un point suivi d'un espace ou d'un retour à la ligne termine la capture, un point interne (code additif, abréviation) ne la termine pas.
 
-## Préconditions
+## Preconditions
 
-- Application Android compilable.
-- Parcours OCR local disponible pour produire un texte brut.
-- Jeux de tests unitaires activables (`app/src/test/...`).
+- Build Android fonctionnel (`app`).
+- Spec : `specs/domains/ingredient-normalization-validation/spec.md`.
+- Contrat : `contracts/boundary-resolver-contract.md`.
+- Tests JVM passent : `./gradlew :app:testDebugUnitTest`.
 
-## Scénarios de vérification rapide
+## Manual Validation Flow
 
-1. **Ancre FR + point final**
-   - Entrée: `Ingrédients: sucre, sel. Traces possibles...`
-   - Attendu: segment jusqu'au point final de la phrase ancre.
+### A. Point interne — pas de coupure
 
-2. **Ancre EN sans ponctuation finale mais avec saut de ligne**
-   - Entrée:
-     - `Ingredients sugar, salt`
-     - `May contain nuts`
-   - Attendu: segment limité à la première ligne.
+1. Depuis l'écran de capture, prendre en photo (ou fournir via mock) une étiquette contenant un texte de type :
+   `Ingrédients: eau, colorant E.621, sucre, sel`
+2. Vérifier que la proposition de segment contient **tout** le texte après l'ancre, y compris `E.621` — la capture ne s'arrête **pas** au `.` de `E.621`.
 
-3. **Ancre EN monoligne sans ponctuation**
-   - Entrée: `Ingredient sugar, salt and flour`
-   - Attendu: segment limité à la fin du texte.
+### B. Point + espace — fin de capture
 
-4. **Occurrences multiples**
-   - Entrée: `Ingrédients: eau. Ingredients: sugar.`
-   - Attendu: seule la première occurrence est retenue.
+1. Fournir un texte de type :
+   `Ingrédients: eau, sucre, sel. Traces possibles de gluten.`
+2. Vérifier que la proposition de segment se termine à `sel.` (premier `. ` après l'ancre), pas à `gluten.`.
 
-5. **Sans ancre reconnue**
-   - Entrée: `Composition: eau, sel`
-   - Attendu: état bloqué explicite, pas de segment validé automatique.
+### C. Point + retour à la ligne — fin de capture
 
-## Validation domaine
+1. Fournir un texte de type :
+   ```
+   Ingrédients: eau, sucre.
+   Traces possibles de gluten.
+   ```
+2. Vérifier que la proposition se termine à `sucre.` (le `.\n` est reconnu).
 
-- Vérifier que l'analyse aval est bloquée sans confirmation explicite du segment.
-- Vérifier la traçabilité `rawText -> proposal -> validatedSegment`.
+### D. Point en fin de texte — fin de capture
 
-## Commandes utiles (indicatives)
+1. Fournir un texte de type :
+   `Ingrédients: eau, sel.`
+2. Vérifier que la proposition se termine à `sel.` (le `.` en fin de texte est reconnu).
 
-- Exécuter les tests de segment:
-  - `./gradlew test --tests "*IngredientSegment*"`
-- Exécuter les tests de reconnaissance liés à l'ancre:
-  - `./gradlew test --tests "*IngredientAnchor*"`
+### E. Abréviation suivie de virgule — pas de coupure
+
+1. Fournir un texte de type :
+   `Ingredients: vit.B12, iron, zinc`
+2. Vérifier que la proposition contient `vit.B12, iron, zinc` sans coupure prématurée.
+
+### F. Ponctuation ! et ? — terminateurs inconditionnels
+
+1. Fournir un texte de type :
+   `Ingrédients: eau, sel!`
+2. Vérifier que la proposition se termine à `sel!`.
+
+## Suggested Automated Checks
+
+- Tests unitaires JVM : `IngredientSegmentBoundaryResolverTest` (cas BC-01 à BC-07 du contrat).
+- Tests d'acceptation : `IngredientSegmentPhraseBoundaryAcceptanceTest` (scénarios US1 §1 et §2 de la spec).
+- Test de non-régression : `IngredientSegmentPerformanceTest` (pas de régression latence).
+
+## Expected Outcomes
+
+- Conformité à **SC-001** (100 % des propositions respectent FR-002 à FR-006, y compris au moins un cas de point interne).
+- Aucune régression sur les tests existants (ancre, fin de ligne, fin de texte, multiples ancres).

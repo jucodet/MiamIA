@@ -4,12 +4,15 @@ import android.content.Context
 import android.util.Log
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -32,9 +35,13 @@ class HybridGemma4LocalGateway(
     }
 
     override suspend fun analyzeText(inputText: String): String {
+        return analyzeTextStreaming(inputText, null)
+    }
+
+    suspend fun analyzeTextStreaming(inputText: String, onPartial: ((String) -> Unit)?): String {
         val modelFile = downloader.resolveLocalModel()
             ?: throw IllegalStateException("Modele Gemma local indisponible")
-        return withContext(Dispatchers.IO) { runAnalyze(modelFile, inputText) }
+        return withContext(Dispatchers.IO) { runAnalyze(modelFile, inputText, onPartial) }
     }
 
     override suspend fun ping(): Boolean {
@@ -44,7 +51,8 @@ class HybridGemma4LocalGateway(
                 val output = runAnalyzeOnBackend(
                     modelPath = modelFile.absolutePath,
                     backend = Backend.CPU(),
-                    inputText = "ok"
+                    inputText = "ok",
+                    onPartial = null
                 )
                 val healthy = output.isNotBlank()
                 Log.i(TAG, "health_ping healthy=$healthy backend=CPU")
@@ -55,13 +63,13 @@ class HybridGemma4LocalGateway(
         }.getOrDefault(false)
     }
 
-    private fun runAnalyze(modelFile: File, inputText: String): String {
+    private fun runAnalyze(modelFile: File, inputText: String, onPartial: ((String) -> Unit)?): String {
         val backendErrors = mutableListOf<String>()
         for (backend in prioritizedBackends()) {
             val name = backendName(backend)
             val started = System.currentTimeMillis()
             val output = runCatching {
-                runAnalyzeOnBackend(modelFile.absolutePath, backend, inputText)
+                runAnalyzeOnBackend(modelFile.absolutePath, backend, inputText, onPartial)
             }.getOrElse { t ->
                 val elapsed = System.currentTimeMillis() - started
                 backendErrors += "$name:${t.javaClass.simpleName}:${t.message.orEmpty()}"
@@ -78,7 +86,12 @@ class HybridGemma4LocalGateway(
         )
     }
 
-    private fun runAnalyzeOnBackend(modelPath: String, backend: Backend, inputText: String): String {
+    private fun runAnalyzeOnBackend(
+        modelPath: String,
+        backend: Backend,
+        inputText: String,
+        onPartial: ((String) -> Unit)?
+    ): String {
         val engine = Engine(
             EngineConfig(
                 modelPath = modelPath,
@@ -98,11 +111,37 @@ class HybridGemma4LocalGateway(
             val conversationConfig = ConversationConfig(systemInstruction = systemInstruction)
             val prompt = "Texte capture (OCR):\n${inputText.trim().take(Gemma4LocalConfig.MAX_INPUT_CHARS)}"
             engine.createConversation(conversationConfig).use { conversation ->
-                textFromMessage(conversation.sendMessage(prompt)).trim()
+                if (onPartial != null) {
+                    collectStreaming(conversation, prompt, onPartial)
+                } else {
+                    textFromMessage(conversation.sendMessage(prompt)).trim()
+                }
             }
         } finally {
             engine.close()
         }
+    }
+
+    private fun collectStreaming(
+        conversation: Conversation,
+        prompt: String,
+        onPartial: (String) -> Unit
+    ): String {
+        var reconciled = ""
+        runBlocking {
+            conversation.sendMessageAsync(prompt)
+                .catch { e ->
+                    Log.w(TAG, "stream_error ${e::class.java.simpleName}: ${e.message}")
+                    throw e
+                }
+                .collect { chunk ->
+                    val piece = textFromMessage(chunk)
+                    if (piece.isEmpty()) return@collect
+                    reconciled = if (piece.startsWith(reconciled)) piece else reconciled + piece
+                    onPartial(reconciled)
+                }
+        }
+        return reconciled.trim()
     }
 
     private fun prioritizedBackends(): List<Backend> {

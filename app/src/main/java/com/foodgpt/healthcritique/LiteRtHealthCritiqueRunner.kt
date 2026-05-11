@@ -8,12 +8,15 @@ import com.foodgpt.composition.GemmaModelLocation
 import com.foodgpt.composition.GemmaModelLocator
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.ExecutionException
@@ -41,6 +44,7 @@ class LiteRtHealthCritiqueRunner(
         systemInstruction: String,
         userMessage: String,
         maxInferenceMs: Long,
+        onStreamPartial: ((String) -> Unit)?,
     ): HealthCritiqueLlmGenerateResult =
         withContext(Dispatchers.Default) {
             if (BuildConfig.DEBUG) {
@@ -61,7 +65,7 @@ class LiteRtHealthCritiqueRunner(
                     )
 
                 is GemmaModelLocation.Ready ->
-                    runWithDeadline(located.modelFile, systemInstruction, userMessage, deadlineMs)
+                    runWithDeadline(located.modelFile, systemInstruction, userMessage, deadlineMs, onStreamPartial)
             }
         }
 
@@ -70,6 +74,7 @@ class LiteRtHealthCritiqueRunner(
         systemInstruction: String,
         userMessage: String,
         deadlineMs: Long,
+        onStreamPartial: ((String) -> Unit)?,
     ): HealthCritiqueLlmGenerateResult {
         val abandonRetainedAfterRun = AtomicBoolean(false)
         return withContext(Dispatchers.IO) {
@@ -77,7 +82,7 @@ class LiteRtHealthCritiqueRunner(
                 {
                     synchronized(inferenceLock) {
                         try {
-                            runLitertLm(modelFile, systemInstruction, userMessage)
+                            runLitertLm(modelFile, systemInstruction, userMessage, onStreamPartial)
                         } finally {
                             if (abandonRetainedAfterRun.get()) {
                                 disposeRetainedLocked()
@@ -137,6 +142,7 @@ class LiteRtHealthCritiqueRunner(
         modelFile: File,
         systemInstruction: String,
         userMessage: String,
+        onStreamPartial: ((String) -> Unit)?,
     ): HealthCritiqueLlmGenerateResult {
         val path = modelFile.absolutePath
         if (retainedModelAbsolutePath != null && retainedModelAbsolutePath != path) {
@@ -145,14 +151,14 @@ class LiteRtHealthCritiqueRunner(
         val warm = retainedEngine
         if (warm != null && retainedModelAbsolutePath == path) {
             try {
-                return runInferenceOnEngine(warm, systemInstruction, userMessage)
+                return runInferenceOnEngine(warm, systemInstruction, userMessage, onStreamPartial)
             } catch (_: Exception) {
                 disposeRetainedLocked()
             }
         }
         var lastError: HealthCritiqueLlmGenerateResult.Failure? = null
         for (backend in litertLmBackendChain()) {
-            when (val result = tryLoadAndInfer(modelFile, backend, systemInstruction, userMessage)) {
+            when (val result = tryLoadAndInfer(modelFile, backend, systemInstruction, userMessage, onStreamPartial)) {
                 is HealthCritiqueLlmGenerateResult.Success -> return result
                 is HealthCritiqueLlmGenerateResult.Failure -> lastError = result
             }
@@ -168,6 +174,7 @@ class LiteRtHealthCritiqueRunner(
         backend: Backend,
         systemInstruction: String,
         userMessage: String,
+        onStreamPartial: ((String) -> Unit)?,
     ): HealthCritiqueLlmGenerateResult {
         val engineConfig = EngineConfig(
             modelPath = modelFile.absolutePath,
@@ -177,7 +184,7 @@ class LiteRtHealthCritiqueRunner(
         val engine = Engine(engineConfig)
         return try {
             engine.initialize()
-            when (val result = runInferenceOnEngine(engine, systemInstruction, userMessage)) {
+            when (val result = runInferenceOnEngine(engine, systemInstruction, userMessage, onStreamPartial)) {
                 is HealthCritiqueLlmGenerateResult.Success -> {
                     disposeRetainedLocked()
                     retainedEngine = engine
@@ -203,19 +210,45 @@ class LiteRtHealthCritiqueRunner(
         engine: Engine,
         systemInstruction: String,
         userMessage: String,
+        onStreamPartial: ((String) -> Unit)?,
     ): HealthCritiqueLlmGenerateResult {
         val conversationConfig = ConversationConfig(
             systemInstruction = Contents.of(systemInstruction),
         )
+        val stream = onStreamPartial != null
         val text = try {
             engine.createConversation(conversationConfig).use { conversation ->
-                textFromMessage(conversation.sendMessage(userMessage))
+                when {
+                    stream && onStreamPartial != null ->
+                        collectAssistantTextStreaming(conversation, userMessage, onStreamPartial)
+                    onStreamPartial != null -> {
+                        val t = textFromMessage(conversation.sendMessage(userMessage))
+                        onStreamPartial.invoke(t)
+                        t
+                    }
+                    else -> textFromMessage(conversation.sendMessage(userMessage))
+                }
             }.trim()
         } catch (e: IllegalStateException) {
-            return HealthCritiqueLlmGenerateResult.Failure(
-                HealthInferenceErrorCode.INFERENCE_FAILED,
-                "${CompositionMessages.GEMMA_LOAD_FAILED_USER} (${e.javaClass.simpleName})",
-            )
+            if (onStreamPartial != null) {
+                try {
+                    engine.createConversation(conversationConfig).use { conversation ->
+                        val t = textFromMessage(conversation.sendMessage(userMessage))
+                        onStreamPartial.invoke(t)
+                        t
+                    }.trim()
+                } catch (_: Exception) {
+                    return HealthCritiqueLlmGenerateResult.Failure(
+                        HealthInferenceErrorCode.INFERENCE_FAILED,
+                        "${CompositionMessages.GEMMA_LOAD_FAILED_USER} (${e.javaClass.simpleName})",
+                    )
+                }
+            } else {
+                return HealthCritiqueLlmGenerateResult.Failure(
+                    HealthInferenceErrorCode.INFERENCE_FAILED,
+                    "${CompositionMessages.GEMMA_LOAD_FAILED_USER} (${e.javaClass.simpleName})",
+                )
+            }
         }
         return if (text.isEmpty()) {
             HealthCritiqueLlmGenerateResult.Failure(
@@ -225,6 +258,25 @@ class LiteRtHealthCritiqueRunner(
         } else {
             HealthCritiqueLlmGenerateResult.Success(text)
         }
+    }
+
+    private fun collectAssistantTextStreaming(
+        conversation: Conversation,
+        userMessage: String,
+        onStreamPartial: (String) -> Unit,
+    ): String {
+        var reconciled = ""
+        runBlocking {
+            conversation.sendMessageAsync(userMessage)
+                .catch { throw it }
+                .collect { chunk ->
+                    val piece = textFromMessage(chunk)
+                    if (piece.isEmpty()) return@collect
+                    reconciled = if (piece.startsWith(reconciled)) piece else reconciled + piece
+                    onStreamPartial(reconciled)
+                }
+        }
+        return reconciled
     }
 
     private fun textFromMessage(message: Message): String =

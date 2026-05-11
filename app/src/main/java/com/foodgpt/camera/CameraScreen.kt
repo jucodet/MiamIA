@@ -31,7 +31,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.foodgpt.additives.ui.AdditiveKpiPanel
 import com.foodgpt.home.HomeSpacingRules
 import com.foodgpt.home.MediaPipeStatusIndicator
 import com.foodgpt.welcome.WelcomeMessageUiState
@@ -213,40 +212,15 @@ fun CameraScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Bilan composition", style = MaterialTheme.typography.titleMedium)
-                    Text("Ingrédients", style = MaterialTheme.typography.titleSmall)
-                    bilanState.bilan.ingredientLines.forEach { line ->
-                        Text("• $line", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    Text("Analyse", style = MaterialTheme.typography.titleSmall)
-                    Text(bilanState.bilan.compositionAnalysis, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        bilanState.bilan.disclaimer,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    BilanResultCard(
+                        bilan = bilanState.bilan,
+                        rawTranscript = bilanState.rawTranscript,
+                        additiveKpi = additiveKpi,
+                        showRaw = showRaw,
+                        onToggleRaw = { showRaw = !showRaw }
                     )
-                    additiveKpi?.let { kpi ->
-                        Text("Additifs", style = MaterialTheme.typography.titleSmall)
-                        AdditiveKpiPanel(
-                            result = kpi,
-                            onRequestShowRaw = { showRaw = true },
-                        )
-                    }
-                    OutlinedButton(
-                        onClick = { showRaw = !showRaw },
-                        modifier = Modifier.testTag("toggle_raw_transcript")
-                    ) {
-                        Text(if (showRaw) "Masquer le texte original" else "Voir le texte original")
-                    }
-                    if (showRaw) {
-                        Text(
-                            bilanState.rawTranscript,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.testTag("raw_transcript_secondary")
-                        )
-                    }
                     Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
                         Text("Nouveau scan")
                     }
@@ -309,21 +283,34 @@ fun CameraScreen(
             is ScanState.SegmentConfirmationRequired -> {
                 val confirmation = state as ScanState.SegmentConfirmationRequired
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Verifier la ligne ingredients", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = confirmation.segmentPreview,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.testTag("segment_preview_text")
-                    )
+                    Text("Vérifier la liste d'ingrédients", style = MaterialTheme.typography.titleMedium)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false)
+                            .heightIn(max = 280.dp)
+                            .verticalScroll(rememberScrollState())
+                            .testTag("segment_preview_scroll")
+                    ) {
+                        Text(
+                            text = confirmation.segmentPreview,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("segment_preview_text")
+                        )
+                    }
                     Button(
                         onClick = viewModel::confirmSegmentAndAnalyze,
-                        modifier = Modifier.testTag("confirm_segment_button")
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("confirm_segment_button")
                     ) {
                         Text("Confirmer et analyser")
                     }
                     OutlinedButton(
                         onClick = viewModel::rejectSegmentConfirmation,
-                        modifier = Modifier.testTag("reject_segment_button")
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("reject_segment_button")
                     ) {
                         Text("Reprendre la photo")
                     }
