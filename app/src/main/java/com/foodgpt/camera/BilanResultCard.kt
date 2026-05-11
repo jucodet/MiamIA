@@ -71,11 +71,11 @@ fun BilanResultCard(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         BilanHeader()
+        AnalysisSection(bilan.compositionAnalysis)
         IngredientsSection(bilan.ingredientLines)
         if (bilan.healthImpacts.isNotEmpty()) {
             HealthImpactSection(bilan.healthImpacts)
         }
-        AnalysisSection(bilan.compositionAnalysis)
         additiveKpi?.let { kpi ->
             AdditivesSection(kpi, onRequestShowRaw = onToggleRaw)
         }

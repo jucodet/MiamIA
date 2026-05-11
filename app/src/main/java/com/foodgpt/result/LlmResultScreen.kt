@@ -177,6 +177,27 @@ private fun StreamingHeader() {
 @Composable
 private fun StreamingContent(state: StreamingBilanState.Streaming) {
     AnimatedVisibility(
+        visible = state.partialAnalysis != null,
+        enter = fadeIn()
+    ) {
+        StreamingSectionCard(
+            icon = Icons.Filled.Science,
+            iconTint = Color(0xFF6A1B9A),
+            title = "Synthèse",
+            isLoading = state.sectionReached == StreamingSection.ANALYSE,
+            testTag = "streaming_analysis_card"
+        ) {
+            if (state.partialAnalysis != null) {
+                Text(
+                    text = state.partialAnalysis,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+    }
+
+    AnimatedVisibility(
         visible = state.partialIngredients.isNotEmpty(),
         enter = fadeIn()
     ) {
@@ -210,27 +231,6 @@ private fun StreamingContent(state: StreamingBilanState.Streaming) {
                         )
                     }
                 }
-            }
-        }
-    }
-
-    AnimatedVisibility(
-        visible = state.partialAnalysis != null,
-        enter = fadeIn()
-    ) {
-        StreamingSectionCard(
-            icon = Icons.Filled.Science,
-            iconTint = Color(0xFF6A1B9A),
-            title = "Synthèse",
-            isLoading = state.sectionReached == StreamingSection.ANALYSE,
-            testTag = "streaming_analysis_card"
-        ) {
-            if (state.partialAnalysis != null) {
-                Text(
-                    text = state.partialAnalysis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
             }
         }
     }

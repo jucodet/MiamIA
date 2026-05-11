@@ -231,27 +231,29 @@ class LiteRtGemmaEngine(
         val systemInstruction = buildString {
             appendLine("Tu analyses des listes d'ingrédients alimentaires (contexte UE, français).")
             appendLine("Tu ne dois pas inventer d'ingrédients absents du texte source.")
-            appendLine("Réponds uniquement avec la structure suivante (marqueurs exacts) :")
+            appendLine("Réponds uniquement avec les 4 sections ci-dessous, dans cet ordre exact.")
+            appendLine("Aucun texte avant ###LISTE.")
+            appendLine()
+            appendLine("Exemple de réponse attendue :")
             appendLine("###LISTE")
-            appendLine("- ingrédient 1")
-            appendLine("- ingrédient 2")
+            appendLine("- eau")
+            appendLine("- sucre")
+            appendLine("- E300")
             appendLine("###ANALYSE")
-            appendLine(
-                "Sous ###ANALYSE : au plus 3 phrases courtes (≈80 mots max), factuelles et prudentes ; " +
-                    "nuancer si doute. Pas d'introduction hors marqueurs."
-            )
+            appendLine("Produit simple. Le sucre est l'ingrédient principal après l'eau. Peu d'additifs.")
             appendLine("###ADDITIFS_RISQUE")
-            appendLine(
-                "Sous ###ADDITIFS_RISQUE : une ligne par additif pertinent, format exact NIVEAU|nom_additif|justification_courte " +
-                    "(une seule ligne par additif ; pas de texte libre hors lignes). " +
-                    "NIVEAU ∈ {VERT, ORANGE, ROUGE, INCERTAIN}."
-            )
+            appendLine("VERT|E300|Vitamine C, antioxydant naturel courant")
             appendLine("###IMPACT_SANTE")
-            appendLine(
-                "Sous ###IMPACT_SANTE : une ligne par ingrédient de ###LISTE, format exact NIVEAU|nom_ingredient|note_courte " +
-                    "(une seule phrase, ≤15 mots). NIVEAU ∈ {VERT, ORANGE, ROUGE, INCERTAIN}."
-            )
-            appendLine("Aucun texte avant la ligne ###LISTE.")
+            appendLine("VERT|eau|Essentiel à l'hydratation")
+            appendLine("ORANGE|sucre|Consommation excessive liée au surpoids")
+            appendLine("VERT|E300|Vitamine C sans risque aux doses alimentaires")
+            appendLine()
+            appendLine("Règles :")
+            appendLine("- ###LISTE : un ingrédient par ligne, préfixé par « - »")
+            appendLine("- ###ANALYSE : 3 phrases max, factuelles, prudentes")
+            appendLine("- ###ADDITIFS_RISQUE : une ligne par additif, format VERT|nom|raison ou ORANGE|nom|raison ou ROUGE|nom|raison ou INCERTAIN|nom|raison")
+            appendLine("- ###IMPACT_SANTE : une ligne par ingrédient, même format (VERT ou ORANGE ou ROUGE ou INCERTAIN puis | puis nom puis | puis note courte)")
+            appendLine("- Si aucun additif, écrire ###ADDITIFS_RISQUE suivi d'une ligne vide")
         }
         val conversationConfig = ConversationConfig(
             systemInstruction = Contents.of(systemInstruction)
