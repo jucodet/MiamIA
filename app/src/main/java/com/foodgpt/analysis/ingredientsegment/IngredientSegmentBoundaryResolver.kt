@@ -8,7 +8,8 @@ class IngredientSegmentBoundaryResolver {
     )
 
     /**
-     * FR-003: fin de phrase si `.` `!` `?` apres l'ancre sur la meme ligne.
+     * FR-003 (révisé 017): `.` termine seulement si suivi d'un espace, `\n`, ou en fin de texte.
+     * `!` et `?` restent des terminateurs inconditionnels.
      * FR-004: sinon fin de ligne (avant le prochain saut de ligne).
      * FR-005: sinon fin du texte.
      */
@@ -18,10 +19,19 @@ class IngredientSegmentBoundaryResolver {
 
         for (i in anchorIndex until lineSliceEnd) {
             when (text[i]) {
-                '.', '!', '?' -> return Resolution(
+                '!' , '?' -> return Resolution(
                     endIndexExclusive = i + 1,
                     boundaryEndReason = IngredientSegmentBoundaryEndReason.SENTENCE_TERMINATOR
                 )
+                '.' -> {
+                    val nextIndex = i + 1
+                    if (nextIndex >= text.length || text[nextIndex] == ' ' || text[nextIndex] == '\n') {
+                        return Resolution(
+                            endIndexExclusive = nextIndex,
+                            boundaryEndReason = IngredientSegmentBoundaryEndReason.SENTENCE_TERMINATOR
+                        )
+                    }
+                }
             }
         }
 

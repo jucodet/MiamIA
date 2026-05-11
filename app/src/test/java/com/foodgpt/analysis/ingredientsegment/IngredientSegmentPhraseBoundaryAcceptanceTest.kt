@@ -43,4 +43,22 @@ class IngredientSegmentPhraseBoundaryAcceptanceTest {
         assertTrue(out.anchorFound)
         assertEquals("Ingrédients: eau.", out.segmentText)
     }
+
+    @Test
+    fun `US1-2 internal dot in additive code does not end capture`() {
+        val out = service.prepare("scan-dot-int", OcrFixtures.DOT_INTERNAL_ADDITIVE)
+
+        assertTrue(out.anchorFound)
+        assertEquals(IngredientSegmentBoundaryEndReason.TEXT_END, out.boundaryEndReason)
+        assertEquals("Ingrédients: eau, colorant E.621, sucre, sel", out.segmentText)
+    }
+
+    @Test
+    fun `US1-1 dot followed by space ends capture at first contextual dot`() {
+        val out = service.prepare("scan-dot-sp", OcrFixtures.DOT_SPACE_END)
+
+        assertTrue(out.anchorFound)
+        assertEquals(IngredientSegmentBoundaryEndReason.SENTENCE_TERMINATOR, out.boundaryEndReason)
+        assertEquals("Ingrédients: eau, sucre.", out.segmentText)
+    }
 }
