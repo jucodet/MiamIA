@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.foodgpt.additives.AnalysisDisplayResult
 import com.foodgpt.additives.ui.AdditiveKpiPanel
 import com.foodgpt.composition.CompositionBilan
+import com.foodgpt.composition.IngredientHealthImpact
 
 @Composable
 fun BilanResultCard(
@@ -63,6 +64,9 @@ fun BilanResultCard(
     ) {
         BilanHeader()
         IngredientsSection(bilan.ingredientLines)
+        if (bilan.healthImpacts.isNotEmpty()) {
+            HealthImpactSection(bilan.healthImpacts)
+        }
         AnalysisSection(bilan.compositionAnalysis)
         additiveKpi?.let { kpi ->
             AdditivesSection(kpi, onRequestShowRaw = onToggleRaw)
@@ -183,6 +187,70 @@ private fun AdditivesSection(
             modifier = Modifier.padding(top = 8.dp)
         )
     }
+}
+
+@Composable
+private fun HealthImpactSection(impacts: List<IngredientHealthImpact>) {
+    SectionCard(
+        icon = Icons.Filled.Info,
+        iconTint = Color(0xFF00796B),
+        iconBackground = Color(0xFF00796B).copy(alpha = 0.1f),
+        title = "Impact santé",
+        badge = "${impacts.size}",
+        testTag = "bilan_health_impact_section"
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            impacts.forEach { impact ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        color = healthLevelColor(impact.level).copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = healthLevelLabel(impact.level),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = impact.ingredient,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (impact.note.isNotBlank()) {
+                            Text(
+                                text = impact.note,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun healthLevelColor(level: String): Color = when (level.uppercase()) {
+    "ROUGE" -> Color(0xFFE53935)
+    "ORANGE" -> Color(0xFFFF9800)
+    "VERT" -> Color(0xFF43A047)
+    else -> Color(0xFF9E9E9E)
+}
+
+private fun healthLevelLabel(level: String): String = when (level.uppercase()) {
+    "ROUGE" -> "Vigilance"
+    "ORANGE" -> "Modéré"
+    "VERT" -> "OK"
+    else -> "Incertain"
 }
 
 @Composable

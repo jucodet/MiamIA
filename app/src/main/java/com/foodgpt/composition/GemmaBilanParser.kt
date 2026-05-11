@@ -9,6 +9,9 @@ object GemmaBilanParser {
     private val LISTE_PATTERN = Regex("""#{1,4}\s*LISTE\s*:?""", RegexOption.IGNORE_CASE)
     private val ANALYSE_PATTERN = Regex("""#{1,4}\s*ANALYSE\s*:?""", RegexOption.IGNORE_CASE)
     private val ADDITIFS_PATTERN = Regex("""#{1,4}\s*ADDITIFS[_\s]*RISQUE\s*:?""", RegexOption.IGNORE_CASE)
+    private val IMPACT_SANTE_PATTERN = Regex("""#{1,4}\s*IMPACT[_\s]*SANT[EÉ]\s*:?""", RegexOption.IGNORE_CASE)
+
+    private val VALID_LEVELS = setOf("VERT", "ORANGE", "ROUGE", "INCERTAIN")
 
     fun parse(modelOutput: String, disclaimer: String = CompositionMessages.DISCLAIMER_DEFAULT): CompositionBilan? {
         val trimmed = modelOutput.trim()
@@ -45,10 +48,34 @@ object GemmaBilanParser {
 
         if (lines.isEmpty() || analysisBlock.isBlank()) return null
 
+        val healthImpacts = parseHealthImpacts(trimmed)
+
         return CompositionBilan(
             ingredientLines = lines,
             compositionAnalysis = analysisBlock,
-            disclaimer = disclaimer
+            disclaimer = disclaimer,
+            healthImpacts = healthImpacts,
         )
+    }
+
+    private fun parseHealthImpacts(fullText: String): List<IngredientHealthImpact> {
+        val impactMatch = IMPACT_SANTE_PATTERN.find(fullText) ?: return emptyList()
+        val blockStart = impactMatch.range.last + 1
+        if (blockStart >= fullText.length) return emptyList()
+        val block = fullText.substring(blockStart).trim()
+
+        return block.lines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .mapNotNull { line ->
+                val parts = line.split("|", limit = 3)
+                if (parts.size < 3) return@mapNotNull null
+                val level = parts[0].trim().uppercase()
+                if (level !in VALID_LEVELS) return@mapNotNull null
+                val ingredient = parts[1].trim()
+                val note = parts[2].trim()
+                if (ingredient.isEmpty()) return@mapNotNull null
+                IngredientHealthImpact(level = level, ingredient = ingredient, note = note)
+            }
     }
 }
