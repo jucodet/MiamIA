@@ -23,8 +23,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.ViewModelProvider
-import com.foodgpt.camera.CameraLlmResultNavigation
-import com.foodgpt.camera.CameraLlmResultPayloadStore
 import com.foodgpt.camera.CameraScreen
 import com.foodgpt.camera.CameraViewModel
 import com.foodgpt.camera.ScanState
@@ -207,17 +205,9 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(CameraFlowRoutes.LlmResult) {
-                            val payload = remember {
-                                CameraLlmResultPayloadStore.getAndClear()
-                                    ?: cameraViewModel.buildLlmResultFallbackPayload()
-                            }
                             LlmResultScreen(
-                                body = payload.body,
-                                isError = payload.isError,
-                                errorCategoryWire = payload.errorCategoryWire,
-                                onBack = { cameraNavController.popBackStack() },
-                                bilan = payload.bilan,
-                                rawTranscript = payload.rawTranscript
+                                viewModel = cameraViewModel,
+                                onBack = { cameraNavController.popBackStack() }
                             )
                         }
                         composable(CameraFlowRoutes.HealthCritiqueResult) {

@@ -6,11 +6,18 @@ enum class GemmaErrorCode {
     GEMMA_TIMEOUT
 }
 
+data class IngredientHealthImpact(
+    val level: String,
+    val ingredient: String,
+    val note: String,
+)
+
 data class CompositionBilan(
     val ingredientLines: List<String>,
     val compositionAnalysis: String,
     val disclaimer: String,
-    val promptVersion: String = GemmaModelPaths.PROMPT_VERSION
+    val healthImpacts: List<IngredientHealthImpact> = emptyList(),
+    val promptVersion: String = GemmaModelPaths.PROMPT_VERSION,
 )
 
 sealed class AnalyzeCompositionResult {

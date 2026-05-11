@@ -246,6 +246,11 @@ class LiteRtGemmaEngine(
                     "(une seule ligne par additif ; pas de texte libre hors lignes). " +
                     "NIVEAU ∈ {VERT, ORANGE, ROUGE, INCERTAIN}."
             )
+            appendLine("###IMPACT_SANTE")
+            appendLine(
+                "Sous ###IMPACT_SANTE : une ligne par ingrédient de ###LISTE, format exact NIVEAU|nom_ingredient|note_courte " +
+                    "(une seule phrase, ≤15 mots). NIVEAU ∈ {VERT, ORANGE, ROUGE, INCERTAIN}."
+            )
             appendLine("Aucun texte avant la ligne ###LISTE.")
         }
         val conversationConfig = ConversationConfig(

@@ -39,7 +39,7 @@ class CameraLlmFlowViewModelTest {
     }
 
     @Test
-    fun compositionDone_captureActive_emitsNavAndResetsToCameraReady() {
+    fun compositionDone_captureActive_emitsNavAndStreamingComplete() {
         val app = ApplicationProvider.getApplicationContext<Application>()
         val vm = CameraViewModel(app, coordinator = null, compositionEngine = engineReturningSuccess())
         vm.setCaptureRouteActive(true)
@@ -63,12 +63,19 @@ class CameraLlmFlowViewModelTest {
         }
         assertTrue(received.await(5, TimeUnit.SECONDS))
         assertFalse(nav.isError)
-        assertTrue(nav.body.contains("eau"))
-        val end = vm.scanState.value
-        assertTrue(
-            end == ScanState.CameraReady ||
-                end == ScanState.PermissionDenied
-        )
+
+        var sawComplete = false
+        for (i in 0 until 80) {
+            if (vm.streamingBilan.value is StreamingBilanState.Complete) {
+                sawComplete = true
+                break
+            }
+            Thread.sleep(25)
+            mainLooper.idle()
+        }
+        assertTrue(sawComplete)
+        val complete = vm.streamingBilan.value as StreamingBilanState.Complete
+        assertTrue(complete.bilan.ingredientLines.contains("eau"))
     }
 
     @Test

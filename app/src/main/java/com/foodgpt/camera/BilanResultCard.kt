@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Visibility
@@ -34,7 +36,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import com.foodgpt.additives.AnalysisDisplayResult
 import com.foodgpt.additives.ui.AdditiveKpiPanel
 import com.foodgpt.composition.CompositionBilan
+import com.foodgpt.composition.IngredientHealthImpact
 
 @Composable
 fun BilanResultCard(
@@ -63,6 +72,9 @@ fun BilanResultCard(
     ) {
         BilanHeader()
         IngredientsSection(bilan.ingredientLines)
+        if (bilan.healthImpacts.isNotEmpty()) {
+            HealthImpactSection(bilan.healthImpacts)
+        }
         AnalysisSection(bilan.compositionAnalysis)
         additiveKpi?.let { kpi ->
             AdditivesSection(kpi, onRequestShowRaw = onToggleRaw)
@@ -114,34 +126,93 @@ private fun BilanHeader() {
 
 @Composable
 private fun IngredientsSection(ingredients: List<String>) {
-    SectionCard(
-        icon = Icons.AutoMirrored.Filled.List,
-        iconTint = Color(0xFF1565C0),
-        iconBackground = Color(0xFF1565C0).copy(alpha = 0.1f),
-        title = "Ingrédients identifiés",
-        badge = "${ingredients.size}",
-        testTag = "bilan_ingredients_section"
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("bilan_ingredients_section")
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(top = 8.dp)
-        ) {
-            ingredients.forEach { line ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF1565C0).copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.List,
+                        contentDescription = null,
+                        tint = Color(0xFF1565C0),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Ingrédients identifiés",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                Surface(
+                    color = Color(0xFF1565C0).copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "•",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "${ingredients.size}",
+                        style = MaterialTheme.typography.labelMedium,
                         color = Color(0xFF1565C0),
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(end = 8.dp, top = 1.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
-                    Text(
-                        text = line,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (expanded) "Replier" else "Déplier",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    ingredients.forEach { line ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(
+                                text = "•",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF1565C0),
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(end = 8.dp, top = 1.dp)
+                            )
+                            Text(
+                                text = line,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -154,14 +225,22 @@ private fun AnalysisSection(analysis: String) {
         icon = Icons.Filled.Science,
         iconTint = Color(0xFF6A1B9A),
         iconBackground = Color(0xFF6A1B9A).copy(alpha = 0.1f),
-        title = "Analyse",
+        title = "Synthèse",
         testTag = "bilan_analysis_section"
     ) {
-        Text(
-            text = analysis,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 8.dp)
-        )
+        Surface(
+            color = Color(0xFF6A1B9A).copy(alpha = 0.04f),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        ) {
+            Text(
+                text = analysis,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(12.dp)
+            )
+        }
     }
 }
 
@@ -183,6 +262,70 @@ private fun AdditivesSection(
             modifier = Modifier.padding(top = 8.dp)
         )
     }
+}
+
+@Composable
+private fun HealthImpactSection(impacts: List<IngredientHealthImpact>) {
+    SectionCard(
+        icon = Icons.Filled.FavoriteBorder,
+        iconTint = Color(0xFF00796B),
+        iconBackground = Color(0xFF00796B).copy(alpha = 0.1f),
+        title = "Verdict par ingrédient",
+        badge = "${impacts.size}",
+        testTag = "bilan_health_impact_section"
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            impacts.forEach { impact ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        color = healthLevelColor(impact.level).copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = healthLevelLabel(impact.level),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = impact.ingredient,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (impact.note.isNotBlank()) {
+                            Text(
+                                text = impact.note,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun healthLevelColor(level: String): Color = when (level.uppercase()) {
+    "ROUGE" -> Color(0xFFE53935)
+    "ORANGE" -> Color(0xFFFF9800)
+    "VERT" -> Color(0xFF43A047)
+    else -> Color(0xFF9E9E9E)
+}
+
+private fun healthLevelLabel(level: String): String = when (level.uppercase()) {
+    "ROUGE" -> "Vigilance"
+    "ORANGE" -> "Modéré"
+    "VERT" -> "OK"
+    else -> "Incertain"
 }
 
 @Composable
