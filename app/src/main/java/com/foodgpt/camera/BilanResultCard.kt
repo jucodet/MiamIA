@@ -1,0 +1,318 @@
+package com.foodgpt.camera
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.foodgpt.additives.AnalysisDisplayResult
+import com.foodgpt.additives.ui.AdditiveKpiPanel
+import com.foodgpt.composition.CompositionBilan
+
+@Composable
+fun BilanResultCard(
+    bilan: CompositionBilan,
+    rawTranscript: String,
+    additiveKpi: AnalysisDisplayResult?,
+    showRaw: Boolean,
+    onToggleRaw: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        BilanHeader()
+        IngredientsSection(bilan.ingredientLines)
+        AnalysisSection(bilan.compositionAnalysis)
+        additiveKpi?.let { kpi ->
+            AdditivesSection(kpi, onRequestShowRaw = onToggleRaw)
+        }
+        DisclaimerSection(bilan.disclaimer)
+        RawTranscriptToggle(
+            showRaw = showRaw,
+            rawTranscript = rawTranscript,
+            onToggle = onToggleRaw
+        )
+    }
+}
+
+@Composable
+private fun BilanHeader() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF2E7D32).copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CheckCircle,
+                contentDescription = null,
+                tint = Color(0xFF2E7D32),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(
+                text = "Bilan composition",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Analyse terminée",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun IngredientsSection(ingredients: List<String>) {
+    SectionCard(
+        icon = Icons.AutoMirrored.Filled.List,
+        iconTint = Color(0xFF1565C0),
+        iconBackground = Color(0xFF1565C0).copy(alpha = 0.1f),
+        title = "Ingrédients identifiés",
+        badge = "${ingredients.size}",
+        testTag = "bilan_ingredients_section"
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            ingredients.forEach { line ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = "•",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF1565C0),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 8.dp, top = 1.dp)
+                    )
+                    Text(
+                        text = line,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalysisSection(analysis: String) {
+    SectionCard(
+        icon = Icons.Filled.Science,
+        iconTint = Color(0xFF6A1B9A),
+        iconBackground = Color(0xFF6A1B9A).copy(alpha = 0.1f),
+        title = "Analyse",
+        testTag = "bilan_analysis_section"
+    ) {
+        Text(
+            text = analysis,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+    }
+}
+
+@Composable
+private fun AdditivesSection(
+    kpi: AnalysisDisplayResult,
+    onRequestShowRaw: () -> Unit
+) {
+    SectionCard(
+        icon = Icons.Filled.Warning,
+        iconTint = Color(0xFFE65100),
+        iconBackground = Color(0xFFE65100).copy(alpha = 0.1f),
+        title = "Additifs",
+        testTag = "bilan_additives_section"
+    ) {
+        AdditiveKpiPanel(
+            result = kpi,
+            onRequestShowRaw = onRequestShowRaw,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+    }
+}
+
+@Composable
+private fun DisclaimerSection(disclaimer: String) {
+    if (disclaimer.isBlank()) return
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = disclaimer,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontStyle = FontStyle.Italic
+            )
+        }
+    }
+}
+
+@Composable
+private fun RawTranscriptToggle(
+    showRaw: Boolean,
+    rawTranscript: String,
+    onToggle: () -> Unit
+) {
+    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+    TextButton(
+        onClick = onToggle,
+        modifier = Modifier.testTag("toggle_raw_transcript")
+    ) {
+        Icon(
+            imageVector = if (showRaw) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(if (showRaw) "Masquer le texte original" else "Voir le texte original")
+    }
+    AnimatedVisibility(
+        visible = showRaw,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut()
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = rawTranscript,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .padding(12.dp)
+                    .testTag("raw_transcript_secondary")
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionCard(
+    icon: ImageVector,
+    iconTint: Color,
+    iconBackground: Color,
+    title: String,
+    testTag: String,
+    badge: String? = null,
+    content: @Composable () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(testTag)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(iconBackground),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                if (badge != null) {
+                    Surface(
+                        color = iconTint.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = badge,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = iconTint,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+            content()
+        }
+    }
+}

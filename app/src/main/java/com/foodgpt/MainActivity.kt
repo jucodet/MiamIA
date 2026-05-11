@@ -215,7 +215,9 @@ class MainActivity : ComponentActivity() {
                                 body = payload.body,
                                 isError = payload.isError,
                                 errorCategoryWire = payload.errorCategoryWire,
-                                onBack = { cameraNavController.popBackStack() }
+                                onBack = { cameraNavController.popBackStack() },
+                                bilan = payload.bilan,
+                                rawTranscript = payload.rawTranscript
                             )
                         }
                         composable(CameraFlowRoutes.HealthCritiqueResult) {

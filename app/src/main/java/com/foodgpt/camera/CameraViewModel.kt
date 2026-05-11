@@ -243,12 +243,20 @@ class CameraViewModel(
         append(bilan.disclaimer)
     }
 
-    private fun offerLlmResultIfActive(body: String, isError: Boolean, errorCategoryWire: String?) {
+    private fun offerLlmResultIfActive(
+        body: String,
+        isError: Boolean,
+        errorCategoryWire: String?,
+        bilan: CompositionBilan? = null,
+        rawTranscript: String? = null
+    ) {
         if (!_captureRouteActive.value) return
         val payload = CameraLlmResultNavigation(
             body = body,
             isError = isError,
-            errorCategoryWire = errorCategoryWire
+            errorCategoryWire = errorCategoryWire,
+            bilan = bilan,
+            rawTranscript = rawTranscript
         )
         CameraLlmResultPayloadStore.set(payload)
         if (!_navigateToLlmResult.tryEmit(payload)) {
@@ -487,7 +495,13 @@ class CameraViewModel(
                         is AnalyzeCompositionResult.BilanSuccess -> {
                             _lastValidatedSegmentForHealth.value = rawText
                             if (_captureRouteActive.value) {
-                                offerLlmResultIfActive(formatBilanForResult(v.bilan), false, null)
+                                offerLlmResultIfActive(
+                                    body = formatBilanForResult(v.bilan),
+                                    isError = false,
+                                    errorCategoryWire = null,
+                                    bilan = v.bilan,
+                                    rawTranscript = rawText
+                                )
                                 resetToCaptureAfterNav()
                             } else {
                                 val kpi = withContext(Dispatchers.Default) {

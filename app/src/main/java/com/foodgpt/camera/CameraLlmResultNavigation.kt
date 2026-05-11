@@ -1,11 +1,14 @@
 package com.foodgpt.camera
 
+import com.foodgpt.composition.CompositionBilan
 import java.util.concurrent.atomic.AtomicReference
 
 data class CameraLlmResultNavigation(
     val body: String,
     val isError: Boolean,
-    val errorCategoryWire: String? = null
+    val errorCategoryWire: String? = null,
+    val bilan: CompositionBilan? = null,
+    val rawTranscript: String? = null
 )
 
 /**
