@@ -26,6 +26,7 @@ import com.foodgpt.additives.AdditiveJustificationFormatter
 import com.foodgpt.additives.AdditiveLineConfidence
 import com.foodgpt.additives.AdditiveRiskItem
 import com.foodgpt.additives.AdditiveRiskLevel
+import com.foodgpt.ui.theme.FoodGptColors
 
 @Composable
 fun AdditiveRiskLine(
@@ -120,8 +121,8 @@ private fun levelDisplayLabel(level: AdditiveRiskLevel): String = when (level) {
 }
 
 private fun levelContainerColor(level: AdditiveRiskLevel): Color = when (level) {
-    AdditiveRiskLevel.HIGH -> Color(0xFFE53935)
-    AdditiveRiskLevel.MEDIUM -> Color(0xFFFF9800)
-    AdditiveRiskLevel.LOW -> Color(0xFF43A047)
-    AdditiveRiskLevel.UNKNOWN -> Color(0xFF9E9E9E)
+    AdditiveRiskLevel.HIGH -> FoodGptColors.ImpactRed
+    AdditiveRiskLevel.MEDIUM -> FoodGptColors.ImpactOrange
+    AdditiveRiskLevel.LOW -> FoodGptColors.ImpactGreen
+    AdditiveRiskLevel.UNKNOWN -> FoodGptColors.ImpactNeutral
 }

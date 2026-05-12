@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.foodgpt.ui.theme.FoodGptColors
 
 @Composable
 fun MediaPipeStatusIndicator(
@@ -39,7 +40,7 @@ fun MediaPipeStatusIndicator(
 }
 
 private fun colorFor(token: MediaPipeStatusColorToken): Color = when (token) {
-    MediaPipeStatusColorToken.NEUTRAL -> Color.Gray
-    MediaPipeStatusColorToken.SUCCESS -> Color(0xFF2E7D32)
-    MediaPipeStatusColorToken.WARNING_OR_ERROR -> Color(0xFFC62828)
+    MediaPipeStatusColorToken.NEUTRAL -> FoodGptColors.ImpactNeutral
+    MediaPipeStatusColorToken.SUCCESS -> FoodGptColors.StatusSuccess
+    MediaPipeStatusColorToken.WARNING_OR_ERROR -> FoodGptColors.StatusError
 }

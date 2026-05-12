@@ -56,6 +56,7 @@ import com.foodgpt.additives.AnalysisDisplayResult
 import com.foodgpt.additives.ui.AdditiveKpiPanel
 import com.foodgpt.composition.CompositionBilan
 import com.foodgpt.composition.IngredientHealthImpact
+import com.foodgpt.ui.theme.FoodGptColors
 
 @Composable
 fun BilanResultCard(
@@ -98,13 +99,13 @@ private fun BilanHeader() {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF2E7D32).copy(alpha = 0.12f)),
+                .background(FoodGptColors.StatusSuccess.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Filled.CheckCircle,
                 contentDescription = null,
-                tint = Color(0xFF2E7D32),
+                tint = FoodGptColors.StatusSuccess,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -149,13 +150,13 @@ private fun IngredientsSection(ingredients: List<String>) {
                     modifier = Modifier
                         .size(32.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF1565C0).copy(alpha = 0.1f)),
+                        .background(FoodGptColors.SectionIngredients.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.List,
                         contentDescription = null,
-                        tint = Color(0xFF1565C0),
+                        tint = FoodGptColors.SectionIngredients,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -167,13 +168,13 @@ private fun IngredientsSection(ingredients: List<String>) {
                     modifier = Modifier.weight(1f)
                 )
                 Surface(
-                    color = Color(0xFF1565C0).copy(alpha = 0.12f),
+                    color = FoodGptColors.SectionIngredients.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = "${ingredients.size}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFF1565C0),
+                        color = FoodGptColors.SectionIngredients,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
@@ -203,7 +204,7 @@ private fun IngredientsSection(ingredients: List<String>) {
                             Text(
                                 text = "•",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF1565C0),
+                                color = FoodGptColors.SectionIngredients,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(end = 8.dp, top = 1.dp)
                             )
@@ -223,13 +224,13 @@ private fun IngredientsSection(ingredients: List<String>) {
 private fun AnalysisSection(analysis: String) {
     SectionCard(
         icon = Icons.Filled.Science,
-        iconTint = Color(0xFF6A1B9A),
-        iconBackground = Color(0xFF6A1B9A).copy(alpha = 0.1f),
+        iconTint = FoodGptColors.SectionSynthese,
+        iconBackground = FoodGptColors.SectionSynthese.copy(alpha = 0.1f),
         title = "Synthèse",
         testTag = "bilan_analysis_section"
     ) {
         Surface(
-            color = Color(0xFF6A1B9A).copy(alpha = 0.04f),
+            color = FoodGptColors.SectionSynthese.copy(alpha = 0.04f),
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -251,8 +252,8 @@ private fun AdditivesSection(
 ) {
     SectionCard(
         icon = Icons.Filled.Warning,
-        iconTint = Color(0xFFE65100),
-        iconBackground = Color(0xFFE65100).copy(alpha = 0.1f),
+        iconTint = FoodGptColors.SectionAdditives,
+        iconBackground = FoodGptColors.SectionAdditives.copy(alpha = 0.1f),
         title = "Additifs",
         testTag = "bilan_additives_section"
     ) {
@@ -268,8 +269,8 @@ private fun AdditivesSection(
 private fun HealthImpactSection(impacts: List<IngredientHealthImpact>) {
     SectionCard(
         icon = Icons.Filled.FavoriteBorder,
-        iconTint = Color(0xFF00796B),
-        iconBackground = Color(0xFF00796B).copy(alpha = 0.1f),
+        iconTint = FoodGptColors.SectionHealth,
+        iconBackground = FoodGptColors.SectionHealth.copy(alpha = 0.1f),
         title = "Verdict par ingrédient",
         badge = "${impacts.size}",
         testTag = "bilan_health_impact_section"
@@ -315,10 +316,10 @@ private fun HealthImpactSection(impacts: List<IngredientHealthImpact>) {
 }
 
 private fun healthLevelColor(level: String): Color = when (level.uppercase()) {
-    "ROUGE" -> Color(0xFFE53935)
-    "ORANGE" -> Color(0xFFFF9800)
-    "VERT" -> Color(0xFF43A047)
-    else -> Color(0xFF9E9E9E)
+    "ROUGE" -> FoodGptColors.ImpactRed
+    "ORANGE" -> FoodGptColors.ImpactOrange
+    "VERT" -> FoodGptColors.ImpactGreen
+    else -> FoodGptColors.ImpactNeutral
 }
 
 private fun healthLevelLabel(level: String): String = when (level.uppercase()) {

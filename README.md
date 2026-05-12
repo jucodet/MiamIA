@@ -4,6 +4,13 @@
 
 **Scannez, comprenez, maîtrisez ce que vous mangez — 100 % sur votre téléphone.**
 
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
+
 Application Android qui scanne les étiquettes alimentaires, extrait les ingrédients par OCR, et les analyse via un modèle de langage local (Gemma) pour fournir un bilan santé complet — sans envoyer vos données sur Internet.
 
 [Fonctionnalités](#fonctionnalités) · [Stack technique](#stack-technique) · [Démarrage rapide](#démarrage-rapide) · [Architecture](#architecture) · [Roadmap](#roadmap)
@@ -206,3 +213,17 @@ Projet : [https://github.com/jucodet/FoodGpt](https://github.com/jucodet/FoodGpt
 - [Best-README-Template](https://github.com/othneildrew/Best-README-Template) — Inspiration pour ce README
 
 <p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+
+<!-- MARKDOWN LINKS & IMAGES -->
+[contributors-shield]: https://img.shields.io/github/contributors/jucodet/FoodGpt.svg?style=for-the-badge
+[contributors-url]: https://github.com/jucodet/FoodGpt/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/jucodet/FoodGpt.svg?style=for-the-badge
+[forks-url]: https://github.com/jucodet/FoodGpt/network/members
+[stars-shield]: https://img.shields.io/github/stars/jucodet/FoodGpt.svg?style=for-the-badge
+[stars-url]: https://github.com/jucodet/FoodGpt/stargazers
+[issues-shield]: https://img.shields.io/github/issues/jucodet/FoodGpt.svg?style=for-the-badge
+[issues-url]: https://github.com/jucodet/FoodGpt/issues
+[license-shield]: https://img.shields.io/github/license/jucodet/FoodGpt.svg?style=for-the-badge
+[license-url]: https://github.com/jucodet/FoodGpt/blob/master/LICENSE
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/jcodet

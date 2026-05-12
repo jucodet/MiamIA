@@ -11,7 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +56,7 @@ import com.foodgpt.onboarding.ModelDownloadWaitingScreen
 import com.foodgpt.onboarding.NetworkOfflineScreen
 import com.foodgpt.result.LlmResultScreen
 import com.foodgpt.scan.TemporaryImageManager
+import com.foodgpt.ui.theme.FoodGptTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.withContext
@@ -168,7 +168,7 @@ class MainActivity : ComponentActivity() {
                 uiReady = true
             }
             if (!uiReady) {
-                MaterialTheme {
+                FoodGptTheme {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -177,7 +177,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } else {
-                MaterialTheme {
+                FoodGptTheme {
                     LaunchedEffect(Unit) {
                         cameraViewModel.lastValidatedSegmentForHealth.collectLatest { segment ->
                             healthCritiqueViewModel.setValidatedSegmentFromScan(segment)

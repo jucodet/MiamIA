@@ -57,6 +57,7 @@ import com.foodgpt.camera.StreamingBilanState
 import com.foodgpt.camera.StreamingSection
 import com.foodgpt.ui.shared.AnimatedWhisk
 import com.foodgpt.ui.shared.WAITING_PHRASES
+import com.foodgpt.ui.theme.FoodGptColors
 import kotlinx.coroutines.delay
 
 @Composable
@@ -182,7 +183,7 @@ private fun StreamingContent(state: StreamingBilanState.Streaming) {
     ) {
         StreamingSectionCard(
             icon = Icons.Filled.Science,
-            iconTint = Color(0xFF6A1B9A),
+            iconTint = FoodGptColors.SectionSynthese,
             title = "Synthèse",
             isLoading = state.sectionReached == StreamingSection.ANALYSE,
             testTag = "streaming_analysis_card"
@@ -203,7 +204,7 @@ private fun StreamingContent(state: StreamingBilanState.Streaming) {
     ) {
         StreamingSectionCard(
             icon = Icons.AutoMirrored.Filled.List,
-            iconTint = Color(0xFF1565C0),
+            iconTint = FoodGptColors.SectionIngredients,
             title = "Ingrédients identifiés",
             badge = "${state.partialIngredients.size}",
             isLoading = state.sectionReached == StreamingSection.LISTE,
@@ -221,7 +222,7 @@ private fun StreamingContent(state: StreamingBilanState.Streaming) {
                         Text(
                             text = "•",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF1565C0),
+                            color = FoodGptColors.SectionIngredients,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(end = 8.dp, top = 1.dp)
                         )
@@ -241,7 +242,7 @@ private fun StreamingContent(state: StreamingBilanState.Streaming) {
     ) {
         StreamingSectionCard(
             icon = Icons.Filled.FavoriteBorder,
-            iconTint = Color(0xFF00796B),
+            iconTint = FoodGptColors.SectionHealth,
             title = "Verdict par ingrédient",
             badge = "${state.partialHealthImpacts.size}",
             isLoading = state.sectionReached == StreamingSection.IMPACT_SANTE,
@@ -357,10 +358,10 @@ private fun StreamingSectionCard(
 }
 
 private fun impactLevelColor(level: String): Color = when (level) {
-    "VERT" -> Color(0xFF43A047)
-    "ORANGE" -> Color(0xFFFF9800)
-    "ROUGE" -> Color(0xFFE53935)
-    else -> Color(0xFF9E9E9E)
+    "VERT" -> FoodGptColors.ImpactGreen
+    "ORANGE" -> FoodGptColors.ImpactOrange
+    "ROUGE" -> FoodGptColors.ImpactRed
+    else -> FoodGptColors.ImpactNeutral
 }
 
 private fun impactLevelEmoji(level: String): String = when (level) {
