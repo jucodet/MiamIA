@@ -126,10 +126,10 @@ fun AnimatedMarmite(
                     addRoundRect(
                         RoundRect(
                             rect = Rect(potLeft, potTop, potRight, potBottom),
-                            bottomLeftCornerRadius = CornerRadius(cornerR),
-                            bottomRightCornerRadius = CornerRadius(cornerR),
-                            topLeftCornerRadius = CornerRadius(0f),
-                            topRightCornerRadius = CornerRadius(0f)
+                            topLeft = CornerRadius(0f),
+                            topRight = CornerRadius(0f),
+                            bottomRight = CornerRadius(cornerR),
+                            bottomLeft = CornerRadius(cornerR)
                         )
                     )
                 }
