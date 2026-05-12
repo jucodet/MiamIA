@@ -7,6 +7,7 @@ package com.foodgpt.composition
 object GemmaBilanParser {
 
     private val LISTE_PATTERN = Regex("""#{1,4}\s*LISTE\s*:?""", RegexOption.IGNORE_CASE)
+    private val PRODUIT_PATTERN = Regex("""#{1,4}\s*PRODUIT\s*:?""", RegexOption.IGNORE_CASE)
     private val ANALYSE_PATTERN = Regex("""#{1,4}\s*ANALYSE\s*:?""", RegexOption.IGNORE_CASE)
     private val ADDITIFS_PATTERN = Regex("""#{1,4}\s*ADDITIFS[_\s]*RISQUE\s*:?""", RegexOption.IGNORE_CASE)
     private val IMPACT_SANTE_PATTERN = Regex("""#{1,4}\s*IMPACT[_\s]*SANT[EÉ]\s*:?""", RegexOption.IGNORE_CASE)
@@ -23,7 +24,27 @@ object GemmaBilanParser {
         if (listMatch == null || analysisMatch == null) return null
         if (analysisMatch.range.first <= listMatch.range.last) return null
 
-        val listBlock = trimmed.substring(listMatch.range.last + 1, analysisMatch.range.first).trim()
+        val produitMatch = PRODUIT_PATTERN.find(trimmed)
+
+        val listEnd = listOfNotNull(
+            produitMatch?.range?.first,
+            analysisMatch.range.first
+        ).filter { it > listMatch.range.last }.minOrNull() ?: analysisMatch.range.first
+
+        val listBlock = trimmed.substring(listMatch.range.last + 1, listEnd).trim()
+
+        val produitRaw = if (produitMatch != null &&
+            produitMatch.range.first > listMatch.range.last &&
+            produitMatch.range.first < analysisMatch.range.first
+        ) {
+            val produitEnd = analysisMatch.range.first
+            trimmed.substring(produitMatch.range.last + 1, produitEnd).trim().lines()
+                .firstOrNull { it.isNotBlank() }?.trim()
+        } else {
+            null
+        }
+        val (identifiedProduct, productConfidence) = parseProductLine(produitRaw)
+
         val afterAnalysisStart = trimmed.substring(analysisMatch.range.last + 1)
         val additivesMatch = ADDITIFS_PATTERN.find(afterAnalysisStart)
         val analysisBlock = if (additivesMatch == null) {
@@ -52,10 +73,20 @@ object GemmaBilanParser {
 
         return CompositionBilan(
             ingredientLines = lines,
+            identifiedProduct = identifiedProduct,
+            productConfidence = productConfidence,
             compositionAnalysis = analysisBlock,
             disclaimer = disclaimer,
             healthImpacts = healthImpacts,
         )
+    }
+
+    internal fun parseProductLine(raw: String?): Pair<String?, Int?> {
+        if (raw.isNullOrBlank()) return null to null
+        val parts = raw.split("|", limit = 2)
+        val name = parts[0].trim().ifBlank { null }
+        val confidence = parts.getOrNull(1)?.trim()?.toIntOrNull()?.coerceIn(0, 100)
+        return name to confidence
     }
 
     private fun parseHealthImpacts(fullText: String): List<IngredientHealthImpact> {

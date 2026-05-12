@@ -14,7 +14,7 @@ object GemmaModelPaths {
      */
     const val EXPECTED_MODEL_FILENAME = "gemma_model.litertlm"
 
-    const val PROMPT_VERSION = "v1"
+    const val PROMPT_VERSION = "v2"
 
     fun expectedAssetPath(): String = "$ASSET_DIRECTORY/$EXPECTED_MODEL_FILENAME"
 }

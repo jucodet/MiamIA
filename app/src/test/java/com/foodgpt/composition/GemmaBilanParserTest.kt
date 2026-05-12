@@ -24,6 +24,89 @@ class GemmaBilanParserTest {
     }
 
     @Test
+    fun parse_withProductSection_extractsProductAndConfidence() {
+        val raw = """
+            ###LISTE
+            - lait
+            - sucre
+            - ferments lactiques
+            ###PRODUIT
+            Yaourt aux fruits|85
+            ###ANALYSE
+            Produit laitier fermenté. Sucre ajouté en quantité modérée.
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertEquals("Yaourt aux fruits", bilan!!.identifiedProduct)
+        assertEquals(85, bilan.productConfidence)
+        assertEquals(listOf("lait", "sucre", "ferments lactiques"), bilan.ingredientLines)
+        assertEquals("Produit laitier fermenté. Sucre ajouté en quantité modérée.", bilan.compositionAnalysis)
+    }
+
+    @Test
+    fun parse_withProductSection_withoutConfidence() {
+        val raw = """
+            ###LISTE
+            - lait
+            - sucre
+            ###PRODUIT
+            Yaourt nature
+            ###ANALYSE
+            Produit laitier simple.
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertEquals("Yaourt nature", bilan!!.identifiedProduct)
+        assertNull(bilan.productConfidence)
+    }
+
+    @Test
+    fun parse_withoutProductSection_identifiedProductIsNull() {
+        val raw = """
+            ###LISTE
+            - eau
+            - sucre
+            ###ANALYSE
+            Le sucre apporte des calories ; modération recommandée.
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertNull(bilan!!.identifiedProduct)
+        assertNull(bilan.productConfidence)
+    }
+
+    @Test
+    fun parseProductLine_withPipeFormat() {
+        val (name, confidence) = GemmaBilanParser.parseProductLine("Biscuit fourré chocolat|60")
+        assertEquals("Biscuit fourré chocolat", name)
+        assertEquals(60, confidence)
+    }
+
+    @Test
+    fun parseProductLine_withoutPipe() {
+        val (name, confidence) = GemmaBilanParser.parseProductLine("Limonade")
+        assertEquals("Limonade", name)
+        assertNull(confidence)
+    }
+
+    @Test
+    fun parseProductLine_null() {
+        val (name, confidence) = GemmaBilanParser.parseProductLine(null)
+        assertNull(name)
+        assertNull(confidence)
+    }
+
+    @Test
+    fun parseProductLine_clampsTo100() {
+        val (name, confidence) = GemmaBilanParser.parseProductLine("Soda|150")
+        assertEquals("Soda", name)
+        assertEquals(100, confidence)
+    }
+
+    @Test
     fun parse_missingMarker_returnsNull() {
         assertNull(GemmaBilanParser.parse("pas de structure"))
     }

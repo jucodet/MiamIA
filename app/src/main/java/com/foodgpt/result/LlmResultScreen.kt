@@ -56,6 +56,7 @@ import com.foodgpt.camera.CameraViewModel
 import com.foodgpt.camera.StreamingBilanState
 import com.foodgpt.camera.StreamingSection
 import com.foodgpt.ui.shared.AnimatedWhisk
+import com.foodgpt.ui.shared.CategoryChips
 import com.foodgpt.ui.shared.WAITING_PHRASES
 import com.foodgpt.ui.theme.FoodGptColors
 import kotlinx.coroutines.delay
@@ -274,11 +275,13 @@ private fun StreamingContent(state: StreamingBilanState.Streaming) {
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
-                            Text(
-                                text = impact.note,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            if (impact.note.isNotBlank()) {
+                                CategoryChips(
+                                    note = impact.note,
+                                    chipColor = impactLevelColor(impact.level),
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
                         }
                     }
                 }

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalDining
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -56,6 +57,7 @@ import com.foodgpt.additives.AnalysisDisplayResult
 import com.foodgpt.additives.ui.AdditiveKpiPanel
 import com.foodgpt.composition.CompositionBilan
 import com.foodgpt.composition.IngredientHealthImpact
+import com.foodgpt.ui.shared.CategoryChips
 import com.foodgpt.ui.theme.FoodGptColors
 
 @Composable
@@ -72,6 +74,9 @@ fun BilanResultCard(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         BilanHeader()
+        if (!bilan.identifiedProduct.isNullOrBlank()) {
+            ProductSection(bilan.identifiedProduct, bilan.productConfidence)
+        }
         AnalysisSection(bilan.compositionAnalysis)
         IngredientsSection(bilan.ingredientLines)
         if (bilan.healthImpacts.isNotEmpty()) {
@@ -221,6 +226,29 @@ private fun IngredientsSection(ingredients: List<String>) {
 }
 
 @Composable
+private fun ProductSection(product: String, confidence: Int?) {
+    SectionCard(
+        icon = Icons.Filled.LocalDining,
+        iconTint = FoodGptColors.SectionSynthese,
+        iconBackground = FoodGptColors.SectionSynthese.copy(alpha = 0.1f),
+        title = "Produit identifié",
+        testTag = "bilan_product_section"
+    ) {
+        val label = if (confidence != null) {
+            "Identification d'un $product à $confidence\u00A0%"
+        } else {
+            "Identification d'un $product"
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+    }
+}
+
+@Composable
 private fun AnalysisSection(analysis: String) {
     SectionCard(
         icon = Icons.Filled.Science,
@@ -302,10 +330,10 @@ private fun HealthImpactSection(impacts: List<IngredientHealthImpact>) {
                             fontWeight = FontWeight.SemiBold
                         )
                         if (impact.note.isNotBlank()) {
-                            Text(
-                                text = impact.note,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            CategoryChips(
+                                note = impact.note,
+                                chipColor = healthLevelColor(impact.level),
+                                modifier = Modifier.padding(top = 4.dp)
                             )
                         }
                     }

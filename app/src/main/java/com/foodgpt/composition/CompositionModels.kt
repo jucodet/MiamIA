@@ -14,6 +14,8 @@ data class IngredientHealthImpact(
 
 data class CompositionBilan(
     val ingredientLines: List<String>,
+    val identifiedProduct: String? = null,
+    val productConfidence: Int? = null,
     val compositionAnalysis: String,
     val disclaimer: String,
     val healthImpacts: List<IngredientHealthImpact> = emptyList(),

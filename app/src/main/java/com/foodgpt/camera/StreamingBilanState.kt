@@ -8,6 +8,8 @@ sealed class StreamingBilanState {
     data class Streaming(
         val partialText: String = "",
         val partialIngredients: List<String> = emptyList(),
+        val partialProduct: String? = null,
+        val partialProductConfidence: Int? = null,
         val partialAnalysis: String? = null,
         val partialHealthImpacts: List<StreamingHealthImpact> = emptyList(),
         val sectionReached: StreamingSection = StreamingSection.NONE
@@ -33,6 +35,7 @@ data class StreamingHealthImpact(
 enum class StreamingSection {
     NONE,
     LISTE,
+    PRODUIT,
     ANALYSE,
     IMPACT_SANTE,
     DONE
