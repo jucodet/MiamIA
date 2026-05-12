@@ -76,7 +76,7 @@ class ModelDownloadViewModel(application: Application) : AndroidViewModel(applic
 
         if (!hasEnoughDiskSpace()) {
             _state.value = LlmModelReadinessState.Error(
-                message = "Espace disque insuffisant pour télécharger le modèle (~500 Mo requis).",
+                message = "Espace disque insuffisant pour télécharger le modèle (~2.6 Go requis).",
                 canRetry = true
             )
             downloadInProgress.set(false)
@@ -119,6 +119,6 @@ class ModelDownloadViewModel(application: Application) : AndroidViewModel(applic
     }
 
     companion object {
-        private const val REQUIRED_SPACE_BYTES = 600L * 1024 * 1024
+        private const val REQUIRED_SPACE_BYTES = 3L * 1024 * 1024 * 1024
     }
 }

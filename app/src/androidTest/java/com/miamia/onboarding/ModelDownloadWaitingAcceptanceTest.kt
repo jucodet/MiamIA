@@ -13,7 +13,7 @@ class ModelDownloadWaitingAcceptanceTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun givenDownloading_whenScreenDisplayed_thenTitleProgressAndWhiskVisible() {
+    fun givenDownloading_whenScreenDisplayed_thenTitleProgressAndMarmiteVisible() {
         composeTestRule.setContent {
             ModelDownloadWaitingScreen(
                 progress = DownloadProgress(percent = 42, downloadedBytes = 420L, totalBytes = 1000L),
@@ -26,8 +26,8 @@ class ModelDownloadWaitingAcceptanceTest {
         composeTestRule.onNodeWithText("Téléchargement du modèle de langage en cours...")
             .assertIsDisplayed()
         composeTestRule.onNodeWithTag("download_progress_bar").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("download_whisk_animation").assertIsDisplayed()
-        composeTestRule.onNodeWithText("42%", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithTag("download_marmite").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("download_progress_percent").assertIsDisplayed()
     }
 
     @Test

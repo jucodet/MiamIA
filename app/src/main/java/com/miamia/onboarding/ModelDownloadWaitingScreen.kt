@@ -9,12 +9,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -31,6 +29,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.miamia.ui.shared.AnimatedMarmite
 import com.miamia.ui.shared.AnimatedWhisk
 import com.miamia.ui.shared.WAITING_PHRASES
 import kotlinx.coroutines.delay
@@ -65,14 +64,6 @@ fun ModelDownloadWaitingScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            AnimatedWhisk(
-                modifier = Modifier
-                    .size(64.dp)
-                    .testTag("download_whisk_animation")
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             Text(
                 text = "Téléchargement du modèle de langage en cours...",
                 style = MaterialTheme.typography.titleLarge,
@@ -83,6 +74,12 @@ fun ModelDownloadWaitingScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             if (error != null) {
+                AnimatedWhisk(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .testTag("download_whisk_animation")
+                )
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = error.message,
                     style = MaterialTheme.typography.bodyLarge,
@@ -99,21 +96,9 @@ fun ModelDownloadWaitingScreen(
                     }
                 }
             } else if (progress != null) {
-                LinearProgressIndicator(
-                    progress = { progress.percent / 100f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .testTag("download_progress_bar")
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "${progress.percent}%",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
+                AnimatedMarmite(
+                    progress = progress.percent / 100f,
+                    modifier = Modifier.testTag("download_progress_bar")
                 )
             }
 

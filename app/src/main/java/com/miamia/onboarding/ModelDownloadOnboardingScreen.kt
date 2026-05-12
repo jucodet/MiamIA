@@ -64,8 +64,12 @@ fun ModelDownloadOnboardingScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "L'application nécessite un modèle d'intelligence artificielle " +
-                    "pour analyser vos ingrédients. Ce fichier pèse environ 500 Mo.",
+                text = if (isResumable) {
+                    "Un téléchargement précédent peut être repris."
+                } else {
+                    "Le fonctionnement de l'application nécessite le téléchargement " +
+                        "d'un fichier de 2.6 Go. Munissez-vous d'une connexion internet fiable."
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -98,7 +102,7 @@ fun ModelDownloadOnboardingScreen(
                     .fillMaxWidth()
                     .testTag("onboarding_confirm_button")
             ) {
-                Text(if (isResumable) "Reprendre" else "Confirmer le téléchargement")
+                Text(if (isResumable) "Reprendre le téléchargement" else "Valider et télécharger")
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -107,9 +111,12 @@ fun ModelDownloadOnboardingScreen(
                 onClick = onDecline,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("onboarding_decline_button")
+                    .testTag("onboarding_decline_button"),
+                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
             ) {
-                Text("Plus tard")
+                Text("Refuser et quitter")
             }
         }
     }

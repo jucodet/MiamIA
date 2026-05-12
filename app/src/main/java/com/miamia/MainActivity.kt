@@ -237,7 +237,7 @@ class MainActivity : ComponentActivity() {
                                 networkType = networkType,
                                 isResumable = modelDownloadViewModel.isResumable,
                                 onConfirm = { modelDownloadViewModel.confirmDownload() },
-                                onDecline = { modelDownloadViewModel.declineDownload() }
+                                onDecline = { this@MainActivity.finishAffinity() }
                             )
                         }
                         composable(OnboardingRoutes.Offline) {
