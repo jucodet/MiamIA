@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FoodGPT"
+rootProject.name = "MiamIA"
 include(":app")

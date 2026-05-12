@@ -17,9 +17,9 @@
 
 **Purpose**: Initialiser l'ossature technique pour l'integration Gemma4 locale.
 
-- [X] T001 Creer le package d'integration locale dans app/src/main/java/com/foodgpt/gemma4local/
-- [X] T002 Creer les squelettes de tests contract/integration dans app/src/test/java/com/foodgpt/gemma4local/ et app/src/androidTest/java/com/foodgpt/gemma4local/
-- [X] T003 [P] Ajouter les constantes de configuration/timeouts Gemma4 locale dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalConfig.kt
+- [X] T001 Creer le package d'integration locale dans app/src/main/java/com/miamia/gemma4local/
+- [X] T002 Creer les squelettes de tests contract/integration dans app/src/test/java/com/miamia/gemma4local/ et app/src/androidTest/java/com/miamia/gemma4local/
+- [X] T003 [P] Ajouter les constantes de configuration/timeouts Gemma4 locale dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalConfig.kt
 
 ---
 
@@ -27,12 +27,12 @@
 
 **Purpose**: Composants transverses obligatoires avant toute user story.
 
-- [X] T004 Implementer la verification de disponibilite API locale dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalAvailabilityChecker.kt
-- [X] T005 [P] Implementer le mapping requete interne -> contrat API locale dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalRequestMapper.kt
-- [X] T006 [P] Implementer le mapping d'erreurs API locale -> erreurs metier dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalErrorMapper.kt
-- [X] T007 Implementer la journalisation technique sans contenu utilisateur dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalMetricsLogger.kt
-- [X] T008 Creer le client d'appel API locale texte dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalClient.kt
-- [X] T009 Integrer l'abstraction Gemma4 locale dans le flux d'analyse existant dans app/src/main/java/com/foodgpt/llm/
+- [X] T004 Implementer la verification de disponibilite API locale dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalAvailabilityChecker.kt
+- [X] T005 [P] Implementer le mapping requete interne -> contrat API locale dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalRequestMapper.kt
+- [X] T006 [P] Implementer le mapping d'erreurs API locale -> erreurs metier dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalErrorMapper.kt
+- [X] T007 Implementer la journalisation technique sans contenu utilisateur dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalMetricsLogger.kt
+- [X] T008 Creer le client d'appel API locale texte dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalClient.kt
+- [X] T009 Integrer l'abstraction Gemma4 locale dans le flux d'analyse existant dans app/src/main/java/com/miamia/llm/
 
 **Checkpoint**: Fondation prete; les user stories peuvent etre implementees independamment.
 
@@ -46,16 +46,16 @@
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-- [X] T010 [P] [US1] Ecrire le test d'acceptation Given/When/Then du succes nominal dans app/src/androidTest/java/com/foodgpt/gemma4local/Us1LocalApiSuccessAcceptanceTest.kt
-- [X] T011 [P] [US1] Ecrire le test de contrat `analyzeText` (input/output success) dans app/src/test/java/com/foodgpt/gemma4local/Gemma4LocalApiContractSuccessTest.kt
+- [X] T010 [P] [US1] Ecrire le test d'acceptation Given/When/Then du succes nominal dans app/src/androidTest/java/com/miamia/gemma4local/Us1LocalApiSuccessAcceptanceTest.kt
+- [X] T011 [P] [US1] Ecrire le test de contrat `analyzeText` (input/output success) dans app/src/test/java/com/miamia/gemma4local/Gemma4LocalApiContractSuccessTest.kt
 
 ### Implementation for User Story 1
 
-- [X] T012 [P] [US1] Implementer le modele `AnalyseTextuelleRequest` dans app/src/main/java/com/foodgpt/gemma4local/model/AnalyseTextuelleRequest.kt
-- [X] T013 [P] [US1] Implementer le modele `AnalyseTextuelleResult` dans app/src/main/java/com/foodgpt/gemma4local/model/AnalyseTextuelleResult.kt
-- [X] T014 [US1] Brancher `Gemma4LocalClient` sur le flux texte principal dans app/src/main/java/com/foodgpt/analysis/
-- [X] T015 [US1] Supprimer la dependance au modele embarque Gemma4 pour le flux texte dans app/src/main/java/com/foodgpt/llm/
-- [X] T016 [US1] Ajouter la validation `inputText` non vide/normalise dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalRequestMapper.kt
+- [X] T012 [P] [US1] Implementer le modele `AnalyseTextuelleRequest` dans app/src/main/java/com/miamia/gemma4local/model/AnalyseTextuelleRequest.kt
+- [X] T013 [P] [US1] Implementer le modele `AnalyseTextuelleResult` dans app/src/main/java/com/miamia/gemma4local/model/AnalyseTextuelleResult.kt
+- [X] T014 [US1] Brancher `Gemma4LocalClient` sur le flux texte principal dans app/src/main/java/com/miamia/analysis/
+- [X] T015 [US1] Supprimer la dependance au modele embarque Gemma4 pour le flux texte dans app/src/main/java/com/miamia/llm/
+- [X] T016 [US1] Ajouter la validation `inputText` non vide/normalise dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalRequestMapper.kt
 
 **Checkpoint**: US1 livre une analyse texte fonctionnelle via API locale.
 
@@ -69,15 +69,15 @@
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [X] T017 [P] [US2] Ecrire le test d'acceptation Given/When/Then de l'indisponibilite API locale dans app/src/androidTest/java/com/foodgpt/gemma4local/Us2ApiUnavailableAcceptanceTest.kt
-- [X] T018 [P] [US2] Ecrire le test de contrat `analyzeText` (failure + errorType + userMessage) dans app/src/test/java/com/foodgpt/gemma4local/Gemma4LocalApiContractFailureTest.kt
+- [X] T017 [P] [US2] Ecrire le test d'acceptation Given/When/Then de l'indisponibilite API locale dans app/src/androidTest/java/com/miamia/gemma4local/Us2ApiUnavailableAcceptanceTest.kt
+- [X] T018 [P] [US2] Ecrire le test de contrat `analyzeText` (failure + errorType + userMessage) dans app/src/test/java/com/miamia/gemma4local/Gemma4LocalApiContractFailureTest.kt
 
 ### Implementation for User Story 2
 
-- [X] T019 [US2] Implementer le resultat d'echec `API_UNAVAILABLE` sans fallback dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalClient.kt
-- [X] T020 [US2] Connecter le mapping d'erreurs vers messages utilisateur dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalErrorMapper.kt
-- [X] T021 [US2] Afficher l'etat d'erreur explicite dans l'UI du flux analyse dans app/src/main/java/com/foodgpt/analysis/
-- [X] T022 [US2] Verifier l'absence de fallback moteur dans l'orchestration analyse dans app/src/main/java/com/foodgpt/llm/
+- [X] T019 [US2] Implementer le resultat d'echec `API_UNAVAILABLE` sans fallback dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalClient.kt
+- [X] T020 [US2] Connecter le mapping d'erreurs vers messages utilisateur dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalErrorMapper.kt
+- [X] T021 [US2] Afficher l'etat d'erreur explicite dans l'UI du flux analyse dans app/src/main/java/com/miamia/analysis/
+- [X] T022 [US2] Verifier l'absence de fallback moteur dans l'orchestration analyse dans app/src/main/java/com/miamia/llm/
 
 **Checkpoint**: US2 gere proprement les indisponibilites API locale.
 
@@ -91,15 +91,15 @@
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [X] T023 [P] [US3] Ecrire le test d'integration de mesure latence p95 par classe d'appareil dans app/src/androidTest/java/com/foodgpt/gemma4local/Us3LatencySloIntegrationTest.kt
-- [X] T024 [P] [US3] Ecrire le test de non-conservation du contenu utilisateur dans les metriques dans app/src/test/java/com/foodgpt/gemma4local/Us3PrivacyMetricsTest.kt
+- [X] T023 [P] [US3] Ecrire le test d'integration de mesure latence p95 par classe d'appareil dans app/src/androidTest/java/com/miamia/gemma4local/Us3LatencySloIntegrationTest.kt
+- [X] T024 [P] [US3] Ecrire le test de non-conservation du contenu utilisateur dans les metriques dans app/src/test/java/com/miamia/gemma4local/Us3PrivacyMetricsTest.kt
 
 ### Implementation for User Story 3
 
-- [X] T025 [US3] Implementer l'entite `ApiCallMetric` et `deviceClass` dans app/src/main/java/com/foodgpt/gemma4local/model/ApiCallMetric.kt
-- [X] T026 [US3] Journaliser `requestId/outcome/latency/errorType/deviceClass` sans contenu brut dans app/src/main/java/com/foodgpt/gemma4local/Gemma4LocalMetricsLogger.kt
-- [X] T027 [US3] Ajouter la classification appareil recent/minimum compatible dans app/src/main/java/com/foodgpt/gemma4local/DeviceClassResolver.kt
-- [X] T028 [US3] Integrer la collecte des latences p95 au pipeline d'analyse dans app/src/main/java/com/foodgpt/analysis/
+- [X] T025 [US3] Implementer l'entite `ApiCallMetric` et `deviceClass` dans app/src/main/java/com/miamia/gemma4local/model/ApiCallMetric.kt
+- [X] T026 [US3] Journaliser `requestId/outcome/latency/errorType/deviceClass` sans contenu brut dans app/src/main/java/com/miamia/gemma4local/Gemma4LocalMetricsLogger.kt
+- [X] T027 [US3] Ajouter la classification appareil recent/minimum compatible dans app/src/main/java/com/miamia/gemma4local/DeviceClassResolver.kt
+- [X] T028 [US3] Integrer la collecte des latences p95 au pipeline d'analyse dans app/src/main/java/com/miamia/analysis/
 
 **Checkpoint**: US3 valide performances cible et confidentialite des traces.
 
@@ -111,7 +111,7 @@
 
 - [X] T029 [P] Mettre a jour la documentation d'integration locale dans specs/011-api-gemma4-telephone/quickstart.md
 - [X] T030 Executer la verification complete quickstart et consigner les resultats dans specs/011-api-gemma4-telephone/quickstart.md
-- [X] T031 [P] Nettoyer/refactoriser les composants gemma4local partages dans app/src/main/java/com/foodgpt/gemma4local/
+- [X] T031 [P] Nettoyer/refactoriser les composants gemma4local partages dans app/src/main/java/com/miamia/gemma4local/
 
 ---
 

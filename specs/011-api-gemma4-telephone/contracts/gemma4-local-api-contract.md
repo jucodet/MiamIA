@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Definir le contrat fonctionnel entre l'application FoodGPT et la couche d'integration de l'API locale Gemma4 pour les requetes textuelles v1.
+Definir le contrat fonctionnel entre l'application MiamIA et la couche d'integration de l'API locale Gemma4 pour les requetes textuelles v1.
 
 ## Input Contract
 

@@ -51,7 +51,7 @@ specs/013-isoler-liste-ingredients/
 ```text
 app/
 └── src/
-    ├── main/java/com/foodgpt/
+    ├── main/java/com/miamia/
     │   ├── camera/
     │   │   ├── CameraViewModel.kt
     │   │   └── CameraScreen.kt
@@ -59,10 +59,10 @@ app/
     │   │   └── ... (OCR text pipeline)
     │   └── analysis/
     │       └── ... (analysis input pipeline)
-    ├── test/java/com/foodgpt/
+    ├── test/java/com/miamia/
     │   ├── camera/
     │   └── analysis/
-    └── androidTest/java/com/foodgpt/
+    └── androidTest/java/com/miamia/
         └── camera/
 ```
 

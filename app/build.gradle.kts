@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.foodgpt"
+    namespace = "com.miamia"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.foodgpt"
+        applicationId = "com.miamia"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

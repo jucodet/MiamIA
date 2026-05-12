@@ -18,7 +18,7 @@
 **Purpose**: cadrer les points d'integration et la base de contenus pour les messages de bienvenue.
 
 - [X] T001 Documenter le point de declenchement apres connexion dans `specs/010-message-bienvenue-sourire/contracts/welcome-message-display-contract.md`
-- [X] T002 [P] Ajouter le package `welcome` et les stubs `WelcomeMessageProvider.kt`, `WelcomeMessageSelector.kt`, `WelcomeMessagePolicy.kt`, `WelcomeMessageUiState.kt` dans `app/src/main/java/com/foodgpt/welcome/`
+- [X] T002 [P] Ajouter le package `welcome` et les stubs `WelcomeMessageProvider.kt`, `WelcomeMessageSelector.kt`, `WelcomeMessagePolicy.kt`, `WelcomeMessageUiState.kt` dans `app/src/main/java/com/miamia/welcome/`
 - [X] T003 [P] Ajouter une bibliotheque initiale de messages valides en francais dans `app/src/main/assets/welcome/messages_fr.json`
 
 ---
@@ -27,10 +27,10 @@
 
 **Purpose**: etablir les contrats et points partages obligatoires avant toute user story.
 
-- [X] T004 Creer les modeles de domaine `WelcomeMessage`, `WelcomeCatalog`, `WelcomeDisplayEvent` dans `app/src/main/java/com/foodgpt/welcome/WelcomeModels.kt`
-- [X] T005 Implementer le chargement + filtrage langue/actif dans `app/src/main/java/com/foodgpt/welcome/WelcomeMessageProvider.kt`
-- [X] T006 [P] Implementer la politique de selection aleatoire avec repetition autorisee dans `app/src/main/java/com/foodgpt/welcome/WelcomeMessageSelector.kt`
-- [X] T007 [P] Ecrire les tests unitaires du provider et du selector dans `app/src/test/java/com/foodgpt/welcome/WelcomeMessageProviderTest.kt` et `app/src/test/java/com/foodgpt/welcome/WelcomeMessageSelectorTest.kt`
+- [X] T004 Creer les modeles de domaine `WelcomeMessage`, `WelcomeCatalog`, `WelcomeDisplayEvent` dans `app/src/main/java/com/miamia/welcome/WelcomeModels.kt`
+- [X] T005 Implementer le chargement + filtrage langue/actif dans `app/src/main/java/com/miamia/welcome/WelcomeMessageProvider.kt`
+- [X] T006 [P] Implementer la politique de selection aleatoire avec repetition autorisee dans `app/src/main/java/com/miamia/welcome/WelcomeMessageSelector.kt`
+- [X] T007 [P] Ecrire les tests unitaires du provider et du selector dans `app/src/test/java/com/miamia/welcome/WelcomeMessageProviderTest.kt` et `app/src/test/java/com/miamia/welcome/WelcomeMessageSelectorTest.kt`
 
 **Checkpoint**: la fondation est prete, les user stories peuvent commencer.
 
@@ -44,15 +44,15 @@
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-- [X] T008 [P] [US1] Ajouter le test d'acceptation du flux connexion -> accueil -> message dans `app/src/androidTest/java/com/foodgpt/welcome/US1WelcomeAfterLoginFlowTest.kt`
-- [X] T009 [P] [US1] Ajouter le test contrat `LoginSucceeded` -> `DisplaySuccess`/`DisplaySkipped` dans `app/src/test/java/com/foodgpt/welcome/US1WelcomeDisplayContractTest.kt`
+- [X] T008 [P] [US1] Ajouter le test d'acceptation du flux connexion -> accueil -> message dans `app/src/androidTest/java/com/miamia/welcome/US1WelcomeAfterLoginFlowTest.kt`
+- [X] T009 [P] [US1] Ajouter le test contrat `LoginSucceeded` -> `DisplaySuccess`/`DisplaySkipped` dans `app/src/test/java/com/miamia/welcome/US1WelcomeDisplayContractTest.kt`
 
 ### Implementation for User Story 1
 
-- [X] T010 [US1] Implementer l'orchestrateur `WelcomeMessagePolicy` (selection sur login success) dans `app/src/main/java/com/foodgpt/welcome/WelcomeMessagePolicy.kt`
-- [X] T011 [US1] Integrer l'appel a la policy dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt` au moment de l'etat post-connexion reussie
-- [X] T012 [US1] Exposer l'etat d'affichage de bienvenue via `WelcomeMessageUiState` dans `app/src/main/java/com/foodgpt/welcome/WelcomeMessageUiState.kt`
-- [X] T013 [US1] Afficher le message dans l'ecran d'accueil en mettant a jour `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
+- [X] T010 [US1] Implementer l'orchestrateur `WelcomeMessagePolicy` (selection sur login success) dans `app/src/main/java/com/miamia/welcome/WelcomeMessagePolicy.kt`
+- [X] T011 [US1] Integrer l'appel a la policy dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt` au moment de l'etat post-connexion reussie
+- [X] T012 [US1] Exposer l'etat d'affichage de bienvenue via `WelcomeMessageUiState` dans `app/src/main/java/com/miamia/welcome/WelcomeMessageUiState.kt`
+- [X] T013 [US1] Afficher le message dans l'ecran d'accueil en mettant a jour `app/src/main/java/com/miamia/camera/CameraScreen.kt`
 
 **Checkpoint**: US1 est demonstrable seule (message visible apres connexion reussie).
 
@@ -66,13 +66,13 @@
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [X] T014 [P] [US2] Ajouter un test d'acceptation sur le ton des messages affiches dans `app/src/androidTest/java/com/foodgpt/welcome/US2PositiveToneWelcomeTest.kt`
-- [X] T015 [P] [US2] Ajouter un test de contrat de validation de bibliotheque pre-validee dans `app/src/test/java/com/foodgpt/welcome/US2WelcomeCatalogValidationContractTest.kt`
+- [X] T014 [P] [US2] Ajouter un test d'acceptation sur le ton des messages affiches dans `app/src/androidTest/java/com/miamia/welcome/US2PositiveToneWelcomeTest.kt`
+- [X] T015 [P] [US2] Ajouter un test de contrat de validation de bibliotheque pre-validee dans `app/src/test/java/com/miamia/welcome/US2WelcomeCatalogValidationContractTest.kt`
 
 ### Implementation for User Story 2
 
-- [X] T016 [US2] Ajouter la validation de ton/format du catalogue dans `app/src/main/java/com/foodgpt/welcome/WelcomeMessageProvider.kt`
-- [X] T017 [US2] Creer le set de regles de ton et de filtrage dans `app/src/main/java/com/foodgpt/welcome/WelcomeToneRules.kt`
+- [X] T016 [US2] Ajouter la validation de ton/format du catalogue dans `app/src/main/java/com/miamia/welcome/WelcomeMessageProvider.kt`
+- [X] T017 [US2] Creer le set de regles de ton et de filtrage dans `app/src/main/java/com/miamia/welcome/WelcomeToneRules.kt`
 - [X] T018 [US2] Mettre a jour la bibliotheque de contenus valides dans `app/src/main/assets/welcome/messages_fr.json`
 
 **Checkpoint**: US2 est testable independamment (qualite du ton garantie).
@@ -87,14 +87,14 @@
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [X] T019 [P] [US3] Ajouter le test d'acceptation du cas catalogue vide dans `app/src/androidTest/java/com/foodgpt/welcome/US3EmptyCatalogNoMessageTest.kt`
-- [X] T020 [P] [US3] Ajouter le test de non-regression "pas d'erreur bloquante sans message" dans `app/src/test/java/com/foodgpt/welcome/US3NoCrashWhenCatalogEmptyTest.kt`
+- [X] T019 [P] [US3] Ajouter le test d'acceptation du cas catalogue vide dans `app/src/androidTest/java/com/miamia/welcome/US3EmptyCatalogNoMessageTest.kt`
+- [X] T020 [P] [US3] Ajouter le test de non-regression "pas d'erreur bloquante sans message" dans `app/src/test/java/com/miamia/welcome/US3NoCrashWhenCatalogEmptyTest.kt`
 
 ### Implementation for User Story 3
 
-- [X] T021 [US3] Implementer l'etat `NOT_DISPLAYED_EMPTY_CATALOG` dans `app/src/main/java/com/foodgpt/welcome/WelcomeMessagePolicy.kt`
-- [X] T022 [US3] Adapter le rendu UI sans message/fallback dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T023 [US3] Logger l'evenement d'affichage saute dans `app/src/main/java/com/foodgpt/welcome/WelcomeDisplayLogger.kt`
+- [X] T021 [US3] Implementer l'etat `NOT_DISPLAYED_EMPTY_CATALOG` dans `app/src/main/java/com/miamia/welcome/WelcomeMessagePolicy.kt`
+- [X] T022 [US3] Adapter le rendu UI sans message/fallback dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T023 [US3] Logger l'evenement d'affichage saute dans `app/src/main/java/com/miamia/welcome/WelcomeDisplayLogger.kt`
 
 **Checkpoint**: US3 est autonome et robuste sur les cas limites.
 
@@ -106,7 +106,7 @@
 
 - [X] T024 [P] Ajouter la documentation d'exploitation/edition des messages dans `specs/010-message-bienvenue-sourire/quickstart.md`
 - [ ] T025 Executer et consigner la verification complete quickstart dans `specs/010-message-bienvenue-sourire/research.md`
-- [X] T026 [P] Nettoyer les noms/terminologie welcome sur l'ensemble des fichiers dans `app/src/main/java/com/foodgpt/welcome/`
+- [X] T026 [P] Nettoyer les noms/terminologie welcome sur l'ensemble des fichiers dans `app/src/main/java/com/miamia/welcome/`
 
 ---
 
@@ -145,12 +145,12 @@
 
 ```bash
 # Lancer les tests US1 en parallele:
-Task: "T008 app/src/androidTest/java/com/foodgpt/welcome/US1WelcomeAfterLoginFlowTest.kt"
-Task: "T009 app/src/test/java/com/foodgpt/welcome/US1WelcomeDisplayContractTest.kt"
+Task: "T008 app/src/androidTest/java/com/miamia/welcome/US1WelcomeAfterLoginFlowTest.kt"
+Task: "T009 app/src/test/java/com/miamia/welcome/US1WelcomeDisplayContractTest.kt"
 
 # Puis avancer implementation metier/UI:
-Task: "T010 app/src/main/java/com/foodgpt/welcome/WelcomeMessagePolicy.kt"
-Task: "T012 app/src/main/java/com/foodgpt/welcome/WelcomeMessageUiState.kt"
+Task: "T010 app/src/main/java/com/miamia/welcome/WelcomeMessagePolicy.kt"
+Task: "T012 app/src/main/java/com/miamia/welcome/WelcomeMessageUiState.kt"
 ```
 
 ---

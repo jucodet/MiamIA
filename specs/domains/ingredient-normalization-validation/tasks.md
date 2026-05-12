@@ -18,7 +18,7 @@ Chaque user story inclut au minimum un test d'acceptation aligné sur les scéna
 
 **Purpose**: Enrichir les fixtures OCR partagées pour les nouvelles variantes de points internes et contextuels (research Decision 4)
 
-- [x] T001 [P] Ajouter les fixtures `DOT_INTERNAL_ADDITIVE`, `DOT_INTERNAL_ABBREVIATION`, `DOT_SPACE_END`, `DOT_NEWLINE_END`, `DOT_EOF_END` dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/fixtures/OcrFixtures.kt`
+- [x] T001 [P] Ajouter les fixtures `DOT_INTERNAL_ADDITIVE`, `DOT_INTERNAL_ABBREVIATION`, `DOT_SPACE_END`, `DOT_NEWLINE_END`, `DOT_EOF_END` dans `app/src/test/java/com/miamia/analysis/ingredientsegment/fixtures/OcrFixtures.kt`
 
 **Checkpoint**: Fixtures disponibles, aucun test ne les consomme encore
 
@@ -34,20 +34,20 @@ Chaque user story inclut au minimum un test d'acceptation aligné sur les scéna
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation (ATDD)**
 
-- [x] T002 [P] [US1] Ajouter le test contrat BC-01 (`DOT_SPACE_END` → SENTENCE_TERMINATOR au `. `) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T003 [P] [US1] Ajouter le test contrat BC-02 (`DOT_INTERNAL_ADDITIVE` → point interne ignoré, LINE_END ou TEXT_END) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T004 [P] [US1] Ajouter le test contrat BC-03 (`DOT_INTERNAL_ABBREVIATION` → point interne ignoré, TEXT_END) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T005 [P] [US1] Ajouter le test contrat BC-04 (`DOT_EOF_END` → `.` en fin de texte = SENTENCE_TERMINATOR) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T006 [P] [US1] Ajouter le test contrat BC-07 (`DOT_NEWLINE_END` → `.\n` = SENTENCE_TERMINATOR) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T007 [P] [US1] Ajouter le test d'acceptation US1§2 (point interne ne coupe pas la capture) via `IngredientSegmentPreparationService` dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPhraseBoundaryAcceptanceTest.kt`
-- [x] T008 [P] [US1] Ajouter le test d'acceptation US1§1 révisé (`. ` termine la capture) via `IngredientSegmentPreparationService` dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPhraseBoundaryAcceptanceTest.kt`
+- [x] T002 [P] [US1] Ajouter le test contrat BC-01 (`DOT_SPACE_END` → SENTENCE_TERMINATOR au `. `) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
+- [x] T003 [P] [US1] Ajouter le test contrat BC-02 (`DOT_INTERNAL_ADDITIVE` → point interne ignoré, LINE_END ou TEXT_END) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
+- [x] T004 [P] [US1] Ajouter le test contrat BC-03 (`DOT_INTERNAL_ABBREVIATION` → point interne ignoré, TEXT_END) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
+- [x] T005 [P] [US1] Ajouter le test contrat BC-04 (`DOT_EOF_END` → `.` en fin de texte = SENTENCE_TERMINATOR) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
+- [x] T006 [P] [US1] Ajouter le test contrat BC-07 (`DOT_NEWLINE_END` → `.\n` = SENTENCE_TERMINATOR) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
+- [x] T007 [P] [US1] Ajouter le test d'acceptation US1§2 (point interne ne coupe pas la capture) via `IngredientSegmentPreparationService` dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPhraseBoundaryAcceptanceTest.kt`
+- [x] T008 [P] [US1] Ajouter le test d'acceptation US1§1 révisé (`. ` termine la capture) via `IngredientSegmentPreparationService` dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPhraseBoundaryAcceptanceTest.kt`
 
 ### Implementation for User Story 1
 
-- [x] T009 [US1] Modifier `resolveEnd()` dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentBoundaryResolver.kt` : le `.` n'est terminateur que si suivi d'un espace, d'un `\n`, ou en dernière position du texte ; `!` et `?` restent inconditionnels (FR-003 révisé, research Decision 1 + Decision 3)
+- [x] T009 [US1] Modifier `resolveEnd()` dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolver.kt` : le `.` n'est terminateur que si suivi d'un espace, d'un `\n`, ou en dernière position du texte ; `!` et `?` restent inconditionnels (FR-003 révisé, research Decision 1 + Decision 3)
 - [x] T010 [US1] Vérifier que les tests existants dans `IngredientSegmentBoundaryResolverTest.kt` passent toujours (non-régression : `resolver ends at sentence terminator before newline` doit conserver son comportement car le `.` dans la fixture `FR_WITH_SENTENCE_END` est suivi d'un espace)
 - [x] T011 [US1] Vérifier que les tests existants dans `IngredientSegmentPhraseBoundaryAcceptanceTest.kt` passent toujours (4 tests existants inchangés)
-- [x] T012 [US1] Vérifier que `IngredientSegmentPerformanceTest` ne montre pas de régression de latence dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPerformanceTest.kt`
+- [x] T012 [US1] Vérifier que `IngredientSegmentPerformanceTest` ne montre pas de régression de latence dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPerformanceTest.kt`
 
 **Checkpoint**: US1 complet — tous les tests (nouveaux + existants) passent, le `.` contextuel fonctionne
 
@@ -61,11 +61,11 @@ Chaque user story inclut au minimum un test d'acceptation aligné sur les scéna
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [x] T013 [P] [US2] Ajouter un test d'acceptation vérifiant que `AnalysisSubmissionGate.evaluate()` accepte un segment contenant un point interne (ex. `DOT_INTERNAL_ADDITIVE`) après confirmation utilisateur dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/AnalysisSubmissionDecisionAcceptanceTest.kt`
+- [x] T013 [P] [US2] Ajouter un test d'acceptation vérifiant que `AnalysisSubmissionGate.evaluate()` accepte un segment contenant un point interne (ex. `DOT_INTERNAL_ADDITIVE`) après confirmation utilisateur dans `app/src/test/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionDecisionAcceptanceTest.kt`
 
 ### Vérification for User Story 2
 
-- [x] T014 [US2] Vérifier que les tests existants `AnalysisSubmissionGateContractTest` et `AnalysisSubmissionDecisionAcceptanceTest` passent toujours (non-régression gate aval) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/`
+- [x] T014 [US2] Vérifier que les tests existants `AnalysisSubmissionGateContractTest` et `AnalysisSubmissionDecisionAcceptanceTest` passent toujours (non-régression gate aval) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/`
 
 **Checkpoint**: US2 vérifié — le flux confirmation/gate accepte les segments avec points internes
 
@@ -79,11 +79,11 @@ Chaque user story inclut au minimum un test d'acceptation aligné sur les scéna
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [x] T015 [US3] Vérifier que `IngredientSegmentFallbackAcceptanceTest` passe toujours (ancre absente → `ANCHOR_MISSING_BLOCKED`) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentFallbackAcceptanceTest.kt`
+- [x] T015 [US3] Vérifier que `IngredientSegmentFallbackAcceptanceTest` passe toujours (ancre absente → `ANCHOR_MISSING_BLOCKED`) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentFallbackAcceptanceTest.kt`
 
 ### Vérification for User Story 3
 
-- [x] T016 [US3] Vérifier que `IngredientSegmentPreparationContractTest` passe toujours (contrat de sortie préservé) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPreparationContractTest.kt`
+- [x] T016 [US3] Vérifier que `IngredientSegmentPreparationContractTest` passe toujours (contrat de sortie préservé) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPreparationContractTest.kt`
 
 **Checkpoint**: US3 vérifié — aucune régression sur le comportement fallback/blocage
 
@@ -94,7 +94,7 @@ Chaque user story inclut au minimum un test d'acceptation aligné sur les scéna
 **Purpose**: Validation finale, documentation, non-régression globale
 
 - [x] T017 Exécuter la suite complète `./gradlew :app:testDebugUnitTest` et confirmer 0 échec
-- [x] T018 [P] Mettre à jour le commentaire KDoc de `resolveEnd()` dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentBoundaryResolver.kt` pour refléter FR-003 révisé
+- [x] T018 [P] Mettre à jour le commentaire KDoc de `resolveEnd()` dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolver.kt` pour refléter FR-003 révisé
 - [x] T019 [P] Exécuter la validation manuelle quickstart (sections A–F) documentée dans `specs/domains/ingredient-normalization-validation/quickstart.md`
 
 ---

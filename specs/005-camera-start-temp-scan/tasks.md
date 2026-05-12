@@ -17,11 +17,11 @@
 
 **Purpose**: Initialisation Android/Kotlin et outillage minimal pour un flux local-only.
 
-- [X] T001 Créer la structure du module Android dans `app/src/main/java/com/foodgpt/`
+- [X] T001 Créer la structure du module Android dans `app/src/main/java/com/miamia/`
 - [X] T002 Configurer les dépendances minimales (CameraX, Room, Coroutines, AI Edge runtime) dans `app/build.gradle.kts`
 - [X] T003 [P] Configurer permissions et manifest caméra dans `app/src/main/AndroidManifest.xml`
 - [X] T004 [P] Ajouter la configuration de base des tests unitaires et instrumentés dans `app/build.gradle.kts`
-- [X] T005 [P] Créer le squelette de packages `camera`, `scan`, `data`, `permissions` dans `app/src/main/java/com/foodgpt/`
+- [X] T005 [P] Créer le squelette de packages `camera`, `scan`, `data`, `permissions` dans `app/src/main/java/com/miamia/`
 
 ---
 
@@ -31,13 +31,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [X] T006 Implémenter le modèle `ScanSessionEntity` Room dans `app/src/main/java/com/foodgpt/data/db/ScanSessionEntity.kt`
-- [X] T007 [P] Implémenter `AppDatabase` + DAO de session dans `app/src/main/java/com/foodgpt/data/db/AppDatabase.kt`
-- [X] T008 Implémenter `ScanSessionRepository` pour persistance métadonnées dans `app/src/main/java/com/foodgpt/data/repository/ScanSessionRepository.kt`
-- [X] T009 [P] Implémenter `TemporaryImageManager` (cache privé + suppression idempotente) dans `app/src/main/java/com/foodgpt/scan/TemporaryImageManager.kt`
-- [X] T010 [P] Implémenter le contrat d’analyse locale `LocalOcrAnalyzer` basé sur AI Edge dans `app/src/main/java/com/foodgpt/scan/LocalOcrAnalyzer.kt`
-- [X] T011 Implémenter `ScanSessionCoordinator` (orchestration capture/analyse/persistance/cleanup) dans `app/src/main/java/com/foodgpt/scan/ScanSessionCoordinator.kt`
-- [X] T012 [P] Définir la machine d’états `ScanState` dans `app/src/main/java/com/foodgpt/camera/ScanState.kt`
+- [X] T006 Implémenter le modèle `ScanSessionEntity` Room dans `app/src/main/java/com/miamia/data/db/ScanSessionEntity.kt`
+- [X] T007 [P] Implémenter `AppDatabase` + DAO de session dans `app/src/main/java/com/miamia/data/db/AppDatabase.kt`
+- [X] T008 Implémenter `ScanSessionRepository` pour persistance métadonnées dans `app/src/main/java/com/miamia/data/repository/ScanSessionRepository.kt`
+- [X] T009 [P] Implémenter `TemporaryImageManager` (cache privé + suppression idempotente) dans `app/src/main/java/com/miamia/scan/TemporaryImageManager.kt`
+- [X] T010 [P] Implémenter le contrat d’analyse locale `LocalOcrAnalyzer` basé sur AI Edge dans `app/src/main/java/com/miamia/scan/LocalOcrAnalyzer.kt`
+- [X] T011 Implémenter `ScanSessionCoordinator` (orchestration capture/analyse/persistance/cleanup) dans `app/src/main/java/com/miamia/scan/ScanSessionCoordinator.kt`
+- [X] T012 [P] Définir la machine d’états `ScanState` dans `app/src/main/java/com/miamia/camera/ScanState.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -56,10 +56,10 @@
 
 ### Implementation for User Story 1
 
-- [X] T015 [US1] Implémenter `CameraPermissionHandler` dans `app/src/main/java/com/foodgpt/permissions/CameraPermissionHandler.kt`
-- [X] T016 [US1] Implémenter `CameraViewModel` état initial `camera_ready` dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T017 [US1] Implémenter l’écran `CameraScreen` (preview + bouton Scan) dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T018 [US1] Connecter route d’entrée app vers `CameraScreen` dans `app/src/main/java/com/foodgpt/MainActivity.kt`
+- [X] T015 [US1] Implémenter `CameraPermissionHandler` dans `app/src/main/java/com/miamia/permissions/CameraPermissionHandler.kt`
+- [X] T016 [US1] Implémenter `CameraViewModel` état initial `camera_ready` dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T017 [US1] Implémenter l’écran `CameraScreen` (preview + bouton Scan) dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T018 [US1] Connecter route d’entrée app vers `CameraScreen` dans `app/src/main/java/com/miamia/MainActivity.kt`
 
 **Checkpoint**: US1 est démontrable indépendamment (entrée caméra + scan button + permissions)
 
@@ -75,15 +75,15 @@
 
 - [X] T019 [P] [US2] Ajouter test d’intégration du pipeline local scan->analyse dans `app/src/androidTest/scan/LocalScanPipelineTest.kt`
 - [X] T020 [P] [US2] Ajouter test d’intégration suppression image temporaire succès/erreur dans `app/src/androidTest/scan/TempImageCleanupTest.kt`
-- [X] T021 [P] [US2] Ajouter test unitaire repository métadonnées sans image brute dans `app/src/test/java/com/foodgpt/data/ScanSessionRepositoryTest.kt`
+- [X] T021 [P] [US2] Ajouter test unitaire repository métadonnées sans image brute dans `app/src/test/java/com/miamia/data/ScanSessionRepositoryTest.kt`
 
 ### Implementation for User Story 2
 
-- [X] T022 [US2] Implémenter capture photo temporaire CameraX dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T023 [US2] Implémenter appel `StartScanRequest` vers `LocalOcrAnalyzer` dans `app/src/main/java/com/foodgpt/scan/ScanSessionCoordinator.kt`
-- [X] T024 [US2] Persister `ScanSession` (statuts, durée, fingerprint) dans `app/src/main/java/com/foodgpt/data/repository/ScanSessionRepository.kt`
-- [X] T025 [US2] Implémenter suppression en `finally` de `TemporaryScanImage` dans `app/src/main/java/com/foodgpt/scan/TemporaryImageManager.kt`
-- [X] T026 [US2] Ajouter garde anti-concurrence sur clic multiple Scan dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
+- [X] T022 [US2] Implémenter capture photo temporaire CameraX dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T023 [US2] Implémenter appel `StartScanRequest` vers `LocalOcrAnalyzer` dans `app/src/main/java/com/miamia/scan/ScanSessionCoordinator.kt`
+- [X] T024 [US2] Persister `ScanSession` (statuts, durée, fingerprint) dans `app/src/main/java/com/miamia/data/repository/ScanSessionRepository.kt`
+- [X] T025 [US2] Implémenter suppression en `finally` de `TemporaryScanImage` dans `app/src/main/java/com/miamia/scan/TemporaryImageManager.kt`
+- [X] T026 [US2] Ajouter garde anti-concurrence sur clic multiple Scan dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
 
 **Checkpoint**: US2 est testable seule (analyse locale + non-persistance photo)
 
@@ -102,9 +102,9 @@
 
 ### Implementation for User Story 3
 
-- [X] T029 [US3] Implémenter mapping des états orchestrateur -> `ScanState` dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T030 [US3] Implémenter composants UI d’état (loader/succès/erreur) dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T031 [US3] Implémenter action `Retry` et retour `camera_ready` dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
+- [X] T029 [US3] Implémenter mapping des états orchestrateur -> `ScanState` dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T030 [US3] Implémenter composants UI d’état (loader/succès/erreur) dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T031 [US3] Implémenter action `Retry` et retour `camera_ready` dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
 
 **Checkpoint**: US3 ajoute une UX complète et lisible sans casser US1/US2
 
@@ -114,7 +114,7 @@
 
 **Purpose**: Stabilisation finale, performance, documentation.
 
-- [X] T032 [P] Ajouter métriques locales de perf startup/scan dans `app/src/main/java/com/foodgpt/scan/ScanSessionCoordinator.kt`
+- [X] T032 [P] Ajouter métriques locales de perf startup/scan dans `app/src/main/java/com/miamia/scan/ScanSessionCoordinator.kt`
 - [X] T033 Vérifier conformité contrat `contracts/local-scan-analysis-contract.md` et ajuster implémentation correspondante
 - [X] T034 [P] Mettre à jour documentation d’exécution dans `specs/005-camera-start-temp-scan/quickstart.md`
 - [ ] T035 Exécuter la validation complète quickstart sur appareil et consigner résultats dans `specs/005-camera-start-temp-scan/research.md`
@@ -152,7 +152,7 @@
 ```bash
 Task: "T019 [US2] LocalScanPipelineTest dans app/src/androidTest/scan/LocalScanPipelineTest.kt"
 Task: "T020 [US2] TempImageCleanupTest dans app/src/androidTest/scan/TempImageCleanupTest.kt"
-Task: "T021 [US2] ScanSessionRepositoryTest dans app/src/test/java/com/foodgpt/data/ScanSessionRepositoryTest.kt"
+Task: "T021 [US2] ScanSessionRepositoryTest dans app/src/test/java/com/miamia/data/ScanSessionRepositoryTest.kt"
 ```
 
 ---

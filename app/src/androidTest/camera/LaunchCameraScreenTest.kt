@@ -1,4 +1,4 @@
-package com.foodgpt.camera
+package com.miamia.camera
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Test

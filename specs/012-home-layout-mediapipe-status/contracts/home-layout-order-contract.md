@@ -80,7 +80,7 @@ Definir le contrat fonctionnel d'affichage de l'ecran d'accueil pour l'ordre ver
 
 ## Implementation Mapping (2026-04-28)
 
-- Etat voyant et mapping libelle/couleur: `app/src/main/java/com/foodgpt/home/MediaPipeStatusViewState.kt`
-- Ordre de reference portrait: `app/src/main/java/com/foodgpt/home/HomeLayoutSections.kt`
-- Espacement standard fixe: `app/src/main/java/com/foodgpt/home/HomeSpacingRules.kt`
-- Priorite inter-specs 012: `app/src/main/java/com/foodgpt/home/HomeSpecPriorityResolver.kt`
+- Etat voyant et mapping libelle/couleur: `app/src/main/java/com/miamia/home/MediaPipeStatusViewState.kt`
+- Ordre de reference portrait: `app/src/main/java/com/miamia/home/HomeLayoutSections.kt`
+- Espacement standard fixe: `app/src/main/java/com/miamia/home/HomeSpacingRules.kt`
+- Priorite inter-specs 012: `app/src/main/java/com/miamia/home/HomeSpecPriorityResolver.kt`

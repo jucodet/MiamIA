@@ -18,8 +18,8 @@
 **Purpose**: Cadrage technique et préparation des validations UI de la feature.
 
 - [X] T001 Aligner le plan de test de la feature dans `specs/012-home-layout-mediapipe-status/quickstart.md`
-- [X] T002 Creer le squelette de test instrumente d'accueil dans `app/src/androidTest/java/com/foodgpt/home/HomeLayoutOrderAcceptanceTest.kt`
-- [X] T003 [P] Creer le squelette de test unitaire de mapping d'etat voyant dans `app/src/test/java/com/foodgpt/home/MediaPipeStatusViewStateMapperTest.kt`
+- [X] T002 Creer le squelette de test instrumente d'accueil dans `app/src/androidTest/java/com/miamia/home/HomeLayoutOrderAcceptanceTest.kt`
+- [X] T003 [P] Creer le squelette de test unitaire de mapping d'etat voyant dans `app/src/test/java/com/miamia/home/MediaPipeStatusViewStateMapperTest.kt`
 
 ---
 
@@ -29,11 +29,11 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [X] T004 Creer le modele d'etat de voyant d'accueil dans `app/src/main/java/com/foodgpt/home/MediaPipeStatusViewState.kt`
-- [X] T005 [P] Creer la configuration d'ordre des sections d'accueil dans `app/src/main/java/com/foodgpt/home/HomeLayoutSections.kt`
-- [X] T006 [P] Creer la regle d'espacement standard fixe dans `app/src/main/java/com/foodgpt/home/HomeSpacingRules.kt`
-- [X] T007 Implementer un mapper de priorite inter-specs pour l'accueil dans `app/src/main/java/com/foodgpt/home/HomeSpecPriorityResolver.kt`
-- [X] T008 Integrer ces artefacts dans l'etat ecran d'accueil principal dans `app/src/main/java/com/foodgpt/MainActivity.kt`
+- [X] T004 Creer le modele d'etat de voyant d'accueil dans `app/src/main/java/com/miamia/home/MediaPipeStatusViewState.kt`
+- [X] T005 [P] Creer la configuration d'ordre des sections d'accueil dans `app/src/main/java/com/miamia/home/HomeLayoutSections.kt`
+- [X] T006 [P] Creer la regle d'espacement standard fixe dans `app/src/main/java/com/miamia/home/HomeSpacingRules.kt`
+- [X] T007 Implementer un mapper de priorite inter-specs pour l'accueil dans `app/src/main/java/com/miamia/home/HomeSpecPriorityResolver.kt`
+- [X] T008 Integrer ces artefacts dans l'etat ecran d'accueil principal dans `app/src/main/java/com/miamia/MainActivity.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -47,15 +47,15 @@
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-- [X] T009 [P] [US1] Ajouter le test instrumente des etats du voyant dans `app/src/androidTest/java/com/foodgpt/home/HomeMediaPipeIndicatorStateTest.kt`
-- [X] T010 [P] [US1] Ajouter le test unitaire de mapping etat->libelle/couleur dans `app/src/test/java/com/foodgpt/home/MediaPipeStatusViewStateMapperTest.kt`
+- [X] T009 [P] [US1] Ajouter le test instrumente des etats du voyant dans `app/src/androidTest/java/com/miamia/home/HomeMediaPipeIndicatorStateTest.kt`
+- [X] T010 [P] [US1] Ajouter le test unitaire de mapping etat->libelle/couleur dans `app/src/test/java/com/miamia/home/MediaPipeStatusViewStateMapperTest.kt`
 
 ### Implementation for User Story 1
 
-- [X] T011 [US1] Implementer le composant Compose du voyant en tete avec libelle dans `app/src/main/java/com/foodgpt/home/MediaPipeStatusIndicator.kt`
-- [X] T012 [US1] Brancher la detection MediaPipe a l'etat `CHECKING/AVAILABLE/UNAVAILABLE` dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T013 [US1] Integrer le composant voyant en premiere position de l'accueil dans `app/src/main/java/com/foodgpt/MainActivity.kt`
-- [X] T014 [US1] Ajouter la logique de fallback visuel si detection differree dans `app/src/main/java/com/foodgpt/home/MediaPipeStatusViewState.kt`
+- [X] T011 [US1] Implementer le composant Compose du voyant en tete avec libelle dans `app/src/main/java/com/miamia/home/MediaPipeStatusIndicator.kt`
+- [X] T012 [US1] Brancher la detection MediaPipe a l'etat `CHECKING/AVAILABLE/UNAVAILABLE` dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T013 [US1] Integrer le composant voyant en premiere position de l'accueil dans `app/src/main/java/com/miamia/MainActivity.kt`
+- [X] T014 [US1] Ajouter la logique de fallback visuel si detection differree dans `app/src/main/java/com/miamia/home/MediaPipeStatusViewState.kt`
 
 **Checkpoint**: User Story 1 doit etre fonctionnelle et testable independamment.
 
@@ -69,15 +69,15 @@
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [X] T015 [P] [US2] Ajouter le test instrumente d'ordre vertical strict de l'accueil dans `app/src/androidTest/java/com/foodgpt/home/HomeLayoutOrderAcceptanceTest.kt`
-- [X] T016 [P] [US2] Ajouter le test instrumente de non-regression message long en bloc 2 dans `app/src/androidTest/java/com/foodgpt/home/HomeWelcomeBlockOrderTest.kt`
+- [X] T015 [P] [US2] Ajouter le test instrumente d'ordre vertical strict de l'accueil dans `app/src/androidTest/java/com/miamia/home/HomeLayoutOrderAcceptanceTest.kt`
+- [X] T016 [P] [US2] Ajouter le test instrumente de non-regression message long en bloc 2 dans `app/src/androidTest/java/com/miamia/home/HomeWelcomeBlockOrderTest.kt`
 
 ### Implementation for User Story 2
 
-- [X] T017 [US2] Implementer l'orchestrateur d'ordre de sections en portrait dans `app/src/main/java/com/foodgpt/home/HomeLayoutOrderBuilder.kt`
-- [X] T018 [US2] Recomposer l'ecran d'accueil avec l'ordre de reference 012 dans `app/src/main/java/com/foodgpt/MainActivity.kt`
-- [X] T019 [US2] Forcer le scope portrait pour ce layout d'accueil dans `app/src/main/java/com/foodgpt/home/HomeLayoutSections.kt`
-- [X] T020 [US2] Ajouter la regle de precedence documentaire 012 sur l'ordre UI dans `app/src/main/java/com/foodgpt/home/HomeSpecPriorityResolver.kt`
+- [X] T017 [US2] Implementer l'orchestrateur d'ordre de sections en portrait dans `app/src/main/java/com/miamia/home/HomeLayoutOrderBuilder.kt`
+- [X] T018 [US2] Recomposer l'ecran d'accueil avec l'ordre de reference 012 dans `app/src/main/java/com/miamia/MainActivity.kt`
+- [X] T019 [US2] Forcer le scope portrait pour ce layout d'accueil dans `app/src/main/java/com/miamia/home/HomeLayoutSections.kt`
+- [X] T020 [US2] Ajouter la regle de precedence documentaire 012 sur l'ordre UI dans `app/src/main/java/com/miamia/home/HomeSpecPriorityResolver.kt`
 
 **Checkpoint**: User Stories 1 et 2 doivent fonctionner independamment.
 
@@ -91,14 +91,14 @@
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [X] T021 [P] [US3] Ajouter le test instrumente de position bouton sous encart photo dans `app/src/androidTest/java/com/foodgpt/home/HomeCaptureButtonPlacementTest.kt`
-- [X] T022 [P] [US3] Ajouter le test instrumente de constance d'espacement en portrait dans `app/src/androidTest/java/com/foodgpt/home/HomeCaptureSpacingConsistencyTest.kt`
+- [X] T021 [P] [US3] Ajouter le test instrumente de position bouton sous encart photo dans `app/src/androidTest/java/com/miamia/home/HomeCaptureButtonPlacementTest.kt`
+- [X] T022 [P] [US3] Ajouter le test instrumente de constance d'espacement en portrait dans `app/src/androidTest/java/com/miamia/home/HomeCaptureSpacingConsistencyTest.kt`
 
 ### Implementation for User Story 3
 
-- [X] T023 [US3] Implementer le conteneur vertical vue photo + bouton avec espacement standard fixe dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T024 [US3] Verifier et adapter le wiring du bouton vers l'action capture existante dans `app/src/main/java/com/foodgpt/camera/CaptureAction.kt`
-- [X] T025 [US3] Ajouter la validation runtime de structure stable si preview indisponible dans `app/src/main/java/com/foodgpt/home/HomeLayoutOrderBuilder.kt`
+- [X] T023 [US3] Implementer le conteneur vertical vue photo + bouton avec espacement standard fixe dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T024 [US3] Verifier et adapter le wiring du bouton vers l'action capture existante dans `app/src/main/java/com/miamia/camera/CaptureAction.kt`
+- [X] T025 [US3] Ajouter la validation runtime de structure stable si preview indisponible dans `app/src/main/java/com/miamia/home/HomeLayoutOrderBuilder.kt`
 
 **Checkpoint**: Toutes les user stories doivent etre independamment fonctionnelles.
 
@@ -110,7 +110,7 @@
 
 - [X] T026 [P] Mettre a jour la documentation de contrat d'ecran d'accueil dans `specs/012-home-layout-mediapipe-status/contracts/home-layout-order-contract.md`
 - [X] T027 Executer et consigner la validation quickstart dans `specs/012-home-layout-mediapipe-status/quickstart.md`
-- [X] T028 [P] Ajouter un test de non-regression inter-specs 007/010/012 dans `app/src/androidTest/java/com/foodgpt/home/HomeInterSpecConsistencyTest.kt`
+- [X] T028 [P] Ajouter un test de non-regression inter-specs 007/010/012 dans `app/src/androidTest/java/com/miamia/home/HomeInterSpecConsistencyTest.kt`
 
 ---
 
@@ -153,12 +153,12 @@
 
 ```bash
 # Lancer les tests US2 en parallele:
-Task: "T015 [US2] test d'ordre vertical dans app/src/androidTest/java/com/foodgpt/home/HomeLayoutOrderAcceptanceTest.kt"
-Task: "T016 [US2] test message long dans app/src/androidTest/java/com/foodgpt/home/HomeWelcomeBlockOrderTest.kt"
+Task: "T015 [US2] test d'ordre vertical dans app/src/androidTest/java/com/miamia/home/HomeLayoutOrderAcceptanceTest.kt"
+Task: "T016 [US2] test message long dans app/src/androidTest/java/com/miamia/home/HomeWelcomeBlockOrderTest.kt"
 
 # Puis lancer les implems US2 decouplees:
-Task: "T017 [US2] orchestrateur d'ordre dans app/src/main/java/com/foodgpt/home/HomeLayoutOrderBuilder.kt"
-Task: "T020 [US2] resolver priorite dans app/src/main/java/com/foodgpt/home/HomeSpecPriorityResolver.kt"
+Task: "T017 [US2] orchestrateur d'ordre dans app/src/main/java/com/miamia/home/HomeLayoutOrderBuilder.kt"
+Task: "T020 [US2] resolver priorite dans app/src/main/java/com/miamia/home/HomeSpecPriorityResolver.kt"
 ```
 
 ---

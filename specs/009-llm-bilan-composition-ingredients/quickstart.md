@@ -8,7 +8,7 @@
 
 ## Lancer l’application
 
-1. Ouvrir le dépôt `FoodGPT`.
+1. Ouvrir le dépôt `MiamIA`.
 2. Synchroniser Gradle ; vérifier la dépendance **LiteRT** présente.
 3. Placer le modèle Gemma attendu **ou** volontairement l’omettre pour tester l’erreur.
 4. Lancer l’app en debug, effectuer une capture avec texte lisible.

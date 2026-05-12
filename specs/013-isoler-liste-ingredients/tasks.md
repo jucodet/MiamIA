@@ -17,9 +17,9 @@
 
 **Purpose**: Preparer le squelette technique de la feature et la structure de tests.
 
-- [X] T001 Creer la structure de tests de la feature dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/`
-- [X] T002 [P] Creer la structure de tests instrumentes UI dans `app/src/androidTest/java/com/foodgpt/camera/ingredientsegment/`
-- [X] T003 [P] Ajouter les fixtures OCR de reference dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/fixtures/OcrFixtures.kt`
+- [X] T001 Creer la structure de tests de la feature dans `app/src/test/java/com/miamia/analysis/ingredientsegment/`
+- [X] T002 [P] Creer la structure de tests instrumentes UI dans `app/src/androidTest/java/com/miamia/camera/ingredientsegment/`
+- [X] T003 [P] Ajouter les fixtures OCR de reference dans `app/src/test/java/com/miamia/analysis/ingredientsegment/fixtures/OcrFixtures.kt`
 
 ---
 
@@ -29,11 +29,11 @@
 
 **⚠️ CRITICAL**: Aucune user story ne commence avant completion de cette phase.
 
-- [X] T004 Definir les modeles de domaine `OcrRawText`, `IngredientSegmentExtraction`, `AnalysisSubmissionDecision` dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentModels.kt`
-- [X] T005 [P] Implementer la normalisation de l ancre ingredients (casse/accents) dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/IngredientAnchorNormalizer.kt`
-- [X] T006 [P] Implementer le parseur de bornes (premiere occurrence, newline ou EOF) dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentBoundaryResolver.kt`
-- [X] T007 Implementer le service de preparation conforme au contrat dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPreparationService.kt`
-- [X] T008 Implementer la passerelle de soumission (`submissionAllowed`/`blockedReason`) dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/AnalysisSubmissionGate.kt`
+- [X] T004 Definir les modeles de domaine `OcrRawText`, `IngredientSegmentExtraction`, `AnalysisSubmissionDecision` dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentModels.kt`
+- [X] T005 [P] Implementer la normalisation de l ancre ingredients (casse/accents) dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientAnchorNormalizer.kt`
+- [X] T006 [P] Implementer le parseur de bornes (premiere occurrence, newline ou EOF) dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolver.kt`
+- [X] T007 Implementer le service de preparation conforme au contrat dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPreparationService.kt`
+- [X] T008 Implementer la passerelle de soumission (`submissionAllowed`/`blockedReason`) dans `app/src/main/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionGate.kt`
 
 **Checkpoint**: Fondations pretes - les user stories peuvent commencer.
 
@@ -47,14 +47,14 @@
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-- [X] T009 [P] [US1] Ecrire le test d acceptance Given/When/Then extraction nominale dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentExtractionAcceptanceTest.kt`
-- [X] T010 [P] [US1] Ecrire le test de contrat `IngredientSegmentPreparationOutput` dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPreparationContractTest.kt`
+- [X] T009 [P] [US1] Ecrire le test d acceptance Given/When/Then extraction nominale dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentExtractionAcceptanceTest.kt`
+- [X] T010 [P] [US1] Ecrire le test de contrat `IngredientSegmentPreparationOutput` dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPreparationContractTest.kt`
 
 ### Implementation for User Story 1
 
-- [X] T011 [US1] Integrer `IngredientSegmentPreparationService` dans le flux OCR->analyse du viewmodel dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T012 [US1] Exclure le texte avant ancre et apres borne dans la construction de payload d analyse dans `app/src/main/java/com/foodgpt/analysis/AnalysisInputBuilder.kt`
-- [X] T013 [US1] Ajouter la couverture des occurrences multiples (premiere occurrence) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPreparationServiceTest.kt`
+- [X] T011 [US1] Integrer `IngredientSegmentPreparationService` dans le flux OCR->analyse du viewmodel dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T012 [US1] Exclure le texte avant ancre et apres borne dans la construction de payload d analyse dans `app/src/main/java/com/miamia/analysis/AnalysisInputBuilder.kt`
+- [X] T013 [US1] Ajouter la couverture des occurrences multiples (premiere occurrence) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPreparationServiceTest.kt`
 
 **Checkpoint**: US1 livrable et testable independamment.
 
@@ -68,14 +68,14 @@
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [X] T014 [P] [US2] Ecrire le test d acceptance blocage absence ancre dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentFallbackAcceptanceTest.kt`
-- [X] T015 [P] [US2] Ecrire le test de contrat `AnalysisSubmissionGateOutput` (blocked reasons) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/AnalysisSubmissionGateContractTest.kt`
+- [X] T014 [P] [US2] Ecrire le test d acceptance blocage absence ancre dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentFallbackAcceptanceTest.kt`
+- [X] T015 [P] [US2] Ecrire le test de contrat `AnalysisSubmissionGateOutput` (blocked reasons) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionGateContractTest.kt`
 
 ### Implementation for User Story 2
 
-- [X] T016 [US2] Implementer la strategie `ANCHOR_MISSING_BLOCKED` dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/AnalysisSubmissionGate.kt`
-- [X] T017 [US2] Ajouter le traitement UI de blocage (recapture/edition) dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T018 [US2] Ajouter le cas sans retour a la ligne (borne EOF) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
+- [X] T016 [US2] Implementer la strategie `ANCHOR_MISSING_BLOCKED` dans `app/src/main/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionGate.kt`
+- [X] T017 [US2] Ajouter le traitement UI de blocage (recapture/edition) dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T018 [US2] Ajouter le cas sans retour a la ligne (borne EOF) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
 
 **Checkpoint**: US2 livrable et testable independamment.
 
@@ -89,14 +89,14 @@
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [X] T019 [P] [US3] Ecrire le test UI compose de previsualisation + confirmation dans `app/src/androidTest/java/com/foodgpt/camera/ingredientsegment/IngredientSegmentConfirmationUiTest.kt`
-- [X] T020 [P] [US3] Ecrire le test d acceptance envoi conditionne a `userConfirmed` dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/AnalysisSubmissionDecisionAcceptanceTest.kt`
+- [X] T019 [P] [US3] Ecrire le test UI compose de previsualisation + confirmation dans `app/src/androidTest/java/com/miamia/camera/ingredientsegment/IngredientSegmentConfirmationUiTest.kt`
+- [X] T020 [P] [US3] Ecrire le test d acceptance envoi conditionne a `userConfirmed` dans `app/src/test/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionDecisionAcceptanceTest.kt`
 
 ### Implementation for User Story 3
 
-- [X] T021 [US3] Ajouter l etat UI de previsualisation/confirmation dans `app/src/main/java/com/foodgpt/camera/CameraUiState.kt`
-- [X] T022 [US3] Ajouter la section de confirmation segment dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T023 [US3] Connecter la confirmation utilisateur a la passerelle d envoi dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
+- [X] T021 [US3] Ajouter l etat UI de previsualisation/confirmation dans `app/src/main/java/com/miamia/camera/CameraUiState.kt`
+- [X] T022 [US3] Ajouter la section de confirmation segment dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T023 [US3] Connecter la confirmation utilisateur a la passerelle d envoi dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
 
 **Checkpoint**: US3 livrable et testable independamment.
 
@@ -107,8 +107,8 @@
 **Purpose**: Finaliser qualite, performance, documentation, et verification de bout en bout.
 
 - [X] T024 [P] Documenter les regles de preparation dans `specs/013-isoler-liste-ingredients/quickstart.md`
-- [X] T025 Ajouter les logs metier minimaux (fallback, confirmation, blocage) dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/AnalysisSubmissionGate.kt`
-- [X] T026 Mesurer et verifier l objectif p95 (<200 ms) dans `app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPerformanceTest.kt`
+- [X] T025 Ajouter les logs metier minimaux (fallback, confirmation, blocage) dans `app/src/main/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionGate.kt`
+- [X] T026 Mesurer et verifier l objectif p95 (<200 ms) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPerformanceTest.kt`
 - [ ] T027 Executer la validation complete des parcours quickstart dans `specs/013-isoler-liste-ingredients/quickstart.md`
 
 ---
@@ -148,8 +148,8 @@
 ## Parallel Example: User Story 1
 
 ```bash
-Task: "T009 [US1] Acceptance extraction nominale dans app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentExtractionAcceptanceTest.kt"
-Task: "T010 [US1] Contract preparation output dans app/src/test/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPreparationContractTest.kt"
+Task: "T009 [US1] Acceptance extraction nominale dans app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentExtractionAcceptanceTest.kt"
+Task: "T010 [US1] Contract preparation output dans app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPreparationContractTest.kt"
 ```
 
 ---

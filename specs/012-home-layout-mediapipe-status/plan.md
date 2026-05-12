@@ -51,7 +51,7 @@ specs/012-home-layout-mediapipe-status/
 ```text
 app/
 └── src/
-    ├── main/java/com/foodgpt/
+    ├── main/java/com/miamia/
     │   ├── MainActivity.kt
     │   ├── camera/
     │   │   ├── CameraScreen.kt
@@ -61,10 +61,10 @@ app/
     │   │   └── WelcomeMessageProvider.kt
     │   └── gemma4local/
     │       └── Gemma4LocalAvailabilityChecker.kt
-    ├── androidTest/java/com/foodgpt/
+    ├── androidTest/java/com/miamia/
     │   ├── camera/
     │   └── welcome/
-    └── test/java/com/foodgpt/
+    └── test/java/com/miamia/
         ├── camera/
         └── welcome/
 ```

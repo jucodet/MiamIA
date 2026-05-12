@@ -82,7 +82,7 @@ Chaque section MUST demander explicitement : **points de vigilance**, **explicat
 
 ## Implémentation Kotlin (référence)
 
-- `reasonCode` JSON `no_validated_segment` ↔ `InputInvalidReason.NO_VALIDATED_SEGMENT` dans `app/src/main/java/com/foodgpt/healthcritique/HealthCritiqueModels.kt` (sérialisation UI / logs si applicable).
+- `reasonCode` JSON `no_validated_segment` ↔ `InputInvalidReason.NO_VALIDATED_SEGMENT` dans `app/src/main/java/com/miamia/healthcritique/HealthCritiqueModels.kt` (sérialisation UI / logs si applicable).
 
 ## Mapping scénarios d’acceptation (spec 002)
 

@@ -1,0 +1,43 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Whisk handle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52,78 L52,60 C52,59 53,58 54,58 C55,58 56,59 56,60 L56,78 C56,79 55,80 54,80 C53,80 52,79 52,78 Z" />
+
+    <!-- Whisk wires -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M48,58 C46,50 47,42 50,36 C53,30 57,30 58,36 C61,42 62,50 60,58" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M46,57 C43,48 44,39 48,32 C52,26 56,26 58,32 C62,39 63,48 62,57" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M50,58 C49,51 50,44 52,38 C54,33 56,33 57,38 C58,44 59,51 58,58" />
+
+    <!-- AI sparkle top-right -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M66,32 L67.5,28 L69,32 L73,33.5 L69,35 L67.5,39 L66,35 L62,33.5 Z" />
+
+    <!-- Small sparkle -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M42,34 L42.8,32 L43.6,34 L45.6,34.8 L43.6,35.6 L42.8,37.6 L42,35.6 L40,34.8 Z" />
+
+    <!-- Tiny sparkle -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M70,44 L70.5,42.5 L71,44 L72.5,44.5 L71,45 L70.5,46.5 L70,45 L68.5,44.5 Z" />
+</vector>

@@ -17,9 +17,9 @@
 
 **Purpose**: Preparer l espace de tests et les points d extension du pipeline OCR.
 
-- [X] T001 Creer les fichiers de tests d ancrage ingredients dans `app/src/test/java/com/foodgpt/recognition/IngredientAnchorDetectionTest.kt`
-- [X] T002 [P] Creer le fichier de tests de contrat d ancrage dans `app/src/test/java/com/foodgpt/recognition/IngredientAnchorContractTest.kt`
-- [X] T003 [P] Ajouter les fixtures OCR de cas intro/liste dans `app/src/test/java/com/foodgpt/recognition/IngredientAnchorFixtures.kt`
+- [X] T001 Creer les fichiers de tests d ancrage ingredients dans `app/src/test/java/com/miamia/recognition/IngredientAnchorDetectionTest.kt`
+- [X] T002 [P] Creer le fichier de tests de contrat d ancrage dans `app/src/test/java/com/miamia/recognition/IngredientAnchorContractTest.kt`
+- [X] T003 [P] Ajouter les fixtures OCR de cas intro/liste dans `app/src/test/java/com/miamia/recognition/IngredientAnchorFixtures.kt`
 
 ---
 
@@ -29,11 +29,11 @@
 
 **⚠️ CRITICAL**: Cette phase bloque toutes les user stories.
 
-- [X] T004 Implementer la detection canonique `ingredients\\s*:` dans `app/src/main/java/com/foodgpt/recognition/IngredientExtractionPipeline.kt`
-- [X] T005 [P] Implementer la regle de selection `FIRST_CANONICAL_MATCH` dans `app/src/main/java/com/foodgpt/recognition/IngredientExtractionPipeline.kt`
-- [X] T006 [P] Ajouter la normalisation casse/espaces pour ancre dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/IngredientAnchorNormalizer.kt`
-- [X] T007 Implementer la structure de sortie ancre (`candidates`, `selectedStartIndex`, `anchorFound`) dans `app/src/main/java/com/foodgpt/recognition/RecognitionContracts.kt`
-- [X] T008 Ajouter le blocage explicite sans ancre canonique dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
+- [X] T004 Implementer la detection canonique `ingredients\\s*:` dans `app/src/main/java/com/miamia/recognition/IngredientExtractionPipeline.kt`
+- [X] T005 [P] Implementer la regle de selection `FIRST_CANONICAL_MATCH` dans `app/src/main/java/com/miamia/recognition/IngredientExtractionPipeline.kt`
+- [X] T006 [P] Ajouter la normalisation casse/espaces pour ancre dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientAnchorNormalizer.kt`
+- [X] T007 Implementer la structure de sortie ancre (`candidates`, `selectedStartIndex`, `anchorFound`) dans `app/src/main/java/com/miamia/recognition/RecognitionContracts.kt`
+- [X] T008 Ajouter le blocage explicite sans ancre canonique dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
 
 **Checkpoint**: Fondations prêtes - stories executables.
 
@@ -47,14 +47,14 @@
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-- [X] T009 [P] [US1] Ecrire le test d acceptance intro vs vraie liste dans `app/src/test/java/com/foodgpt/recognition/IngredientAnchorDetectionTest.kt`
-- [X] T010 [P] [US1] Ecrire le test de contrat `IngredientAnchorDetectionOutput` dans `app/src/test/java/com/foodgpt/recognition/IngredientAnchorContractTest.kt`
+- [X] T009 [P] [US1] Ecrire le test d acceptance intro vs vraie liste dans `app/src/test/java/com/miamia/recognition/IngredientAnchorDetectionTest.kt`
+- [X] T010 [P] [US1] Ecrire le test de contrat `IngredientAnchorDetectionOutput` dans `app/src/test/java/com/miamia/recognition/IngredientAnchorContractTest.kt`
 
 ### Implementation for User Story 1
 
-- [X] T011 [US1] Mettre a jour la segmentation pour ignorer phrase intro dans `app/src/main/java/com/foodgpt/recognition/IngredientExtractionPipeline.kt`
-- [X] T012 [US1] Connecter la nouvelle ancre au flux d analyse dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T013 [US1] Verifier la compatibilite avec bilan 009 dans `app/src/main/java/com/foodgpt/composition/CompositionAnalysisEngine.kt`
+- [X] T011 [US1] Mettre a jour la segmentation pour ignorer phrase intro dans `app/src/main/java/com/miamia/recognition/IngredientExtractionPipeline.kt`
+- [X] T012 [US1] Connecter la nouvelle ancre au flux d analyse dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T013 [US1] Verifier la compatibilite avec bilan 009 dans `app/src/main/java/com/miamia/composition/CompositionAnalysisEngine.kt`
 
 **Checkpoint**: US1 fonctionnelle et testable independamment.
 
@@ -68,14 +68,14 @@
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [X] T014 [P] [US2] Ecrire les tests de variantes casse/espaces dans `app/src/test/java/com/foodgpt/recognition/IngredientAnchorDetectionTest.kt`
-- [X] T015 [P] [US2] Ecrire le test de priorite ancre canonique vs mot simple dans `app/src/test/java/com/foodgpt/recognition/IngredientAnchorContractTest.kt`
+- [X] T014 [P] [US2] Ecrire les tests de variantes casse/espaces dans `app/src/test/java/com/miamia/recognition/IngredientAnchorDetectionTest.kt`
+- [X] T015 [P] [US2] Ecrire le test de priorite ancre canonique vs mot simple dans `app/src/test/java/com/miamia/recognition/IngredientAnchorContractTest.kt`
 
 ### Implementation for User Story 2
 
-- [X] T016 [US2] Ajouter la prise en charge des espaces avant deux-points dans `app/src/main/java/com/foodgpt/recognition/IngredientExtractionPipeline.kt`
-- [X] T017 [US2] Ajouter la normalisation robuste autour du separateur dans `app/src/main/java/com/foodgpt/analysis/ingredientsegment/IngredientSegmentPreparationService.kt`
-- [X] T018 [US2] Ajuster le message utilisateur si ancre non canonique detectee dans `app/src/main/java/com/foodgpt/ingredients/ScanFailureMessageBuilder.kt`
+- [X] T016 [US2] Ajouter la prise en charge des espaces avant deux-points dans `app/src/main/java/com/miamia/recognition/IngredientExtractionPipeline.kt`
+- [X] T017 [US2] Ajouter la normalisation robuste autour du separateur dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPreparationService.kt`
+- [X] T018 [US2] Ajuster le message utilisateur si ancre non canonique detectee dans `app/src/main/java/com/miamia/ingredients/ScanFailureMessageBuilder.kt`
 
 **Checkpoint**: US2 testable independamment.
 
@@ -89,14 +89,14 @@
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [X] T019 [P] [US3] Ecrire le test d acceptance de blocage sans ancre canonique dans `app/src/test/java/com/foodgpt/recognition/IngredientAnchorDetectionTest.kt`
-- [X] T020 [P] [US3] Ecrire le test instrumente de message de blocage dans `app/src/androidTest/java/com/foodgpt/camera/US3CameraErrorContractTest.kt`
+- [X] T019 [P] [US3] Ecrire le test d acceptance de blocage sans ancre canonique dans `app/src/test/java/com/miamia/recognition/IngredientAnchorDetectionTest.kt`
+- [X] T020 [P] [US3] Ecrire le test instrumente de message de blocage dans `app/src/androidTest/java/com/miamia/camera/US3CameraErrorContractTest.kt`
 
 ### Implementation for User Story 3
 
-- [X] T021 [US3] Ajouter la decision `NO_CANONICAL_ANCHOR` au contrat reconnaissance dans `app/src/main/java/com/foodgpt/recognition/RecognitionContracts.kt`
-- [X] T022 [US3] Appliquer le blocage explicite et actions de recuperation dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T023 [US3] Afficher un etat d erreur coherent dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
+- [X] T021 [US3] Ajouter la decision `NO_CANONICAL_ANCHOR` au contrat reconnaissance dans `app/src/main/java/com/miamia/recognition/RecognitionContracts.kt`
+- [X] T022 [US3] Appliquer le blocage explicite et actions de recuperation dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T023 [US3] Afficher un etat d erreur coherent dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
 
 **Checkpoint**: US3 testable independamment.
 
@@ -109,7 +109,7 @@
 - [X] T024 [P] Mettre a jour les cas de verification dans `specs/014-capture-liste-ingredients/quickstart.md`
 - [X] T025 Verifier la coherence contrat/spec/implementation dans `specs/014-capture-liste-ingredients/contracts/ingredients-anchor-selection-contract.md`
 - [ ] T026 Executer la validation complete des parcours quickstart dans `specs/014-capture-liste-ingredients/quickstart.md`
-- [X] T027 [P] Ajouter un test de non-regression performance sur extraction d ancre dans `app/src/test/java/com/foodgpt/recognition/IngredientAnchorPerformanceTest.kt`
+- [X] T027 [P] Ajouter un test de non-regression performance sur extraction d ancre dans `app/src/test/java/com/miamia/recognition/IngredientAnchorPerformanceTest.kt`
 
 ---
 
@@ -149,8 +149,8 @@
 ## Parallel Example: User Story 2
 
 ```bash
-Task: "T014 [US2] Tests variantes casse/espaces dans app/src/test/java/com/foodgpt/recognition/IngredientAnchorDetectionTest.kt"
-Task: "T015 [US2] Test priorite ancre canonique dans app/src/test/java/com/foodgpt/recognition/IngredientAnchorContractTest.kt"
+Task: "T014 [US2] Tests variantes casse/espaces dans app/src/test/java/com/miamia/recognition/IngredientAnchorDetectionTest.kt"
+Task: "T015 [US2] Test priorite ancre canonique dans app/src/test/java/com/miamia/recognition/IngredientAnchorContractTest.kt"
 ```
 
 ---

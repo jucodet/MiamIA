@@ -17,9 +17,9 @@
 
 **Purpose**: Préparer l’environnement de test et la base de mesure de performance du flux capture->texte.
 
-- [X] T001 Configurer le package de tests instrumentés de la feature dans `app/src/androidTest/java/com/foodgpt/camera/`
+- [X] T001 Configurer le package de tests instrumentés de la feature dans `app/src/androidTest/java/com/miamia/camera/`
 - [X] T002 [P] Créer un jeu d’assets de test (image lisible, image sans texte, image floue) dans `app/src/androidTest/assets/ocr/`
-- [X] T003 [P] Ajouter un helper de mesure de latence (capture->résultat) dans `app/src/androidTest/java/com/foodgpt/recognition/RecognitionTimingHelper.kt`
+- [X] T003 [P] Ajouter un helper de mesure de latence (capture->résultat) dans `app/src/androidTest/java/com/miamia/recognition/RecognitionTimingHelper.kt`
 
 ---
 
@@ -29,11 +29,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [X] T004 Ajouter/adapter le contrat d’état du flux `idle/capturing/processing/success/empty/error` dans `app/src/main/java/com/foodgpt/camera/ScanState.kt`
-- [X] T005 [P] Introduire le modèle résultat unifié (`success|empty|error`, message, text) dans `app/src/main/java/com/foodgpt/recognition/RecognitionContracts.kt`
-- [X] T006 [P] Centraliser la règle “OCR on-device only / aucun envoi réseau” dans `app/src/main/java/com/foodgpt/recognition/RecognitionEngineSelector.kt`
-- [X] T007 Implémenter la politique de cycle de vie des images temporaires (création, nettoyage après résultat) dans `app/src/main/java/com/foodgpt/scan/TemporaryImageManager.kt`
-- [X] T008 Connecter le flux orchestré capture->analyse->résultat dans `app/src/main/java/com/foodgpt/scan/ScanSessionCoordinator.kt`
+- [X] T004 Ajouter/adapter le contrat d’état du flux `idle/capturing/processing/success/empty/error` dans `app/src/main/java/com/miamia/camera/ScanState.kt`
+- [X] T005 [P] Introduire le modèle résultat unifié (`success|empty|error`, message, text) dans `app/src/main/java/com/miamia/recognition/RecognitionContracts.kt`
+- [X] T006 [P] Centraliser la règle “OCR on-device only / aucun envoi réseau” dans `app/src/main/java/com/miamia/recognition/RecognitionEngineSelector.kt`
+- [X] T007 Implémenter la politique de cycle de vie des images temporaires (création, nettoyage après résultat) dans `app/src/main/java/com/miamia/scan/TemporaryImageManager.kt`
+- [X] T008 Connecter le flux orchestré capture->analyse->résultat dans `app/src/main/java/com/miamia/scan/ScanSessionCoordinator.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -49,18 +49,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation (ATDD)**
 
-- [X] T009 [P] [US1] Écrire le test d’acceptation “tap capture -> processing -> success avec displayText non vide” dans `app/src/androidTest/java/com/foodgpt/camera/CameraCaptureToTextSuccessTest.kt`
-- [X] T010 [P] [US1] Écrire le test de contrat “TakePhotoTapped -> state success conforme au contrat” dans `app/src/androidTest/java/com/foodgpt/recognition/PhotoTextContractSuccessTest.kt`
-- [X] T011 [P] [US1] Écrire le test de performance “résultat affiché < 10s” dans `app/src/androidTest/java/com/foodgpt/recognition/PhotoTextLatencyTest.kt`
+- [X] T009 [P] [US1] Écrire le test d’acceptation “tap capture -> processing -> success avec displayText non vide” dans `app/src/androidTest/java/com/miamia/camera/CameraCaptureToTextSuccessTest.kt`
+- [X] T010 [P] [US1] Écrire le test de contrat “TakePhotoTapped -> state success conforme au contrat” dans `app/src/androidTest/java/com/miamia/recognition/PhotoTextContractSuccessTest.kt`
+- [X] T011 [P] [US1] Écrire le test de performance “résultat affiché < 10s” dans `app/src/androidTest/java/com/miamia/recognition/PhotoTextLatencyTest.kt`
 
 ### Implementation for User Story 1
 
-- [X] T012 [P] [US1] Implémenter le déclenchement explicite de capture sur action utilisateur dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T013 [P] [US1] Mettre à jour le ViewModel pour enchaîner `capturing -> processing -> success` dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T014 [US1] Brancher la capture réelle CameraX au contrôleur de session dans `app/src/main/java/com/foodgpt/camera/CameraCaptureController.kt`
-- [X] T015 [US1] Implémenter l’extraction locale du texte et la production de `displayText` dans `app/src/main/java/com/foodgpt/recognition/LocalOcrFallbackRecognizer.kt`
-- [X] T016 [US1] Mapper le résultat OCR vers le format d’affichage utilisateur dans `app/src/main/java/com/foodgpt/ingredients/ExtractedIngredientMapper.kt`
-- [X] T017 [US1] Afficher l’état “traitement en cours” et le résultat texte dans `app/src/main/java/com/foodgpt/ingredients/IngredientEditorScreen.kt`
+- [X] T012 [P] [US1] Implémenter le déclenchement explicite de capture sur action utilisateur dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T013 [P] [US1] Mettre à jour le ViewModel pour enchaîner `capturing -> processing -> success` dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T014 [US1] Brancher la capture réelle CameraX au contrôleur de session dans `app/src/main/java/com/miamia/camera/CameraCaptureController.kt`
+- [X] T015 [US1] Implémenter l’extraction locale du texte et la production de `displayText` dans `app/src/main/java/com/miamia/recognition/LocalOcrFallbackRecognizer.kt`
+- [X] T016 [US1] Mapper le résultat OCR vers le format d’affichage utilisateur dans `app/src/main/java/com/miamia/ingredients/ExtractedIngredientMapper.kt`
+- [X] T017 [US1] Afficher l’état “traitement en cours” et le résultat texte dans `app/src/main/java/com/miamia/ingredients/IngredientEditorScreen.kt`
 
 **Checkpoint**: User Story 1 fully functional and testable independently
 
@@ -74,17 +74,17 @@
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [X] T018 [P] [US2] Écrire le test d’acceptation “image sans texte -> état empty + message explicite” dans `app/src/androidTest/java/com/foodgpt/recognition/PhotoTextEmptyStateTest.kt`
-- [X] T019 [P] [US2] Écrire le test d’acceptation “erreur moteur local -> état error + retry disponible” dans `app/src/androidTest/java/com/foodgpt/recognition/PhotoTextErrorStateTest.kt`
-- [X] T020 [P] [US2] Écrire le test de contrat “aucun texte factice en empty/error” dans `app/src/androidTest/java/com/foodgpt/recognition/PhotoTextNoFakeContentContractTest.kt`
+- [X] T018 [P] [US2] Écrire le test d’acceptation “image sans texte -> état empty + message explicite” dans `app/src/androidTest/java/com/miamia/recognition/PhotoTextEmptyStateTest.kt`
+- [X] T019 [P] [US2] Écrire le test d’acceptation “erreur moteur local -> état error + retry disponible” dans `app/src/androidTest/java/com/miamia/recognition/PhotoTextErrorStateTest.kt`
+- [X] T020 [P] [US2] Écrire le test de contrat “aucun texte factice en empty/error” dans `app/src/androidTest/java/com/miamia/recognition/PhotoTextNoFakeContentContractTest.kt`
 
 ### Implementation for User Story 2
 
-- [X] T021 [P] [US2] Implémenter la classification des échecs OCR locaux (`empty` vs `error`) dans `app/src/main/java/com/foodgpt/recognition/ScanFailureClassifier.kt`
-- [X] T022 [P] [US2] Générer des messages utilisateur cohérents pour `empty` et `error` dans `app/src/main/java/com/foodgpt/ingredients/ScanFailureMessageBuilder.kt`
-- [X] T023 [US2] Implémenter l’action de relance depuis l’écran résultat dans `app/src/main/java/com/foodgpt/ingredients/RetryScanActionHandler.kt`
-- [X] T024 [US2] Faire refléter les états `empty/error` et l’action retry dans le ViewModel dans `app/src/main/java/com/foodgpt/ingredients/IngredientEditorViewModel.kt`
-- [X] T025 [US2] Supprimer automatiquement l’image temporaire après résultat `success|empty|error` dans `app/src/main/java/com/foodgpt/scan/TemporaryImageManager.kt`
+- [X] T021 [P] [US2] Implémenter la classification des échecs OCR locaux (`empty` vs `error`) dans `app/src/main/java/com/miamia/recognition/ScanFailureClassifier.kt`
+- [X] T022 [P] [US2] Générer des messages utilisateur cohérents pour `empty` et `error` dans `app/src/main/java/com/miamia/ingredients/ScanFailureMessageBuilder.kt`
+- [X] T023 [US2] Implémenter l’action de relance depuis l’écran résultat dans `app/src/main/java/com/miamia/ingredients/RetryScanActionHandler.kt`
+- [X] T024 [US2] Faire refléter les états `empty/error` et l’action retry dans le ViewModel dans `app/src/main/java/com/miamia/ingredients/IngredientEditorViewModel.kt`
+- [X] T025 [US2] Supprimer automatiquement l’image temporaire après résultat `success|empty|error` dans `app/src/main/java/com/miamia/scan/TemporaryImageManager.kt`
 
 **Checkpoint**: User Stories 1 and 2 both work independently
 
@@ -94,8 +94,8 @@
 
 **Purpose**: Finitions transverses, robustesse et validation du quickstart.
 
-- [X] T026 [P] Vérifier l’absence d’appel réseau pendant OCR via instrumentation dans `app/src/androidTest/java/com/foodgpt/recognition/OfflineOnlyRecognitionTest.kt`
-- [X] T027 [P] Ajuster microcopies et états UI (loading/empty/error) dans `app/src/main/java/com/foodgpt/ingredients/IngredientEditorScreen.kt`
+- [X] T026 [P] Vérifier l’absence d’appel réseau pendant OCR via instrumentation dans `app/src/androidTest/java/com/miamia/recognition/OfflineOnlyRecognitionTest.kt`
+- [X] T027 [P] Ajuster microcopies et états UI (loading/empty/error) dans `app/src/main/java/com/miamia/ingredients/IngredientEditorScreen.kt`
 - [X] T028 Exécuter la validation complète `quickstart.md` et documenter le résultat dans `specs/008-capture-photo-texte-ocr/quickstart.md`
 - [X] T029 Mettre à jour la documentation technique de la feature dans `specs/008-capture-photo-texte-ocr/plan.md`
 
@@ -132,9 +132,9 @@
 ## Parallel Example: User Story 1
 
 ```bash
-Task: "T009 [US1] test d'acceptation success dans app/src/androidTest/java/com/foodgpt/camera/CameraCaptureToTextSuccessTest.kt"
-Task: "T010 [US1] test de contrat success dans app/src/androidTest/java/com/foodgpt/recognition/PhotoTextContractSuccessTest.kt"
-Task: "T011 [US1] test de latence dans app/src/androidTest/java/com/foodgpt/recognition/PhotoTextLatencyTest.kt"
+Task: "T009 [US1] test d'acceptation success dans app/src/androidTest/java/com/miamia/camera/CameraCaptureToTextSuccessTest.kt"
+Task: "T010 [US1] test de contrat success dans app/src/androidTest/java/com/miamia/recognition/PhotoTextContractSuccessTest.kt"
+Task: "T011 [US1] test de latence dans app/src/androidTest/java/com/miamia/recognition/PhotoTextLatencyTest.kt"
 ```
 
 ---

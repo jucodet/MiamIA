@@ -1,26 +1,25 @@
-# Implementation Plan: photo-capture-llm-result-flow
+# Implementation Plan: llm-download-onboarding
 
-**Branch**: `016-ingredient-phrase-segment` (outil) | **Spec branch référencée**: `017-photo-analyse-ecran-resultat` | **Date**: 2026-05-06 | **Spec**: [`spec.md`](./spec.md)
-
-**Input**: Spécification domaine `user-guidance-experience` — accueil = écran capture, sans onglets, loader sur capture, navigation résultat conditionnelle, abandon FR-014, retour capture FR-016.
+**Branch**: `018-llm-download-onboarding` | **Date**: 2026-05-11 | **Spec**: [`spec-llm-download-onboarding.md`](./spec-llm-download-onboarding.md)
+**Input**: Spécification domaine `user-guidance-experience` — onboarding téléchargement modèle LLM première utilisation.
 
 **Note**: Phases 0–1 documentées ci-dessous ; `tasks.md` est produit par `/speckit-tasks` (Phase 2 livrable).
 
 ## Summary
 
-Faire de l’écran de **prise de photo** le **premier écran** et la **racine** de la navigation principale (**FR-001**, **FR-015**, **SC-007**) : prévisualisation (ou message si caméra indisponible), bouton photo, puis bouton test LLM. Après photo ou test, afficher un **loader sur l’écran capture** jusqu’à l’état terminal (**FR-006**, **FR-013**), puis **naviguer vers un écran résultat** seulement si l’utilisatrice est **restée sur la capture** (**FR-007**, **FR-010**, **FR-014**). **Retour** depuis le résultat → **capture**, sans réintroduction d’onglets (**FR-016**). Décisions détaillées dans [`research.md`](./research.md) ; contrat observable dans [`contracts/capture-llm-result-navigation-contract.md`](./contracts/capture-llm-result-navigation-contract.md).
+Implémenter un flux d'onboarding au premier lancement détectant l'absence du modèle Gemma local, présentant un écran plein de confirmation (avec détection Wi-Fi/4G), puis un écran d'attente avec barre de progression, phrases humoristiques rotatives (réutilisation des composants streaming existants), et fouet mixeur animé. Le `GemmaModelDownloader` existant est enrichi d'un callback de progression. La navigation s'intègre en amont du flux capture existant via un état `LlmModelReadiness` observable.
 
 ## Technical Context
 
-**Language/Version**: Kotlin (JVM cible Android), Gradle Kotlin DSL  
-**Primary Dependencies**: Jetpack Compose, Navigation Compose, CameraX (prévisualisation / capture), ViewModel, coroutines ; gateway LLM local existant (ex. `AndroidGemma4LocalGateway` / mocks selon build)  
-**Storage**: N/A pour ce flux UX (état écran / run en mémoire ; persistance hors périmètre sauf réutilisation existante)  
-**Testing**: Tests instrumentés Android (`androidTest`), tests unitaires JVM si logique pure ; ATDD aligné constitution (scénarios Given/When/Then de la spec)  
-**Target Platform**: Android (API minimale du module `app`)  
-**Project Type**: application mobile monolithique (`app/`)  
-**Performance Goals**: **SC-003** (loader &lt; 1 s après début traitement), **SC-007** (écran capture sans onglets &lt; 3 s cold start représentatif), latence résultat **SC-004**  
-**Constraints**: pas de navigation résultat après abandon pendant chargement (**FR-014**) ; un seul run LLM actif ; boutons photo et test désactivés pendant `in_progress` (research Decision 8)  
-**Scale/Scope**: un graphe principal capture → résultat LLM ; pas de barre d’onglets multi-sections (**FR-015**)
+**Language/Version**: Kotlin (JVM cible Android), Gradle Kotlin DSL
+**Primary Dependencies**: Jetpack Compose, ViewModel, StateFlow, ConnectivityManager, coroutines
+**Storage**: SharedPreferences (flag confirmation), fichier local `filesDir/gemma/` (modèle)
+**Testing**: JUnit 4 (tests unitaires JVM `app/src/test/`), AndroidJUnit4 (tests instrumentés `app/src/androidTest/`) ; pattern ATDD via `*AcceptanceTest.kt`
+**Target Platform**: Android (API min 26, compile/target 34)
+**Project Type**: Application mobile monolithique (`app/`)
+**Performance Goals**: Téléchargement non bloquant ; progression mise à jour toutes les ~500ms ; transition vers écran capture < 3s après fin téléchargement
+**Constraints**: Pas de téléchargements concurrents ; réutilisation des composants UI existants (fouet, phrases) ; écran plein pour onboarding (pas de modal)
+**Scale/Scope**: 3 écrans (offline, confirmation, attente) + enrichissement `GemmaModelDownloader` + ViewModel dédié + intégration navigation `MainActivity`
 
 ## Constitution Check
 
@@ -28,14 +27,14 @@ Faire de l’écran de **prise de photo** le **premier écran** et la **racine**
 
 | Principe | Statut |
 |----------|--------|
-| **I. Qualité / traçabilité** | Spec domaine + contrat UI + modèle données ; incrément testable par user story. |
-| **II. ATDD** | Scénarios US1–US4 et edge cases dans `spec.md` ; quickstart + contrat pour validation manuelle et cibles de tests auto. |
-| **III. UX** | Parcours simple, feedback loader, erreurs explicites (**FR-010**, **FR-011**). |
-| **IV. Performance** | **SC-001**–**SC-007** dans la spec. |
-| **V. Simplicité** | Navigation pile simple ; pas de sur-couche sans besoin. |
-| **VI. DDD** | Domaine `user-guidance-experience` ; sémantique du texte LLM hors périmètre (research Decision 4). |
+| **I. Qualité / traçabilité** | Spec clarifiée → scénarios acceptance → code ; incrément testable par US. |
+| **II. ATDD** | Scénarios Given/When/Then définis pour US1, US2, US3 ; tests d'acceptation avant code. |
+| **III. UX** | Écran plein informatif, feedback progression, phrases engageantes, animation ; états erreur/offline soignés. |
+| **IV. Performance** | Barre progression temps réel ; transition < 3s ; pas de téléchargement bloquant l'UI thread. |
+| **V. Simplicité** | Réutilisation `AnimatedWhisk` + `WAITING_PHRASES` existants ; enrichissement minimal du downloader ; pas de nouveau module. |
+| **VI. DDD** | Domaine `user-guidance-experience` ; consomme `GemmaModelDownloader` du contexte `local-llm-runtime` via interface ; pas de fuite de frontière. |
 
-**Post-design (Phase 1)** : aucune violation nouvelle ; frontières préservées (`data-model.md`, contrat limité à l’observable UI).
+**Post-design (Phase 1)** : aucune violation ; frontières préservées.
 
 ## Project Structure
 
@@ -43,48 +42,63 @@ Faire de l’écran de **prise de photo** le **premier écran** et la **racine**
 
 ```text
 specs/domains/user-guidance-experience/
-├── plan.md              # This file
-├── research.md          # Phase 0
-├── data-model.md        # Phase 1
-├── quickstart.md        # Phase 1
-├── contracts/           # Phase 1
-└── tasks.md             # /speckit-tasks (non créé par ce plan)
+├── plan.md                             # This file
+├── spec-llm-download-onboarding.md     # Spec
+├── research.md                         # Phase 0
+├── data-model.md                       # Phase 1
+├── quickstart.md                       # Phase 1
+├── contracts/                          # Phase 1
+└── tasks.md                            # /speckit-tasks
 ```
 
 ### Source Code (repository root)
 
 ```text
-app/src/main/java/com/foodgpt/
-├── MainActivity.kt                    # Point d’entrée Compose ; shell sans TabRow principal
-├── camera/                            # CameraScreen, CameraViewModel, capture
-├── navigation/                        # Routes / NavHost capture ↔ résultat
-├── result/ ou équivalent              # LlmResultScreen, payload d’affichage
-├── home/                              # HomeLlmMockRunner (réutilisation FR-008)
-├── gemma4local/                       # Gateway / modèles résultat analyse
-└── …                                  # Autres packages inchangés hors refactor navigation
+app/src/main/java/com/miamia/onboarding/
+├── ModelDownloadOnboardingScreen.kt    # Écran plein confirmation (Compose)
+├── ModelDownloadWaitingScreen.kt       # Écran attente + progression (Compose)
+├── NetworkOfflineScreen.kt             # Écran "Connexion requise" (Compose)
+├── ModelDownloadViewModel.kt           # ViewModel : readiness, progression, navigation
+├── LlmModelReadinessState.kt          # Sealed class états onboarding
+└── NetworkTypeDetector.kt              # Détection Wi-Fi/mobile/offline
 
-app/src/androidTest/java/com/foodgpt/  # Tests parcours / smoke cold start si ajoutés
+app/src/main/java/com/miamia/gemma4local/
+└── GemmaModelDownloader.kt             # Enrichi : callback onProgress(percent, bytes)
+
+app/src/main/java/com/miamia/result/
+└── LlmResultScreen.kt                 # Existant (WAITING_PHRASES, AnimatedWhisk extraits)
+
+app/src/main/java/com/miamia/ui/shared/
+├── WaitingPhrases.kt                   # Phrases humoristiques partagées (extrait)
+└── AnimatedWhisk.kt                    # Composable fouet animé partagé (extrait)
+
+app/src/test/java/com/miamia/onboarding/
+├── ModelDownloadViewModelTest.kt
+└── NetworkTypeDetectorTest.kt
+
+app/src/androidTest/java/com/miamia/onboarding/
+└── ModelDownloadOnboardingAcceptanceTest.kt
 ```
 
-**Structure Decision**: Module unique `app` ; refactor **MainActivity** pour retirer l’onglet comme navigation **primaire** et faire du flux capture (+ sous-route résultat) la **racine**, conformément à research Decisions 10–11.
+**Structure Decision**: Nouveau package `com.miamia.onboarding` dans le module `app` ; extraction des composants partagés (fouet, phrases) dans `com.miamia.ui.shared` pour réutilisation entre streaming et onboarding.
 
 ## Phase 0 — Recherche
 
-**Statut**: terminé — voir [`research.md`](./research.md). Aucun `NEEDS CLARIFICATION` restant pour ce périmètre.
+**Statut**: terminé — voir [`research.md`](./research.md).
 
 ## Phase 1 — Design & contrats
 
 **Statut**: terminé.
 
-- [`data-model.md`](./data-model.md) — entités `AppNavigationShell`, `CaptureScreenUiSession`, `LlmPipelineRun`, `LlmResultScreenPayload`.
-- [`contracts/capture-llm-result-navigation-contract.md`](./contracts/capture-llm-result-navigation-contract.md) — commandes observables, états, navigation.
-- [`quickstart.md`](./quickstart.md) — validation manuelle (cold start, onglets, FR-016, abandon).
+- [`data-model.md`](./data-model.md) — entités `LlmModelReadinessState`, `DownloadProgress`, `NetworkType`.
+- [`contracts/onboarding-navigation-contract.md`](./contracts/onboarding-navigation-contract.md) — contrat d'intégration avec `MainActivity` et flux navigation.
+- [`quickstart.md`](./quickstart.md) — validation manuelle (premier lancement, offline, progression, erreur).
 
-**Agent context**: `.cursor/rules/specify-rules.mdc` pointe déjà vers `specs/domains/user-guidance-experience/plan.md`.
+**Agent context**: `.cursor/rules/specify-rules.mdc` mis à jour vers ce plan.
 
-## Phase 2 — Tâches d’implémentation
+## Phase 2 — Tâches d'implémentation
 
-Hors fichier : exécuter **`/speckit-tasks`** pour générer ou mettre à jour `tasks.md` (refactor navigation, tests ATDD **SC-007** / **FR-015** / **FR-016**, etc.).
+Hors fichier : exécuter **`/speckit-tasks`** pour générer ou mettre à jour `tasks.md`.
 
 ## Complexity Tracking
 

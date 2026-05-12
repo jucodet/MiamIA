@@ -53,14 +53,14 @@ specs/domains/ingredient-normalization-validation/
 ### Source Code (repository root)
 
 ```text
-app/src/main/java/com/foodgpt/analysis/ingredientsegment/
+app/src/main/java/com/miamia/analysis/ingredientsegment/
 ├── IngredientSegmentBoundaryResolver.kt   # Modifié : logique '.' + espace/newline
 ├── IngredientSegmentModels.kt             # Inchangé (enum existant suffit)
 ├── IngredientSegmentPreparationService.kt # Inchangé (orchestration)
 ├── IngredientAnchorNormalizer.kt          # Inchangé
 └── AnalysisSubmissionGate.kt              # Inchangé
 
-app/src/test/java/com/foodgpt/analysis/ingredientsegment/
+app/src/test/java/com/miamia/analysis/ingredientsegment/
 ├── fixtures/OcrFixtures.kt                               # Enrichi : cas points internes
 ├── IngredientSegmentBoundaryResolverTest.kt               # Enrichi : tests '.' contextuel
 ├── IngredientSegmentPhraseBoundaryAcceptanceTest.kt       # Enrichi : scénario US1 §2

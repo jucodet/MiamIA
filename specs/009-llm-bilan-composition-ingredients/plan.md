@@ -50,7 +50,7 @@ specs/009-llm-bilan-composition-ingredients/
 
 ```text
 app/
-└── src/main/java/com/foodgpt/
+└── src/main/java/com/miamia/
     ├── camera/
     │   ├── CameraViewModel.kt          # orchestration états scan → extension bilan
     │   └── CameraScreen.kt             # affichage bilan vs texte brut

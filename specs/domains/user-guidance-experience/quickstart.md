@@ -1,52 +1,55 @@
-# Quickstart - photo-capture-llm-result-flow
+# Quickstart: llm-download-onboarding
 
-## Goal
+## Validation manuelle
 
-Valider manuellement le **lancement à froid** sur l'écran de **prise de photo** **sans barre d'onglets**, l'**ordre** des boutons, le **loader** sur l'écran capture après photo, la **navigation** vers l'**écran résultat**, le bouton **test LLM**, l'absence de navigation automatique si **retour pendant le chargement**, et le **retour** depuis le résultat vers la capture (FR-016).
+### Scénario 1 — Premier lancement avec Wi-Fi
 
-## Preconditions
+1. Désinstaller l'application (ou effacer les données).
+2. S'assurer que l'appareil est connecté en Wi-Fi.
+3. Lancer l'application.
+4. **Vérifier** : l'écran plein de confirmation s'affiche avec le message "Connexion Wi-Fi détectée", la taille approximative du modèle, et les boutons "Confirmer" / "Plus tard".
+5. Appuyer sur "Confirmer".
+6. **Vérifier** : l'écran d'attente s'affiche avec :
+   - Titre "Téléchargement du modèle de langage en cours..."
+   - Barre de progression qui avance
+   - Pourcentage affiché
+   - Fouet mixeur animé
+   - Phrases humoristiques qui changent toutes les ~5s
+7. Attendre la fin du téléchargement.
+8. **Vérifier** : redirection automatique vers l'écran capture (caméra).
 
-- Build Android fonctionnel (`app`).
-- Runtime LLM local disponible pour les scenarios de succes (si le pipeline photo en depend).
-- Spec : `specs/domains/user-guidance-experience/spec.md`.
-- Contrat : `contracts/capture-llm-result-navigation-contract.md`.
+### Scénario 2 — Premier lancement en données mobiles
 
-## Manual Validation Flow
+1. Désinstaller l'application, passer en données mobiles (désactiver Wi-Fi).
+2. Lancer l'application.
+3. **Vérifier** : l'écran de confirmation affiche un avertissement explicite sur la consommation de données mobiles.
+4. Appuyer sur "Confirmer".
+5. **Vérifier** : téléchargement et écran d'attente fonctionnent normalement.
 
-### A. Lancement et mise en page capture
+### Scénario 3 — Premier lancement hors-ligne
 
-1. **Tuer** l'application puis la **rouvrir** depuis le lanceur (cold start).
-2. Vérifier que le **premier** écran utile est l'**écran de prise de photo** (aucun écran d'accueil à onglets intermédiaire) et qu'**aucune barre d'onglets** (Accueil / Caméra / etc.) n'est visible (US1, FR-015, SC-007).
-3. Vérifier l'ordre : zone preview (ou message caméra indisponible), **bouton photo**, puis **bouton test LLM** directement en dessous.
-4. Si caméra indisponible : vérifier le **message explicite** à la place du preview ; le bouton test reste utilisable si pertinent (US4).
+1. Désinstaller l'application, activer le mode avion.
+2. Lancer l'application.
+3. **Vérifier** : l'écran "Connexion requise" s'affiche avec explication et bouton "Réessayer".
+4. Réactiver le réseau.
+5. Appuyer sur "Réessayer".
+6. **Vérifier** : transition vers l'écran de confirmation.
 
-### B. Parcours photo → resultat
+### Scénario 4 — Refus du téléchargement
 
-1. Declencher une **capture** reussie.
-2. Verifier en &lt; 1 s un **chargement visible** sur l'**ecran capture** (overlay acceptable), **sans** ecran resultat encore affiche.
-3. Rester sur l'ecran jusqu'a la fin : verifier **navigation** vers l'ecran **resultat** avec texte lisible (ou ecran erreur coherent en cas d'echec).
-4. Utiliser **Retour** depuis l'écran résultat : vérifier le retour sur l'écran **capture** sans onglets (FR-016).
-5. Vérifier qu'une **nouvelle** capture ou un nouveau test est possible (FR-012).
+1. Arriver sur l'écran de confirmation.
+2. Appuyer sur "Plus tard".
+3. **Vérifier** : un état explicatif indique que l'application ne peut pas fonctionner sans le modèle, avec possibilité de relancer le téléchargement.
 
-### C. Abandon pendant chargement
+### Scénario 5 — Erreur réseau pendant téléchargement
 
-1. Lancer une capture (ou test LLM) et des que le loader est visible, utiliser le **retour arrière** (ou quitter l'ecran capture).
-2. Attendre la fin eventuelle du traitement en arriere-plan : verifier **aucune** ouverture automatique de l'ecran resultat ni pop-up incoherente.
+1. Démarrer le téléchargement.
+2. Activer le mode avion pendant le téléchargement.
+3. **Vérifier** : un message d'erreur clair s'affiche avec un bouton "Réessayer".
+4. Réactiver le réseau et appuyer sur "Réessayer".
+5. **Vérifier** : le téléchargement redémarre (V1 : depuis le début).
 
-### D. Test LLM
+### Scénario 6 — Modèle déjà présent (relancement normal)
 
-1. Sur l'ecran capture, appuyer sur **test LLM**.
-2. Verifier le meme pattern : loader sur capture, puis resultat si restee sur l'ecran ; bouton test **desactive** pendant l'execution.
-3. Pendant `running`, taps repetes : **aucune** execution concurrente.
-
-## Suggested Automated Checks
-
-- ViewModel / coordinator :
-  - `in_progress` -> boutons photo et test desactives ;
-  - terminal + ecran actif -> evenement navigation resultat emis ;
-  - abandon -> pas d'evenement navigation au terminal.
-- Tests UI (si disponibles) : ordre des noeuds / semantics pour les boutons.
-
-## Expected Outcomes
-
-- Conformité aux **SC-001** à **SC-007** de la spec dans les conditions d'application (notamment SC-004 / SC-006 : uniquement si l'utilisatrice reste sur l'écran capture jusqu'à la fin du traitement ou de la détection d'échec ; SC-007 : lancement à froid vers capture sans onglets).
+1. Lancer l'application avec le modèle déjà téléchargé.
+2. **Vérifier** : aucun écran onboarding ne s'affiche ; accès direct à l'écran capture.

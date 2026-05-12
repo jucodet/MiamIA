@@ -5,9 +5,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:name=".FoodGptApplication"
+        android:name=".MiamIAApplication"
         android:allowBackup="false"
-        android:label="FoodGPT"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="MiamIA"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <!-- LiteRT-LM GPU (OpenCL) — recommandé par la doc ; non bloquant si absent sur l’appareil. -->

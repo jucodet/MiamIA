@@ -15,8 +15,8 @@ Sync Impact Report
   - TODO(RATIFICATION_DATE): date de ratification initiale inconnue.
 -->
 
-# FoodGPT Constitution
-<!-- Constitution de gouvernance & qualité du projet FoodGPT -->
+# MiamIA Constitution
+<!-- Constitution de gouvernance & qualité du projet MiamIA -->
 
 ## Core Principles
 

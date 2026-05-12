@@ -8,7 +8,7 @@
 
 ## Lancer l'application
 
-1. Ouvrir le projet `FoodGPT`.
+1. Ouvrir le projet `MiamIA`.
 2. Compiler et lancer l'app en debug.
 3. Ouvrir l'écran de capture.
 
