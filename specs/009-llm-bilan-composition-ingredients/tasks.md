@@ -19,7 +19,7 @@
 
 **Purpose**: Conventions modèle Gemma + socle package `composition`.
 
-- [x] T001 Créer `app/src/main/java/com/foodgpt/composition/GemmaModelPaths.kt` avec constantes (nom asset / chemin canonique du fichier modèle Gemma attendu sur l’appareil)
+- [x] T001 Créer `app/src/main/java/com/miamia/composition/GemmaModelPaths.kt` avec constantes (nom asset / chemin canonique du fichier modèle Gemma attendu sur l’appareil)
 - [x] T002 [P] Ajouter `app/src/main/assets/gemma/README.md` expliquant où placer le fichier modèle pour builds locaux et tests manuels (`quickstart.md`)
 - [x] T003 [P] Vérifier / annoter la dépendance LiteRT `com.google.ai.edge.litert:litert` dans `app/build.gradle.kts` pour la feature 009 (commentaire ou version alignée plan)
 
@@ -31,12 +31,12 @@
 
 **⚠️ CRITICAL**: Les phases US1–US3 dépendent de la complétion de cette phase.
 
-- [x] T004 Créer `app/src/main/java/com/foodgpt/composition/CompositionModels.kt` (`CompositionBilan`, codes erreur `gemma_not_found` / `gemma_load_failed`, résultats `AnalyzeCompositionResult` alignés `data-model.md`)
-- [x] T005 Implémenter `app/src/main/java/com/foodgpt/composition/GemmaModelLocator.kt` (résolution chemin depuis `Context` + statut `ready` / `not_found` / `load_failed`)
-- [x] T006 Créer `app/src/main/java/com/foodgpt/composition/CompositionAnalysisEngine.kt` (interface `suspend fun analyze(rawText: String, …): AnalyzeCompositionResult`) et squelette `app/src/main/java/com/foodgpt/composition/LiteRtGemmaEngine.kt`
-- [x] T007 Étendre `app/src/main/java/com/foodgpt/camera/ScanState.kt` avec états flux bilan (ex. `CompositionAnalyzing`, `BilanReady`, `GemmaUnavailable`, `CompositionLimit`) sans supprimer les états caméra/OCR existants
-- [x] T008 Mettre à jour les branches `when` dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt` pour couvrir exhaustivement les nouveaux `ScanState` (placeholders UX acceptables jusqu’à US1)
-- [x] T009 Vérifier / adapter `app/src/main/java/com/foodgpt/MainActivity.kt` si la factory `CameraViewModel` doit recevoir `CompositionAnalysisEngine` + `GemmaModelLocator` (signatures constructeur)
+- [x] T004 Créer `app/src/main/java/com/miamia/composition/CompositionModels.kt` (`CompositionBilan`, codes erreur `gemma_not_found` / `gemma_load_failed`, résultats `AnalyzeCompositionResult` alignés `data-model.md`)
+- [x] T005 Implémenter `app/src/main/java/com/miamia/composition/GemmaModelLocator.kt` (résolution chemin depuis `Context` + statut `ready` / `not_found` / `load_failed`)
+- [x] T006 Créer `app/src/main/java/com/miamia/composition/CompositionAnalysisEngine.kt` (interface `suspend fun analyze(rawText: String, …): AnalyzeCompositionResult`) et squelette `app/src/main/java/com/miamia/composition/LiteRtGemmaEngine.kt`
+- [x] T007 Étendre `app/src/main/java/com/miamia/camera/ScanState.kt` avec états flux bilan (ex. `CompositionAnalyzing`, `BilanReady`, `GemmaUnavailable`, `CompositionLimit`) sans supprimer les états caméra/OCR existants
+- [x] T008 Mettre à jour les branches `when` dans `app/src/main/java/com/miamia/camera/CameraScreen.kt` pour couvrir exhaustivement les nouveaux `ScanState` (placeholders UX acceptables jusqu’à US1)
+- [x] T009 Vérifier / adapter `app/src/main/java/com/miamia/MainActivity.kt` si la factory `CameraViewModel` doit recevoir `CompositionAnalysisEngine` + `GemmaModelLocator` (signatures constructeur)
 
 **Checkpoint**: compilation du module `app` avec nouveaux types et états (même UI incomplète).
 
@@ -52,17 +52,17 @@
 
 > **NOTE**: Écrire ces tests en premier ; ils **échouent** jusqu’à l’implémentation (ATDD).
 
-- [x] T010 [P] [US1] Tests unitaires `GemmaModelLocator` (fichier absent → `not_found`, fichier présent → chemin résolu) dans `app/src/test/java/com/foodgpt/composition/GemmaModelLocatorTest.kt`
-- [x] T011 [P] [US1] Tests unitaires parseur / mapping sortie LLM vers `CompositionBilan` (sections liste + analyse) dans `app/src/test/java/com/foodgpt/composition/GemmaBilanParserTest.kt`
-- [x] T012 [P] [US1] Tests de mapping logique vers contrat `bilan_ready` dans `app/src/test/java/com/foodgpt/composition/GemmaCompositionContractMappingTest.kt` (aligné `specs/009-llm-bilan-composition-ingredients/contracts/gemma-composition-bilan-contract.md`)
+- [x] T010 [P] [US1] Tests unitaires `GemmaModelLocator` (fichier absent → `not_found`, fichier présent → chemin résolu) dans `app/src/test/java/com/miamia/composition/GemmaModelLocatorTest.kt`
+- [x] T011 [P] [US1] Tests unitaires parseur / mapping sortie LLM vers `CompositionBilan` (sections liste + analyse) dans `app/src/test/java/com/miamia/composition/GemmaBilanParserTest.kt`
+- [x] T012 [P] [US1] Tests de mapping logique vers contrat `bilan_ready` dans `app/src/test/java/com/miamia/composition/GemmaCompositionContractMappingTest.kt` (aligné `specs/009-llm-bilan-composition-ingredients/contracts/gemma-composition-bilan-contract.md`)
 
 ### Implementation for User Story 1
 
-- [x] T013 [P] [US1] Implémenter `app/src/main/java/com/foodgpt/composition/GemmaBilanParser.kt` (extraction `ingredientLines` + `compositionAnalysis` depuis sortie modèle versionnée)
-- [x] T014 [US1] Compléter `app/src/main/java/com/foodgpt/composition/LiteRtGemmaEngine.kt` (prompt système + utilisateur, appel LiteRT, parsing via `GemmaBilanParser`, timeout paramétrable)
-- [x] T015 [US1] Orchestrer dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt` : après succès OCR → `CompositionAnalyzing` → `BilanReady` ou `GemmaUnavailable` / `CompositionLimit` (aucun envoi réseau)
-- [x] T016 [US1] Remplir UI `BilanReady` dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt` : sections **liste** + **analyse** + **disclaimer** FR-010 ; texte brut accessible en mode secondaire (repli / bouton)
-- [x] T017 [US1] Brancher injections dans `app/src/main/java/com/foodgpt/MainActivity.kt` : instancier `GemmaModelLocator`, `LiteRtGemmaEngine` (ou impl par défaut), passer à `CameraViewModel.factory(...)`
+- [x] T013 [P] [US1] Implémenter `app/src/main/java/com/miamia/composition/GemmaBilanParser.kt` (extraction `ingredientLines` + `compositionAnalysis` depuis sortie modèle versionnée)
+- [x] T014 [US1] Compléter `app/src/main/java/com/miamia/composition/LiteRtGemmaEngine.kt` (prompt système + utilisateur, appel LiteRT, parsing via `GemmaBilanParser`, timeout paramétrable)
+- [x] T015 [US1] Orchestrer dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt` : après succès OCR → `CompositionAnalyzing` → `BilanReady` ou `GemmaUnavailable` / `CompositionLimit` (aucun envoi réseau)
+- [x] T016 [US1] Remplir UI `BilanReady` dans `app/src/main/java/com/miamia/camera/CameraScreen.kt` : sections **liste** + **analyse** + **disclaimer** FR-010 ; texte brut accessible en mode secondaire (repli / bouton)
+- [x] T017 [US1] Brancher injections dans `app/src/main/java/com/miamia/MainActivity.kt` : instancier `GemmaModelLocator`, `LiteRtGemmaEngine` (ou impl par défaut), passer à `CameraViewModel.factory(...)`
 
 **Checkpoint**: US1 démontrable seul avec modèle Gemma présent sur device / émulateur.
 
@@ -76,12 +76,12 @@
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [x] T018 [P] [US2] Tests unitaires texte ambigu / vide structuré → `CompositionLimit` sans `BilanReady` dans `app/src/test/java/com/foodgpt/composition/CompositionLimitTest.kt`
+- [x] T018 [P] [US2] Tests unitaires texte ambigu / vide structuré → `CompositionLimit` sans `BilanReady` dans `app/src/test/java/com/miamia/composition/CompositionLimitTest.kt`
 
 ### Implementation for User Story 2
 
-- [x] T019 [US2] Ajouter validation post-inférence (rejet bilan vide « complet », heuristiques prudence) dans `app/src/main/java/com/foodgpt/composition/CompositionResultValidator.kt` ou extension de `LiteRtGemmaEngine.kt`
-- [x] T020 [US2] Afficher `CompositionLimit` dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt` avec copie utilisateur conforme FR-007 (pas de liste plausible fictive)
+- [x] T019 [US2] Ajouter validation post-inférence (rejet bilan vide « complet », heuristiques prudence) dans `app/src/main/java/com/miamia/composition/CompositionResultValidator.kt` ou extension de `LiteRtGemmaEngine.kt`
+- [x] T020 [US2] Afficher `CompositionLimit` dans `app/src/main/java/com/miamia/camera/CameraScreen.kt` avec copie utilisateur conforme FR-007 (pas de liste plausible fictive)
 
 **Checkpoint**: US1 + US2 testables indépendamment (US2 vérifiable avec mocks moteur).
 
@@ -95,13 +95,13 @@
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [x] T021 [P] [US3] Tests unitaires `CameraViewModel` : moteur faux qui renvoie `gemma_not_found` ou timeout → état `GemmaUnavailable`, pas `BilanReady` dans `app/src/test/java/com/foodgpt/camera/CameraViewModelGemmaErrorTest.kt` (nécessite injectable `CompositionAnalysisEngine` dans `CameraViewModel` ou test double du coordinateur)
+- [x] T021 [P] [US3] Tests unitaires `CameraViewModel` : moteur faux qui renvoie `gemma_not_found` ou timeout → état `GemmaUnavailable`, pas `BilanReady` dans `app/src/test/java/com/miamia/camera/CameraViewModelGemmaErrorTest.kt` (nécessite injectable `CompositionAnalysisEngine` dans `CameraViewModel` ou test double du coordinateur)
 
 ### Implementation for User Story 3
 
-- [x] T022 [US3] Finaliser copies erreur « Gemma introuvable » / charge / timeout dans `app/src/main/java/com/foodgpt/composition/CompositionMessages.kt` (nouveau) ou extension `app/src/main/java/com/foodgpt/ingredients/ScanFailureMessageBuilder.kt`
-- [x] T023 [US3] Boutons **Réessayer** et **Voir le texte brut** (repli) pour `GemmaUnavailable` dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [x] T024 [US3] Appliquer `withTimeout` / annulation cohérente dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt` pour respect SC-003 (délai max analyse composition)
+- [x] T022 [US3] Finaliser copies erreur « Gemma introuvable » / charge / timeout dans `app/src/main/java/com/miamia/composition/CompositionMessages.kt` (nouveau) ou extension `app/src/main/java/com/miamia/ingredients/ScanFailureMessageBuilder.kt`
+- [x] T023 [US3] Boutons **Réessayer** et **Voir le texte brut** (repli) pour `GemmaUnavailable` dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [x] T024 [US3] Appliquer `withTimeout` / annulation cohérente dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt` pour respect SC-003 (délai max analyse composition)
 
 **Checkpoint**: Parcours erreur Gemma conforme `SC-006` et contrat `gemma_error`.
 
@@ -111,7 +111,7 @@
 
 **Purpose**: Finitions transverses.
 
-- [x] T025 [P] Passer revue performances (chargement lazy modèle, libération ressources) dans `app/src/main/java/com/foodgpt/composition/LiteRtGemmaEngine.kt` et `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt` (aligné `research.md`)
+- [x] T025 [P] Passer revue performances (chargement lazy modèle, libération ressources) dans `app/src/main/java/com/miamia/composition/LiteRtGemmaEngine.kt` et `app/src/main/java/com/miamia/camera/CameraViewModel.kt` (aligné `research.md`)
 - [x] T026 Exécuter validations manuelles `specs/009-llm-bilan-composition-ingredients/quickstart.md` et noter écarts dans `specs/009-llm-bilan-composition-ingredients/quickstart.md` (section résultat)
 
 ---
@@ -149,9 +149,9 @@
 
 ```bash
 # Lancer en parallèle les tests ATDD US1 (après Phase 2) :
-# - app/src/test/java/com/foodgpt/composition/GemmaModelLocatorTest.kt
-# - app/src/test/java/com/foodgpt/composition/GemmaBilanParserTest.kt
-# - app/src/test/java/com/foodgpt/composition/GemmaCompositionContractMappingTest.kt
+# - app/src/test/java/com/miamia/composition/GemmaModelLocatorTest.kt
+# - app/src/test/java/com/miamia/composition/GemmaBilanParserTest.kt
+# - app/src/test/java/com/miamia/composition/GemmaCompositionContractMappingTest.kt
 ```
 
 ---

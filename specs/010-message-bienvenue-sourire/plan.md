@@ -50,7 +50,7 @@ specs/010-message-bienvenue-sourire/
 
 ```text
 app/
-└── src/main/java/com/foodgpt/
+└── src/main/java/com/miamia/
     ├── camera/ or auth/flow module (existing login success trigger)
     ├── ingredients/ (existing UI/state patterns to align)
     └── welcome/ (new package suggested)

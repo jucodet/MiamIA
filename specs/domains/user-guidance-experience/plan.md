@@ -54,7 +54,7 @@ specs/domains/user-guidance-experience/
 ### Source Code (repository root)
 
 ```text
-app/src/main/java/com/foodgpt/onboarding/
+app/src/main/java/com/miamia/onboarding/
 ├── ModelDownloadOnboardingScreen.kt    # Écran plein confirmation (Compose)
 ├── ModelDownloadWaitingScreen.kt       # Écran attente + progression (Compose)
 ├── NetworkOfflineScreen.kt             # Écran "Connexion requise" (Compose)
@@ -62,25 +62,25 @@ app/src/main/java/com/foodgpt/onboarding/
 ├── LlmModelReadinessState.kt          # Sealed class états onboarding
 └── NetworkTypeDetector.kt              # Détection Wi-Fi/mobile/offline
 
-app/src/main/java/com/foodgpt/gemma4local/
+app/src/main/java/com/miamia/gemma4local/
 └── GemmaModelDownloader.kt             # Enrichi : callback onProgress(percent, bytes)
 
-app/src/main/java/com/foodgpt/result/
+app/src/main/java/com/miamia/result/
 └── LlmResultScreen.kt                 # Existant (WAITING_PHRASES, AnimatedWhisk extraits)
 
-app/src/main/java/com/foodgpt/ui/shared/
+app/src/main/java/com/miamia/ui/shared/
 ├── WaitingPhrases.kt                   # Phrases humoristiques partagées (extrait)
 └── AnimatedWhisk.kt                    # Composable fouet animé partagé (extrait)
 
-app/src/test/java/com/foodgpt/onboarding/
+app/src/test/java/com/miamia/onboarding/
 ├── ModelDownloadViewModelTest.kt
 └── NetworkTypeDetectorTest.kt
 
-app/src/androidTest/java/com/foodgpt/onboarding/
+app/src/androidTest/java/com/miamia/onboarding/
 └── ModelDownloadOnboardingAcceptanceTest.kt
 ```
 
-**Structure Decision**: Nouveau package `com.foodgpt.onboarding` dans le module `app` ; extraction des composants partagés (fouet, phrases) dans `com.foodgpt.ui.shared` pour réutilisation entre streaming et onboarding.
+**Structure Decision**: Nouveau package `com.miamia.onboarding` dans le module `app` ; extraction des composants partagés (fouet, phrases) dans `com.miamia.ui.shared` pour réutilisation entre streaming et onboarding.
 
 ## Phase 0 — Recherche
 

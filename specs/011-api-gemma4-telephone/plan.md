@@ -50,7 +50,7 @@ specs/011-api-gemma4-telephone/
 
 ```text
 app/
-└── src/main/java/com/foodgpt/
+└── src/main/java/com/miamia/
     ├── analysis/                  # flux d'analyse existant
     ├── llm/                       # integration modele et orchestration
     └── gemma4local/               # nouveau module d'acces API locale

@@ -15,9 +15,9 @@
 
 ## Path Conventions
 
-- **Android app**: `app/src/main/java/com/foodgpt/`
-- **Unit tests**: `app/src/test/java/com/foodgpt/`
-- **Instrumented tests**: `app/src/androidTest/java/com/foodgpt/`
+- **Android app**: `app/src/main/java/com/miamia/`
+- **Unit tests**: `app/src/test/java/com/miamia/`
+- **Instrumented tests**: `app/src/androidTest/java/com/miamia/`
 
 ---
 
@@ -25,11 +25,11 @@
 
 **Purpose**: Création des packages et extraction des composants partagés existants.
 
-- [x] T001 Create onboarding package directory at app/src/main/java/com/foodgpt/onboarding/
-- [x] T002 [P] Create shared UI package directory at app/src/main/java/com/foodgpt/ui/shared/
-- [x] T003 [P] Extract `WAITING_PHRASES` list from app/src/main/java/com/foodgpt/result/LlmResultScreen.kt into app/src/main/java/com/foodgpt/ui/shared/WaitingPhrases.kt
-- [x] T004 [P] Extract `AnimatedWhisk` composable from app/src/main/java/com/foodgpt/result/LlmResultScreen.kt into app/src/main/java/com/foodgpt/ui/shared/AnimatedWhisk.kt
-- [x] T005 Update imports in app/src/main/java/com/foodgpt/result/LlmResultScreen.kt to use extracted shared components from com.foodgpt.ui.shared
+- [x] T001 Create onboarding package directory at app/src/main/java/com/miamia/onboarding/
+- [x] T002 [P] Create shared UI package directory at app/src/main/java/com/miamia/ui/shared/
+- [x] T003 [P] Extract `WAITING_PHRASES` list from app/src/main/java/com/miamia/result/LlmResultScreen.kt into app/src/main/java/com/miamia/ui/shared/WaitingPhrases.kt
+- [x] T004 [P] Extract `AnimatedWhisk` composable from app/src/main/java/com/miamia/result/LlmResultScreen.kt into app/src/main/java/com/miamia/ui/shared/AnimatedWhisk.kt
+- [x] T005 Update imports in app/src/main/java/com/miamia/result/LlmResultScreen.kt to use extracted shared components from com.miamia.ui.shared
 
 **Checkpoint**: Packages créés ; `LlmResultScreen` fonctionne toujours avec les composants extraits.
 
@@ -41,14 +41,14 @@
 
 **⚠️ CRITICAL**: Aucune user story ne peut démarrer avant cette phase.
 
-- [x] T006 [P] Create `NetworkType` enum (WIFI, MOBILE_DATA, OFFLINE) in app/src/main/java/com/foodgpt/onboarding/NetworkTypeDetector.kt
-- [x] T007 [P] Create `DownloadProgress` data class (percent, downloadedBytes, totalBytes) in app/src/main/java/com/foodgpt/onboarding/LlmModelReadinessState.kt
-- [x] T008 Create `LlmModelReadinessState` sealed class (Checking, Offline, ConfirmationRequired, Downloading, Ready, Error, Declined) in app/src/main/java/com/foodgpt/onboarding/LlmModelReadinessState.kt
-- [x] T009 Implement `NetworkTypeDetector.detectCurrentNetworkType(context)` using ConnectivityManager.getNetworkCapabilities() in app/src/main/java/com/foodgpt/onboarding/NetworkTypeDetector.kt
-- [x] T010 Enrich `GemmaModelDownloader` with `downloadModelWithProgress(onProgress: (Int, Long, Long) -> Unit): File` method in app/src/main/java/com/foodgpt/gemma4local/GemmaModelDownloader.kt
-- [x] T011 Create `ModelDownloadViewModel` skeleton (init checks model presence, exposes StateFlow<LlmModelReadinessState>) in app/src/main/java/com/foodgpt/onboarding/ModelDownloadViewModel.kt
-- [x] T012 [P] Create unit test for NetworkTypeDetector in app/src/test/java/com/foodgpt/onboarding/NetworkTypeDetectorTest.kt
-- [x] T013 [P] Create unit test for ModelDownloadViewModel state transitions in app/src/test/java/com/foodgpt/onboarding/ModelDownloadViewModelTest.kt
+- [x] T006 [P] Create `NetworkType` enum (WIFI, MOBILE_DATA, OFFLINE) in app/src/main/java/com/miamia/onboarding/NetworkTypeDetector.kt
+- [x] T007 [P] Create `DownloadProgress` data class (percent, downloadedBytes, totalBytes) in app/src/main/java/com/miamia/onboarding/LlmModelReadinessState.kt
+- [x] T008 Create `LlmModelReadinessState` sealed class (Checking, Offline, ConfirmationRequired, Downloading, Ready, Error, Declined) in app/src/main/java/com/miamia/onboarding/LlmModelReadinessState.kt
+- [x] T009 Implement `NetworkTypeDetector.detectCurrentNetworkType(context)` using ConnectivityManager.getNetworkCapabilities() in app/src/main/java/com/miamia/onboarding/NetworkTypeDetector.kt
+- [x] T010 Enrich `GemmaModelDownloader` with `downloadModelWithProgress(onProgress: (Int, Long, Long) -> Unit): File` method in app/src/main/java/com/miamia/gemma4local/GemmaModelDownloader.kt
+- [x] T011 Create `ModelDownloadViewModel` skeleton (init checks model presence, exposes StateFlow<LlmModelReadinessState>) in app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt
+- [x] T012 [P] Create unit test for NetworkTypeDetector in app/src/test/java/com/miamia/onboarding/NetworkTypeDetectorTest.kt
+- [x] T013 [P] Create unit test for ModelDownloadViewModel state transitions in app/src/test/java/com/miamia/onboarding/ModelDownloadViewModelTest.kt
 
 **Checkpoint**: Fondation prête — les modèles d'état, le ViewModel, et le downloader enrichi sont fonctionnels et testés.
 
@@ -64,17 +64,17 @@
 
 > **NOTE: Écrire ces tests EN PREMIER, vérifier qu'ils ÉCHOUENT avant implémentation (ATDD)**
 
-- [x] T014 [P] [US1] Acceptance test: premier lancement affiche écran confirmation avec type réseau et taille modèle dans app/src/androidTest/java/com/foodgpt/onboarding/ModelDownloadOnboardingAcceptanceTest.kt
-- [x] T015 [P] [US1] Acceptance test: "Plus tard" affiche état explicatif sans déclencher téléchargement dans app/src/androidTest/java/com/foodgpt/onboarding/ModelDownloadOnboardingAcceptanceTest.kt
-- [x] T016 [P] [US1] Acceptance test: écran "Connexion requise" affiché quand offline sans modèle, avec bouton Réessayer dans app/src/androidTest/java/com/foodgpt/onboarding/ModelDownloadOnboardingAcceptanceTest.kt
+- [x] T014 [P] [US1] Acceptance test: premier lancement affiche écran confirmation avec type réseau et taille modèle dans app/src/androidTest/java/com/miamia/onboarding/ModelDownloadOnboardingAcceptanceTest.kt
+- [x] T015 [P] [US1] Acceptance test: "Plus tard" affiche état explicatif sans déclencher téléchargement dans app/src/androidTest/java/com/miamia/onboarding/ModelDownloadOnboardingAcceptanceTest.kt
+- [x] T016 [P] [US1] Acceptance test: écran "Connexion requise" affiché quand offline sans modèle, avec bouton Réessayer dans app/src/androidTest/java/com/miamia/onboarding/ModelDownloadOnboardingAcceptanceTest.kt
 
 ### Implementation for User Story 1
 
-- [x] T017 [US1] Implement `ModelDownloadOnboardingScreen` composable (titre, explication taille, info réseau détecté, boutons Confirmer/Plus tard) in app/src/main/java/com/foodgpt/onboarding/ModelDownloadOnboardingScreen.kt
-- [x] T018 [P] [US1] Implement `NetworkOfflineScreen` composable (message "Connexion requise", explication, bouton Réessayer) in app/src/main/java/com/foodgpt/onboarding/NetworkOfflineScreen.kt
-- [x] T019 [US1] Add ViewModel actions: `confirmDownload()`, `declineDownload()`, `retryNetworkCheck()` in app/src/main/java/com/foodgpt/onboarding/ModelDownloadViewModel.kt
-- [x] T020 [US1] Define onboarding navigation routes (onboarding_offline, onboarding_confirm, onboarding_downloading) and integrate as conditional startDestination in app/src/main/java/com/foodgpt/MainActivity.kt
-- [x] T021 [US1] Wire navigation: ConfirmationRequired → ModelDownloadOnboardingScreen, Offline → NetworkOfflineScreen, Ready → CameraFlowRoutes.Capture (popUpTo inclusive) in app/src/main/java/com/foodgpt/MainActivity.kt
+- [x] T017 [US1] Implement `ModelDownloadOnboardingScreen` composable (titre, explication taille, info réseau détecté, boutons Confirmer/Plus tard) in app/src/main/java/com/miamia/onboarding/ModelDownloadOnboardingScreen.kt
+- [x] T018 [P] [US1] Implement `NetworkOfflineScreen` composable (message "Connexion requise", explication, bouton Réessayer) in app/src/main/java/com/miamia/onboarding/NetworkOfflineScreen.kt
+- [x] T019 [US1] Add ViewModel actions: `confirmDownload()`, `declineDownload()`, `retryNetworkCheck()` in app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt
+- [x] T020 [US1] Define onboarding navigation routes (onboarding_offline, onboarding_confirm, onboarding_downloading) and integrate as conditional startDestination in app/src/main/java/com/miamia/MainActivity.kt
+- [x] T021 [US1] Wire navigation: ConfirmationRequired → ModelDownloadOnboardingScreen, Offline → NetworkOfflineScreen, Ready → CameraFlowRoutes.Capture (popUpTo inclusive) in app/src/main/java/com/miamia/MainActivity.kt
 
 **Checkpoint**: US1 complète — un premier lancement sans modèle affiche la confirmation ou l'écran offline ; "Confirmer" déclenche la transition vers downloading ; "Plus tard" affiche l'état Declined.
 
@@ -90,17 +90,17 @@
 
 > **NOTE: Écrire ces tests EN PREMIER, vérifier qu'ils ÉCHOUENT avant implémentation (ATDD)**
 
-- [x] T022 [P] [US2] Acceptance test: écran attente affiche titre "Téléchargement du modèle de langage en cours...", barre de progression, et fouet animé dans app/src/androidTest/java/com/foodgpt/onboarding/ModelDownloadWaitingAcceptanceTest.kt
-- [x] T023 [P] [US2] Acceptance test: phrases rotatives changent toutes les ~5s dans app/src/androidTest/java/com/foodgpt/onboarding/ModelDownloadWaitingAcceptanceTest.kt
-- [x] T024 [P] [US2] Acceptance test: redirection auto vers capture après succès + message erreur actionnable si échec dans app/src/androidTest/java/com/foodgpt/onboarding/ModelDownloadWaitingAcceptanceTest.kt
+- [x] T022 [P] [US2] Acceptance test: écran attente affiche titre "Téléchargement du modèle de langage en cours...", barre de progression, et fouet animé dans app/src/androidTest/java/com/miamia/onboarding/ModelDownloadWaitingAcceptanceTest.kt
+- [x] T023 [P] [US2] Acceptance test: phrases rotatives changent toutes les ~5s dans app/src/androidTest/java/com/miamia/onboarding/ModelDownloadWaitingAcceptanceTest.kt
+- [x] T024 [P] [US2] Acceptance test: redirection auto vers capture après succès + message erreur actionnable si échec dans app/src/androidTest/java/com/miamia/onboarding/ModelDownloadWaitingAcceptanceTest.kt
 
 ### Implementation for User Story 2
 
-- [x] T025 [US2] Implement `ModelDownloadWaitingScreen` composable (titre, barre de progression LinearProgressIndicator, pourcentage texte, AnimatedWhisk, phrases rotatives AnimatedContent) in app/src/main/java/com/foodgpt/onboarding/ModelDownloadWaitingScreen.kt
-- [x] T026 [US2] Implement ViewModel `startDownload()` method calling `downloadModelWithProgress`, updating state Downloading(progress) on each callback, transitioning to Ready or Error in app/src/main/java/com/foodgpt/onboarding/ModelDownloadViewModel.kt
-- [x] T027 [US2] Add error UI state within ModelDownloadWaitingScreen (message explicite + bouton Réessayer) in app/src/main/java/com/foodgpt/onboarding/ModelDownloadWaitingScreen.kt
-- [x] T028 [US2] Wire navigation: Downloading → ModelDownloadWaitingScreen, Ready → popUpTo + navigate CameraFlowRoutes.Capture in app/src/main/java/com/foodgpt/MainActivity.kt
-- [x] T029 [US2] Add ViewModel `retryDownload()` action (Error → Downloading transition) in app/src/main/java/com/foodgpt/onboarding/ModelDownloadViewModel.kt
+- [x] T025 [US2] Implement `ModelDownloadWaitingScreen` composable (titre, barre de progression LinearProgressIndicator, pourcentage texte, AnimatedWhisk, phrases rotatives AnimatedContent) in app/src/main/java/com/miamia/onboarding/ModelDownloadWaitingScreen.kt
+- [x] T026 [US2] Implement ViewModel `startDownload()` method calling `downloadModelWithProgress`, updating state Downloading(progress) on each callback, transitioning to Ready or Error in app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt
+- [x] T027 [US2] Add error UI state within ModelDownloadWaitingScreen (message explicite + bouton Réessayer) in app/src/main/java/com/miamia/onboarding/ModelDownloadWaitingScreen.kt
+- [x] T028 [US2] Wire navigation: Downloading → ModelDownloadWaitingScreen, Ready → popUpTo + navigate CameraFlowRoutes.Capture in app/src/main/java/com/miamia/MainActivity.kt
+- [x] T029 [US2] Add ViewModel `retryDownload()` action (Error → Downloading transition) in app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt
 
 **Checkpoint**: US2 complète — après confirmation, l'écran d'attente s'affiche avec progression réelle ; la fin du téléchargement redirige vers la caméra ; les erreurs sont gérées.
 
@@ -116,13 +116,13 @@
 
 > **NOTE: Écrire ces tests EN PREMIER, vérifier qu'ils ÉCHOUENT avant implémentation (ATDD)**
 
-- [x] T030 [P] [US3] Acceptance test: relancement après interruption affiche confirmation avec wording "Reprendre le téléchargement" (et non "Télécharger") dans app/src/androidTest/java/com/foodgpt/onboarding/ModelDownloadResumeAcceptanceTest.kt
+- [x] T030 [P] [US3] Acceptance test: relancement après interruption affiche confirmation avec wording "Reprendre le téléchargement" (et non "Télécharger") dans app/src/androidTest/java/com/miamia/onboarding/ModelDownloadResumeAcceptanceTest.kt
 
 ### Implementation for User Story 3
 
-- [x] T031 [US3] Detect partial download file (`.downloading` temp file presence) in ModelDownloadViewModel init and expose `isResumable: Boolean` in app/src/main/java/com/foodgpt/onboarding/ModelDownloadViewModel.kt
-- [x] T032 [US3] Adapt `ModelDownloadOnboardingScreen` wording: "Reprendre le téléchargement" when isResumable is true in app/src/main/java/com/foodgpt/onboarding/ModelDownloadOnboardingScreen.kt
-- [x] T033 [US3] Clean up stale `.downloading` file before starting new download in app/src/main/java/com/foodgpt/gemma4local/GemmaModelDownloader.kt
+- [x] T031 [US3] Detect partial download file (`.downloading` temp file presence) in ModelDownloadViewModel init and expose `isResumable: Boolean` in app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt
+- [x] T032 [US3] Adapt `ModelDownloadOnboardingScreen` wording: "Reprendre le téléchargement" when isResumable is true in app/src/main/java/com/miamia/onboarding/ModelDownloadOnboardingScreen.kt
+- [x] T033 [US3] Clean up stale `.downloading` file before starting new download in app/src/main/java/com/miamia/gemma4local/GemmaModelDownloader.kt
 
 **Checkpoint**: US3 complète — relancement post-interruption détecte le fichier partiel et propose une reprise.
 
@@ -132,9 +132,9 @@
 
 **Purpose**: Robustesse, vérification espace disque, concurrence, passage du modèle existant.
 
-- [x] T034 [P] Add disk space check before download (FR-014 SHOULD): warn if insufficient space in app/src/main/java/com/foodgpt/onboarding/ModelDownloadViewModel.kt
-- [x] T035 [P] Ensure no concurrent downloads (FR-012 MUST): mutex/flag preventing double startDownload() in app/src/main/java/com/foodgpt/onboarding/ModelDownloadViewModel.kt
-- [x] T036 [P] Skip onboarding when model already present (edge case): verify Ready state bypasses onboarding screens in app/src/main/java/com/foodgpt/onboarding/ModelDownloadViewModel.kt
+- [x] T034 [P] Add disk space check before download (FR-014 SHOULD): warn if insufficient space in app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt
+- [x] T035 [P] Ensure no concurrent downloads (FR-012 MUST): mutex/flag preventing double startDownload() in app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt
+- [x] T036 [P] Skip onboarding when model already present (edge case): verify Ready state bypasses onboarding screens in app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt
 - [ ] T037 Run quickstart.md validation scenarios manually (6 scénarios) and document results
 - [x] T038 Code cleanup: remove dead code, verify no unused imports across onboarding package
 

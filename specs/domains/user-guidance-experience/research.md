@@ -34,7 +34,7 @@
 
 ## Decision 5: Extraction composants partagés (fouet + phrases)
 
-- **Decision**: Extraire `AnimatedWhisk` et `WAITING_PHRASES` depuis `LlmResultScreen.kt` vers `com.foodgpt.ui.shared` pour réutilisation par l'écran onboarding.
+- **Decision**: Extraire `AnimatedWhisk` et `WAITING_PHRASES` depuis `LlmResultScreen.kt` vers `com.miamia.ui.shared` pour réutilisation par l'écran onboarding.
 - **Rationale**: Évite la duplication de code entre deux écrans qui utilisent exactement les mêmes composants visuels.
 - **Alternatives considered**:
   - Copier/dupliquer les composants dans le package onboarding (rejeté : violation DRY explicite et maintenance double).

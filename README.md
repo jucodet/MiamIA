@@ -1,6 +1,6 @@
 <div align="center">
 
-# FoodGPT
+# MiamIA
 
 **Scannez, comprenez, maîtrisez ce que vous mangez — 100 % sur votre téléphone.**
 
@@ -21,7 +21,7 @@ Application Android qui scanne les étiquettes alimentaires, extrait les ingréd
 
 ## A propos du projet
 
-FoodGPT permet à n'importe qui de **prendre en photo une étiquette alimentaire** et d'obtenir instantanément :
+MiamIA permet à n'importe qui de **prendre en photo une étiquette alimentaire** et d'obtenir instantanément :
 
 - La liste d'ingrédients structurée et corrigée (typos OCR)
 - Un bilan de composition objectif
@@ -30,7 +30,7 @@ FoodGPT permet à n'importe qui de **prendre en photo une étiquette alimentaire
 
 Tout le traitement se fait **localement sur l'appareil** grâce au modèle Gemma via LiteRT-LM. Aucune donnée ne quitte le téléphone.
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 ## Fonctionnalités
 
@@ -45,7 +45,7 @@ Tout le traitement se fait **localement sur l'appareil** grâce au modèle Gemma
 | **Onboarding LLM** | Téléchargement guidé du modèle avec détection Wi-Fi/4G, barre de progression et animations |
 | **100 % offline** | Toute l'intelligence tourne sur l'appareil — aucun serveur distant |
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 ## Stack technique
 
@@ -63,7 +63,7 @@ Tout le traitement se fait **localement sur l'appareil** grâce au modèle Gemma
 | Tests | **JUnit 4**, Robolectric 4.13, Espresso, Compose UI Test |
 | Méthodologie | **ATDD**, DDD, [Spec Kit](.specify/) |
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 ## Démarrage rapide
 
@@ -79,8 +79,8 @@ Tout le traitement se fait **localement sur l'appareil** grâce au modèle Gemma
 1. Cloner le dépôt
 
 ```sh
-git clone https://github.com/jucodet/FoodGpt.git
-cd FoodGpt
+git clone https://github.com/jucodet/MiamIA.git
+cd MiamIA
 ```
 
 2. Placer le modèle Gemma
@@ -111,7 +111,7 @@ Installer l'APK généré dans `app/build/outputs/apk/debug/` sur votre appareil
 ./gradlew connectedAndroidTest
 ```
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 ## Architecture
 
@@ -129,7 +129,7 @@ specs/domains/
 ### Structure du code source
 
 ```
-app/src/main/java/com/foodgpt/
+app/src/main/java/com/miamia/
 ├── additives/          # Extraction et classement des additifs
 ├── analysis/           # Orchestration de l'analyse LLM
 ├── camera/             # Intégration CameraX
@@ -159,7 +159,7 @@ Le projet est régi par une [constitution](.specify/memory/constitution.md) qui 
 - **Performance mesurable** — Objectifs chiffrés (latence, mémoire)
 - **Frontières DDD strictes** — Autonomie des bounded contexts, contrats explicites
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 ## Roadmap
 
@@ -176,7 +176,7 @@ Le projet est régi par une [constitution](.specify/memory/constitution.md) qui 
 - [ ] Comparaison de produits
 - [ ] Support multi-langues (étiquettes)
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 ## Contribuer
 
@@ -190,19 +190,19 @@ Les contributions sont les bienvenues.
 
 Chaque PR doit respecter la [constitution du projet](.specify/memory/constitution.md) : tests d'acceptation, pas de régression UX/performance, respect des frontières DDD.
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 ## Licence
 
 Distribué sans licence spécifiée pour le moment. Voir le dépôt pour les éventuelles mises à jour.
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 ## Contact
 
-Projet : [https://github.com/jucodet/FoodGpt](https://github.com/jucodet/FoodGpt)
+Projet : [https://github.com/jucodet/MiamIA](https://github.com/jucodet/MiamIA)
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 ## Remerciements
 
@@ -212,18 +212,18 @@ Projet : [https://github.com/jucodet/FoodGpt](https://github.com/jucodet/FoodGpt
 - [CameraX](https://developer.android.com/training/camerax) — API caméra simplifiée
 - [Best-README-Template](https://github.com/othneildrew/Best-README-Template) — Inspiration pour ce README
 
-<p align="right">(<a href="#foodgpt">haut de page</a>)</p>
+<p align="right">(<a href="#miamia">haut de page</a>)</p>
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/jucodet/FoodGpt.svg?style=for-the-badge
-[contributors-url]: https://github.com/jucodet/FoodGpt/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/jucodet/FoodGpt.svg?style=for-the-badge
-[forks-url]: https://github.com/jucodet/FoodGpt/network/members
-[stars-shield]: https://img.shields.io/github/stars/jucodet/FoodGpt.svg?style=for-the-badge
-[stars-url]: https://github.com/jucodet/FoodGpt/stargazers
-[issues-shield]: https://img.shields.io/github/issues/jucodet/FoodGpt.svg?style=for-the-badge
-[issues-url]: https://github.com/jucodet/FoodGpt/issues
-[license-shield]: https://img.shields.io/github/license/jucodet/FoodGpt.svg?style=for-the-badge
-[license-url]: https://github.com/jucodet/FoodGpt/blob/master/LICENSE
+[contributors-shield]: https://img.shields.io/github/contributors/jucodet/MiamIA.svg?style=for-the-badge
+[contributors-url]: https://github.com/jucodet/MiamIA/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/jucodet/MiamIA.svg?style=for-the-badge
+[forks-url]: https://github.com/jucodet/MiamIA/network/members
+[stars-shield]: https://img.shields.io/github/stars/jucodet/MiamIA.svg?style=for-the-badge
+[stars-url]: https://github.com/jucodet/MiamIA/stargazers
+[issues-shield]: https://img.shields.io/github/issues/jucodet/MiamIA.svg?style=for-the-badge
+[issues-url]: https://github.com/jucodet/MiamIA/issues
+[license-shield]: https://img.shields.io/github/license/jucodet/MiamIA.svg?style=for-the-badge
+[license-url]: https://github.com/jucodet/MiamIA/blob/master/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/jcodet

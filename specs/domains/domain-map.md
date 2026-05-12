@@ -1,4 +1,4 @@
-# Domain Map FoodGpt
+# Domain Map MiamIA
 
 ## Core Domain
 

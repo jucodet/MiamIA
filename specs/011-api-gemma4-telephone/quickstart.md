@@ -55,6 +55,6 @@ Verifier rapidement le comportement de la fonctionnalite d'analyse textuelle via
   - messages explicites d'indisponibilite via `Gemma4LocalUiMessageResolver`.
   - metriques non sensibles via `Gemma4LocalMetricsLogger` + `AnalysisLatencyTracker`.
 - Points a valider des que l'environnement de build est retabli:
-  - tests unitaires `com.foodgpt.gemma4local.*`
-  - tests Android `com.foodgpt.gemma4local.*`
+  - tests unitaires `com.miamia.gemma4local.*`
+  - tests Android `com.miamia.gemma4local.*`
   - mesure p95 sur appareils recents et minimum compatibles.

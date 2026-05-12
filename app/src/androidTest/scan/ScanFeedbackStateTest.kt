@@ -1,4 +1,4 @@
-package com.foodgpt.scan
+package com.miamia.scan
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Test

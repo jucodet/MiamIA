@@ -54,7 +54,7 @@ specs/007-live-camera-preview-capture/
 ```text
 app/
 └── src/
-    ├── main/java/com/foodgpt/
+    ├── main/java/com/miamia/
     │   ├── camera/
     │   │   ├── CameraScreen.kt
     │   │   ├── CameraPreviewBox.kt
@@ -65,7 +65,7 @@ app/
     │   │   └── CameraPermissionHandler.kt
     │   └── scan/
     │       └── TemporaryImageManager.kt
-    └── androidTest/java/com/foodgpt/camera/
+    └── androidTest/java/com/miamia/camera/
 ```
 
 **Structure Decision**: implémentation concentrée dans le module `camera` avec séparation preview/capture/état UI,

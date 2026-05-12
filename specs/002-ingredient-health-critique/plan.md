@@ -51,7 +51,7 @@ specs/002-ingredient-health-critique/
 ### Source Code (repository root)
 
 ```text
-app/src/main/java/com/foodgpt/
+app/src/main/java/com/miamia/
 ├── camera/
 │   ├── CameraViewModel.kt       # exposer / synchroniser le segment validé vers l’onglet santé
 │   ├── CameraScreen.kt         # (optionnel) signal pour dernier segment
@@ -66,7 +66,7 @@ app/src/main/java/com/foodgpt/
 │   ├── LastHealthAnalysisStore.kt
 │   └── LiteRtHealthCritiqueRunner.kt
 ├── MainActivity.kt              # onglets Caméra / Critique santé ; passage segment ViewModel ↔ caméra
-app/src/test/java/com/foodgpt/healthcritique/
+app/src/test/java/com/miamia/healthcritique/
 └── …                            # tests SC-005, parseur, validation « no segment »
 ```
 

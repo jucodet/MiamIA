@@ -18,9 +18,9 @@
 **Purpose**: Initialisation et alignement du module caméra sur la feature
 
 - [X] T001 Vérifier et ajuster dépendances CameraX/Compose/coroutines dans `app/build.gradle.kts`
-- [X] T002 Créer le squelette du composant preview dédié dans `app/src/main/java/com/foodgpt/camera/CameraPreviewBox.kt`
-- [X] T003 [P] Créer le contrôleur de capture dédié dans `app/src/main/java/com/foodgpt/camera/CameraCaptureController.kt`
-- [X] T004 [P] Ajouter la configuration de performance preview/capture dans `app/src/main/java/com/foodgpt/core/FeatureConfig.kt`
+- [X] T002 Créer le squelette du composant preview dédié dans `app/src/main/java/com/miamia/camera/CameraPreviewBox.kt`
+- [X] T003 [P] Créer le contrôleur de capture dédié dans `app/src/main/java/com/miamia/camera/CameraCaptureController.kt`
+- [X] T004 [P] Ajouter la configuration de performance preview/capture dans `app/src/main/java/com/miamia/core/FeatureConfig.kt`
 
 ---
 
@@ -28,14 +28,14 @@
 
 **Purpose**: Fondations de flux caméra avant toute user story
 
-- [X] T005 Étendre la machine d’états caméra pour inclure preview active/erreurs dédiées dans `app/src/main/java/com/foodgpt/camera/ScanState.kt`
-- [X] T006 [P] Implémenter le modèle de session preview (`LivePreviewSession`) dans `app/src/main/java/com/foodgpt/camera/LivePreviewSession.kt`
-- [X] T007 [P] Implémenter le modèle d’action capture (`CaptureAction`) dans `app/src/main/java/com/foodgpt/camera/CaptureAction.kt`
-- [X] T008 [P] Implémenter le modèle frame capturée (`CapturedFrame`) dans `app/src/main/java/com/foodgpt/camera/CapturedFrame.kt`
-- [X] T009 Implémenter le contrat applicatif preview/capture dans `app/src/main/java/com/foodgpt/camera/CameraPreviewCaptureContract.kt`
-- [X] T010 Implémenter la gestion permission et indisponibilité caméra dans `app/src/main/java/com/foodgpt/permissions/CameraPermissionHandler.kt`
-- [X] T011 Implémenter la stratégie anti double-clic capture dans `app/src/main/java/com/foodgpt/camera/CameraCaptureController.kt`
-- [X] T012 Implémenter la conservation temporaire image capturée dans `app/src/main/java/com/foodgpt/scan/TemporaryImageManager.kt`
+- [X] T005 Étendre la machine d’états caméra pour inclure preview active/erreurs dédiées dans `app/src/main/java/com/miamia/camera/ScanState.kt`
+- [X] T006 [P] Implémenter le modèle de session preview (`LivePreviewSession`) dans `app/src/main/java/com/miamia/camera/LivePreviewSession.kt`
+- [X] T007 [P] Implémenter le modèle d’action capture (`CaptureAction`) dans `app/src/main/java/com/miamia/camera/CaptureAction.kt`
+- [X] T008 [P] Implémenter le modèle frame capturée (`CapturedFrame`) dans `app/src/main/java/com/miamia/camera/CapturedFrame.kt`
+- [X] T009 Implémenter le contrat applicatif preview/capture dans `app/src/main/java/com/miamia/camera/CameraPreviewCaptureContract.kt`
+- [X] T010 Implémenter la gestion permission et indisponibilité caméra dans `app/src/main/java/com/miamia/permissions/CameraPermissionHandler.kt`
+- [X] T011 Implémenter la stratégie anti double-clic capture dans `app/src/main/java/com/miamia/camera/CameraCaptureController.kt`
+- [X] T012 Implémenter la conservation temporaire image capturée dans `app/src/main/java/com/miamia/scan/TemporaryImageManager.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -49,16 +49,16 @@
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-- [X] T013 [P] [US1] Écrire test instrumenté ouverture écran avec preview active dans `app/src/androidTest/java/com/foodgpt/camera/US1LivePreviewVisibleTest.kt`
-- [X] T014 [P] [US1] Écrire test instrumenté variation visuelle de preview au mouvement dans `app/src/androidTest/java/com/foodgpt/camera/US1PreviewReflectsMovementTest.kt`
-- [X] T015 [P] [US1] Écrire test unitaire interdisant placeholder visuel en mode preview actif dans `app/src/test/java/com/foodgpt/camera/US1NoPlaceholderWhenPreviewActiveTest.kt`
+- [X] T013 [P] [US1] Écrire test instrumenté ouverture écran avec preview active dans `app/src/androidTest/java/com/miamia/camera/US1LivePreviewVisibleTest.kt`
+- [X] T014 [P] [US1] Écrire test instrumenté variation visuelle de preview au mouvement dans `app/src/androidTest/java/com/miamia/camera/US1PreviewReflectsMovementTest.kt`
+- [X] T015 [P] [US1] Écrire test unitaire interdisant placeholder visuel en mode preview actif dans `app/src/test/java/com/miamia/camera/US1NoPlaceholderWhenPreviewActiveTest.kt`
 
 ### Implementation for User Story 1
 
-- [X] T016 [P] [US1] Implémenter le rendu `PreviewView` dans l’encart dédié dans `app/src/main/java/com/foodgpt/camera/CameraPreviewBox.kt`
-- [X] T017 [US1] Intégrer `CameraPreviewBox` dans l’écran caméra principal dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T018 [US1] Lier lifecycle caméra et transition vers état preview actif dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T019 [US1] Ajouter message explicite de statut preview (initialisation/actif) dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
+- [X] T016 [P] [US1] Implémenter le rendu `PreviewView` dans l’encart dédié dans `app/src/main/java/com/miamia/camera/CameraPreviewBox.kt`
+- [X] T017 [US1] Intégrer `CameraPreviewBox` dans l’écran caméra principal dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T018 [US1] Lier lifecycle caméra et transition vers état preview actif dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T019 [US1] Ajouter message explicite de statut preview (initialisation/actif) dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
 
 **Checkpoint**: User Story 1 pleinement testable et démontrable
 
@@ -72,17 +72,17 @@
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [X] T020 [P] [US2] Écrire test instrumenté capture sur clic bouton dans `app/src/androidTest/java/com/foodgpt/camera/US2CaptureOnButtonClickTest.kt`
-- [X] T021 [P] [US2] Écrire test instrumenté absence de capture sans clic dans `app/src/androidTest/java/com/foodgpt/camera/US2NoCaptureWithoutClickTest.kt`
-- [X] T022 [P] [US2] Écrire test unitaire anti double-clic (une capture à la fois) dans `app/src/test/java/com/foodgpt/camera/US2SingleCapturePerActionTest.kt`
-- [X] T023 [P] [US2] Écrire test de contrat `CaptureFrameCommand`/`CaptureFrameResult` dans `app/src/test/java/com/foodgpt/camera/US2CaptureContractTest.kt`
+- [X] T020 [P] [US2] Écrire test instrumenté capture sur clic bouton dans `app/src/androidTest/java/com/miamia/camera/US2CaptureOnButtonClickTest.kt`
+- [X] T021 [P] [US2] Écrire test instrumenté absence de capture sans clic dans `app/src/androidTest/java/com/miamia/camera/US2NoCaptureWithoutClickTest.kt`
+- [X] T022 [P] [US2] Écrire test unitaire anti double-clic (une capture à la fois) dans `app/src/test/java/com/miamia/camera/US2SingleCapturePerActionTest.kt`
+- [X] T023 [P] [US2] Écrire test de contrat `CaptureFrameCommand`/`CaptureFrameResult` dans `app/src/test/java/com/miamia/camera/US2CaptureContractTest.kt`
 
 ### Implementation for User Story 2
 
-- [X] T024 [P] [US2] Implémenter le bouton capture explicite et son état d’activation dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T025 [US2] Implémenter le déclenchement `takePicture()` dans `app/src/main/java/com/foodgpt/camera/CameraCaptureController.kt`
-- [X] T026 [US2] Mapper action utilisateur -> `CaptureAction` et résultat `CapturedFrame` dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T027 [US2] Implémenter feedback visuel immédiat post-capture dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
+- [X] T024 [P] [US2] Implémenter le bouton capture explicite et son état d’activation dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T025 [US2] Implémenter le déclenchement `takePicture()` dans `app/src/main/java/com/miamia/camera/CameraCaptureController.kt`
+- [X] T026 [US2] Mapper action utilisateur -> `CaptureAction` et résultat `CapturedFrame` dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T027 [US2] Implémenter feedback visuel immédiat post-capture dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
 
 **Checkpoint**: User Stories 1 et 2 fonctionnent indépendamment
 
@@ -96,16 +96,16 @@
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [X] T028 [P] [US3] Écrire test instrumenté permission refusée et message explicite dans `app/src/androidTest/java/com/foodgpt/camera/US3PermissionDeniedStateTest.kt`
-- [X] T029 [P] [US3] Écrire test instrumenté caméra indisponible sans faux preview dans `app/src/androidTest/java/com/foodgpt/camera/US3CameraUnavailableStateTest.kt`
-- [X] T030 [P] [US3] Écrire test unitaire de contrat `CameraErrorState` dans `app/src/test/java/com/foodgpt/camera/US3CameraErrorContractTest.kt`
+- [X] T028 [P] [US3] Écrire test instrumenté permission refusée et message explicite dans `app/src/androidTest/java/com/miamia/camera/US3PermissionDeniedStateTest.kt`
+- [X] T029 [P] [US3] Écrire test instrumenté caméra indisponible sans faux preview dans `app/src/androidTest/java/com/miamia/camera/US3CameraUnavailableStateTest.kt`
+- [X] T030 [P] [US3] Écrire test unitaire de contrat `CameraErrorState` dans `app/src/test/java/com/miamia/camera/US3CameraErrorContractTest.kt`
 
 ### Implementation for User Story 3
 
-- [X] T031 [P] [US3] Implémenter l’état erreur permission avec action réessai dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T032 [US3] Implémenter l’état erreur caméra indisponible dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T033 [US3] Implémenter affichage UI des erreurs explicites sans contenu factice dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T034 [US3] Implémenter redemande permission/relance preview dans `app/src/main/java/com/foodgpt/permissions/CameraPermissionHandler.kt`
+- [X] T031 [P] [US3] Implémenter l’état erreur permission avec action réessai dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T032 [US3] Implémenter l’état erreur caméra indisponible dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T033 [US3] Implémenter affichage UI des erreurs explicites sans contenu factice dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T034 [US3] Implémenter redemande permission/relance preview dans `app/src/main/java/com/miamia/permissions/CameraPermissionHandler.kt`
 
 **Checkpoint**: Toutes les user stories sont testables indépendamment
 
@@ -115,10 +115,10 @@
 
 **Purpose**: Finitions, performance, documentation et robustesse
 
-- [X] T035 [P] Mesurer et journaliser temps d’apparition preview (<3s) dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T036 [P] Mesurer feedback capture perçu (<300ms) dans `app/src/main/java/com/foodgpt/camera/CameraCaptureController.kt`
-- [X] T037 [P] Ajouter test instrumenté responsive (petit/grand écran) dans `app/src/androidTest/java/com/foodgpt/camera/ResponsivePreviewLayoutTest.kt`
-- [X] T038 [P] Ajouter test instrumenté reprise après rotation/background dans `app/src/androidTest/java/com/foodgpt/camera/PreviewLifecycleResumeTest.kt`
+- [X] T035 [P] Mesurer et journaliser temps d’apparition preview (<3s) dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T036 [P] Mesurer feedback capture perçu (<300ms) dans `app/src/main/java/com/miamia/camera/CameraCaptureController.kt`
+- [X] T037 [P] Ajouter test instrumenté responsive (petit/grand écran) dans `app/src/androidTest/java/com/miamia/camera/ResponsivePreviewLayoutTest.kt`
+- [X] T038 [P] Ajouter test instrumenté reprise après rotation/background dans `app/src/androidTest/java/com/miamia/camera/PreviewLifecycleResumeTest.kt`
 - [X] T039 Mettre à jour la documentation d’exécution et tests dans `specs/007-live-camera-preview-capture/quickstart.md`
 
 ---
@@ -161,10 +161,10 @@
 ## Parallel Example: User Story 2
 
 ```bash
-Task: "Écrire test instrumenté capture sur clic bouton dans app/src/androidTest/java/com/foodgpt/camera/US2CaptureOnButtonClickTest.kt"
-Task: "Écrire test instrumenté absence de capture sans clic dans app/src/androidTest/java/com/foodgpt/camera/US2NoCaptureWithoutClickTest.kt"
-Task: "Écrire test unitaire anti double-clic dans app/src/test/java/com/foodgpt/camera/US2SingleCapturePerActionTest.kt"
-Task: "Implémenter le bouton capture explicite et son état d’activation dans app/src/main/java/com/foodgpt/camera/CameraScreen.kt"
+Task: "Écrire test instrumenté capture sur clic bouton dans app/src/androidTest/java/com/miamia/camera/US2CaptureOnButtonClickTest.kt"
+Task: "Écrire test instrumenté absence de capture sans clic dans app/src/androidTest/java/com/miamia/camera/US2NoCaptureWithoutClickTest.kt"
+Task: "Écrire test unitaire anti double-clic dans app/src/test/java/com/miamia/camera/US2SingleCapturePerActionTest.kt"
+Task: "Implémenter le bouton capture explicite et son état d’activation dans app/src/main/java/com/miamia/camera/CameraScreen.kt"
 ```
 
 ---

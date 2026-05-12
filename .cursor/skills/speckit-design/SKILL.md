@@ -4,7 +4,7 @@ description: "Route une demande vers le bounded context et dossier specs/domains
 disable-model-invocation: true
 compatibility: "Requires spec-kit project structure with specs/ directory"
 metadata:
-  author: "foodgpt"
+  author: "miamia"
   source: "custom"
 ---
 

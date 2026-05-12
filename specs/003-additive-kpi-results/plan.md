@@ -51,7 +51,7 @@ specs/003-additive-kpi-results/
 ### Source Code (repository root)
 
 ```text
-app/src/main/java/com/foodgpt/
+app/src/main/java/com/miamia/
 ├── composition/
 │   ├── GemmaBilanParser.kt           # référence parseur existant ; évolution prompt ailleurs
 │   └── LiteRtGemmaEngine.kt         # extension possible du prompt système (bloc structuré additifs)
@@ -65,7 +65,7 @@ app/src/main/java/com/foodgpt/
 ├── camera/
 │   ├── CameraScreen.kt              # intégration UI KPI dans BilanReady
 │   └── CameraViewModel.kt          # optionnel : exposition état enrichi
-app/src/test/java/com/foodgpt/additives/
+app/src/test/java/com/miamia/additives/
 └── …                               # tests parseur + ordre + KPI
 ```
 

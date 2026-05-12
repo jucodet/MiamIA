@@ -4,7 +4,7 @@ description: "Continuously consolidate Spec Kit artifacts into a domain-centric 
 disable-model-invocation: true
 compatibility: "Requires spec-kit project structure with specs/ directory"
 metadata:
-  author: "foodgpt"
+  author: "miamia"
   source: "custom"
 ---
 

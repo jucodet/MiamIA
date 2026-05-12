@@ -51,7 +51,7 @@ specs/014-capture-liste-ingredients/
 ```text
 app/
 └── src/
-    ├── main/java/com/foodgpt/
+    ├── main/java/com/miamia/
     │   ├── recognition/
     │   │   ├── IngredientExtractionPipeline.kt
     │   │   └── ... (recognition flow)
@@ -59,9 +59,9 @@ app/
     │   │   └── ... (segment preparation flow)
     │   └── camera/
     │       └── CameraViewModel.kt
-    ├── test/java/com/foodgpt/
+    ├── test/java/com/miamia/
     │   └── recognition/
-    └── androidTest/java/com/foodgpt/
+    └── androidTest/java/com/miamia/
         └── camera/
 ```
 

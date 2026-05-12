@@ -50,7 +50,7 @@ specs/008-capture-photo-texte-ocr/
 
 ```text
 app/
-└── src/main/java/com/foodgpt/
+└── src/main/java/com/miamia/
     ├── camera/
     │   ├── CameraScreen.kt
     │   ├── CameraViewModel.kt

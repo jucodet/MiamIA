@@ -18,9 +18,9 @@
 **Purpose**: Initialisation Android/Kotlin et structure de base
 
 - [X] T001 Configurer les dépendances minimales (CameraX, Compose, Coroutines, ML Kit offline) dans `app/build.gradle.kts`
-- [X] T002 Créer la structure de packages feature selon le plan dans `app/src/main/java/com/foodgpt/`
+- [X] T002 Créer la structure de packages feature selon le plan dans `app/src/main/java/com/miamia/`
 - [X] T003 [P] Configurer permissions caméra et règles manifest dans `app/src/main/AndroidManifest.xml`
-- [X] T004 [P] Ajouter constantes feature et seuil OCR 0.70 dans `app/src/main/java/com/foodgpt/core/FeatureConfig.kt`
+- [X] T004 [P] Ajouter constantes feature et seuil OCR 0.70 dans `app/src/main/java/com/miamia/core/FeatureConfig.kt`
 
 ---
 
@@ -28,14 +28,14 @@
 
 **Purpose**: Fondations partagées bloquantes avant les user stories
 
-- [X] T005 Implémenter la détection de capacité AI Edge device dans `app/src/main/java/com/foodgpt/recognition/DeviceAiCapabilityDetector.kt`
-- [X] T006 [P] Définir interfaces de reconnaissance et résultats contractuels dans `app/src/main/java/com/foodgpt/recognition/RecognitionContracts.kt`
-- [X] T007 Implémenter le fallback OCR local offline ML Kit dans `app/src/main/java/com/foodgpt/recognition/LocalOcrFallbackRecognizer.kt`
-- [X] T008 Implémenter le wrapper AI Edge Gallery (si disponible) dans `app/src/main/java/com/foodgpt/recognition/AiEdgeGalleryRecognizer.kt`
-- [X] T009 Implémenter le sélecteur de moteur priorisant AI Edge puis fallback dans `app/src/main/java/com/foodgpt/recognition/RecognitionEngineSelector.kt`
-- [X] T010 [P] Créer entités Room (`ScanAttemptEntity`, `ValidatedIngredientEntity`) dans `app/src/main/java/com/foodgpt/data/db/ScanEntities.kt`
-- [X] T011 [P] Créer DAO et base locale de session scan dans `app/src/main/java/com/foodgpt/data/db/AppDatabase.kt`
-- [X] T012 Implémenter le manager de photo temporaire avec suppression automatique dans `app/src/main/java/com/foodgpt/camera/TemporaryImageManager.kt`
+- [X] T005 Implémenter la détection de capacité AI Edge device dans `app/src/main/java/com/miamia/recognition/DeviceAiCapabilityDetector.kt`
+- [X] T006 [P] Définir interfaces de reconnaissance et résultats contractuels dans `app/src/main/java/com/miamia/recognition/RecognitionContracts.kt`
+- [X] T007 Implémenter le fallback OCR local offline ML Kit dans `app/src/main/java/com/miamia/recognition/LocalOcrFallbackRecognizer.kt`
+- [X] T008 Implémenter le wrapper AI Edge Gallery (si disponible) dans `app/src/main/java/com/miamia/recognition/AiEdgeGalleryRecognizer.kt`
+- [X] T009 Implémenter le sélecteur de moteur priorisant AI Edge puis fallback dans `app/src/main/java/com/miamia/recognition/RecognitionEngineSelector.kt`
+- [X] T010 [P] Créer entités Room (`ScanAttemptEntity`, `ValidatedIngredientEntity`) dans `app/src/main/java/com/miamia/data/db/ScanEntities.kt`
+- [X] T011 [P] Créer DAO et base locale de session scan dans `app/src/main/java/com/miamia/data/db/AppDatabase.kt`
+- [X] T012 Implémenter le manager de photo temporaire avec suppression automatique dans `app/src/main/java/com/miamia/camera/TemporaryImageManager.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -49,18 +49,18 @@
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-- [X] T013 [P] [US1] Écrire test d'acceptation capture->extraction->liste dans `app/src/androidTest/java/com/foodgpt/ingredients/US1ExtractIngredientsFlowTest.kt`
-- [X] T014 [P] [US1] Écrire test de contrat `StartIngredientRecognitionCommand` et `IngredientRecognitionResult` dans `app/src/test/java/com/foodgpt/recognition/IngredientRecognitionContractTest.kt`
-- [X] T015 [P] [US1] Écrire test offline garantissant zéro appel réseau dans `app/src/test/java/com/foodgpt/recognition/OfflineOnlyRecognitionTest.kt`
+- [X] T013 [P] [US1] Écrire test d'acceptation capture->extraction->liste dans `app/src/androidTest/java/com/miamia/ingredients/US1ExtractIngredientsFlowTest.kt`
+- [X] T014 [P] [US1] Écrire test de contrat `StartIngredientRecognitionCommand` et `IngredientRecognitionResult` dans `app/src/test/java/com/miamia/recognition/IngredientRecognitionContractTest.kt`
+- [X] T015 [P] [US1] Écrire test offline garantissant zéro appel réseau dans `app/src/test/java/com/miamia/recognition/OfflineOnlyRecognitionTest.kt`
 
 ### Implementation for User Story 1
 
-- [X] T016 [P] [US1] Implémenter le pipeline parsing ingrédients (ordre, séparateurs, allergènes) dans `app/src/main/java/com/foodgpt/recognition/IngredientExtractionPipeline.kt`
-- [X] T017 [US1] Implémenter l'orchestrateur capture->OCR->extraction dans `app/src/main/java/com/foodgpt/recognition/IngredientRecognitionCoordinator.kt`
-- [X] T018 [US1] Implémenter état UI de scan (idle/processing/success/failure) dans `app/src/main/java/com/foodgpt/ingredients/IngredientListState.kt`
-- [X] T019 [US1] Implémenter écran caméra responsive et déclenchement scan dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
-- [X] T020 [US1] Implémenter ViewModel de scan et exposition liste extraite dans `app/src/main/java/com/foodgpt/camera/CameraViewModel.kt`
-- [X] T021 [US1] Implémenter mapping résultat OCR -> `ExtractedIngredientItem` dans `app/src/main/java/com/foodgpt/ingredients/ExtractedIngredientMapper.kt`
+- [X] T016 [P] [US1] Implémenter le pipeline parsing ingrédients (ordre, séparateurs, allergènes) dans `app/src/main/java/com/miamia/recognition/IngredientExtractionPipeline.kt`
+- [X] T017 [US1] Implémenter l'orchestrateur capture->OCR->extraction dans `app/src/main/java/com/miamia/recognition/IngredientRecognitionCoordinator.kt`
+- [X] T018 [US1] Implémenter état UI de scan (idle/processing/success/failure) dans `app/src/main/java/com/miamia/ingredients/IngredientListState.kt`
+- [X] T019 [US1] Implémenter écran caméra responsive et déclenchement scan dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+- [X] T020 [US1] Implémenter ViewModel de scan et exposition liste extraite dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [X] T021 [US1] Implémenter mapping résultat OCR -> `ExtractedIngredientItem` dans `app/src/main/java/com/miamia/ingredients/ExtractedIngredientMapper.kt`
 
 **Checkpoint**: User Story 1 fonctionne de manière autonome et testable
 
@@ -74,16 +74,16 @@
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [X] T022 [P] [US2] Écrire test d'acceptation édition + validation utilisateur dans `app/src/androidTest/java/com/foodgpt/ingredients/US2EditAndValidateFlowTest.kt`
-- [X] T023 [P] [US2] Écrire test de contrat `ValidateIngredientListCommand`/`ValidateIngredientListResult` dans `app/src/test/java/com/foodgpt/ingredients/IngredientValidationContractTest.kt`
+- [X] T022 [P] [US2] Écrire test d'acceptation édition + validation utilisateur dans `app/src/androidTest/java/com/miamia/ingredients/US2EditAndValidateFlowTest.kt`
+- [X] T023 [P] [US2] Écrire test de contrat `ValidateIngredientListCommand`/`ValidateIngredientListResult` dans `app/src/test/java/com/miamia/ingredients/IngredientValidationContractTest.kt`
 
 ### Implementation for User Story 2
 
-- [X] T024 [P] [US2] Implémenter écran d'édition de la liste extraite dans `app/src/main/java/com/foodgpt/ingredients/IngredientEditorScreen.kt`
-- [X] T025 [US2] Implémenter règles de validation des entrées utilisateur dans `app/src/main/java/com/foodgpt/ingredients/IngredientValidationUseCase.kt`
-- [X] T026 [US2] Implémenter persistance de `ValidatedIngredientList` dans `app/src/main/java/com/foodgpt/data/repository/ValidatedIngredientRepository.kt`
-- [X] T027 [US2] Implémenter auto-validation conditionnelle (OCR >= 0.70) dans `app/src/main/java/com/foodgpt/ingredients/AutoValidationPolicy.kt`
-- [X] T028 [US2] Connecter édition/validation au ViewModel dans `app/src/main/java/com/foodgpt/ingredients/IngredientEditorViewModel.kt`
+- [X] T024 [P] [US2] Implémenter écran d'édition de la liste extraite dans `app/src/main/java/com/miamia/ingredients/IngredientEditorScreen.kt`
+- [X] T025 [US2] Implémenter règles de validation des entrées utilisateur dans `app/src/main/java/com/miamia/ingredients/IngredientValidationUseCase.kt`
+- [X] T026 [US2] Implémenter persistance de `ValidatedIngredientList` dans `app/src/main/java/com/miamia/data/repository/ValidatedIngredientRepository.kt`
+- [X] T027 [US2] Implémenter auto-validation conditionnelle (OCR >= 0.70) dans `app/src/main/java/com/miamia/ingredients/AutoValidationPolicy.kt`
+- [X] T028 [US2] Connecter édition/validation au ViewModel dans `app/src/main/java/com/miamia/ingredients/IngredientEditorViewModel.kt`
 
 **Checkpoint**: User Stories 1 et 2 sont indépendamment fonctionnelles
 
@@ -97,15 +97,15 @@
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [X] T029 [P] [US3] Écrire test d'acceptation scénario photo floue + relance manuelle dans `app/src/androidTest/java/com/foodgpt/ingredients/US3FailureAndRetryFlowTest.kt`
-- [X] T030 [P] [US3] Écrire test garantissant absence de retry automatique dans `app/src/test/java/com/foodgpt/recognition/NoAutoRetryPolicyTest.kt`
+- [X] T029 [P] [US3] Écrire test d'acceptation scénario photo floue + relance manuelle dans `app/src/androidTest/java/com/miamia/ingredients/US3FailureAndRetryFlowTest.kt`
+- [X] T030 [P] [US3] Écrire test garantissant absence de retry automatique dans `app/src/test/java/com/miamia/recognition/NoAutoRetryPolicyTest.kt`
 
 ### Implementation for User Story 3
 
-- [X] T031 [P] [US3] Implémenter classification des échecs (blur, low-contrast, incomplet) dans `app/src/main/java/com/foodgpt/recognition/ScanFailureClassifier.kt`
-- [X] T032 [US3] Implémenter génération des messages utilisateur d'échec explicites dans `app/src/main/java/com/foodgpt/ingredients/ScanFailureMessageBuilder.kt`
-- [X] T033 [US3] Implémenter action de relance manuelle dans `app/src/main/java/com/foodgpt/ingredients/RetryScanActionHandler.kt`
-- [X] T034 [US3] Intégrer l'affichage des erreurs dans l'écran de scan dans `app/src/main/java/com/foodgpt/camera/CameraScreen.kt`
+- [X] T031 [P] [US3] Implémenter classification des échecs (blur, low-contrast, incomplet) dans `app/src/main/java/com/miamia/recognition/ScanFailureClassifier.kt`
+- [X] T032 [US3] Implémenter génération des messages utilisateur d'échec explicites dans `app/src/main/java/com/miamia/ingredients/ScanFailureMessageBuilder.kt`
+- [X] T033 [US3] Implémenter action de relance manuelle dans `app/src/main/java/com/miamia/ingredients/RetryScanActionHandler.kt`
+- [X] T034 [US3] Intégrer l'affichage des erreurs dans l'écran de scan dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
 
 **Checkpoint**: Toutes les user stories sont indépendamment testables et complètes
 
@@ -116,9 +116,9 @@
 **Purpose**: Finitions transverses, performance, conformité et documentation
 
 - [X] T035 [P] Documenter setup/exécution/ATDD de la feature dans `specs/006-identify-photo-ingredients/quickstart.md`
-- [X] T036 Vérifier et optimiser latence p95 extraction (<8s) dans `app/src/main/java/com/foodgpt/recognition/IngredientRecognitionCoordinator.kt`
-- [X] T037 [P] Vérifier suppression systématique de la photo temporaire dans `app/src/test/java/com/foodgpt/camera/TemporaryImageManagerTest.kt`
-- [X] T038 [P] Vérifier responsive UI (petits/grands écrans) dans `app/src/androidTest/java/com/foodgpt/ingredients/ResponsiveLayoutTest.kt`
+- [X] T036 Vérifier et optimiser latence p95 extraction (<8s) dans `app/src/main/java/com/miamia/recognition/IngredientRecognitionCoordinator.kt`
+- [X] T037 [P] Vérifier suppression systématique de la photo temporaire dans `app/src/test/java/com/miamia/camera/TemporaryImageManagerTest.kt`
+- [X] T038 [P] Vérifier responsive UI (petits/grands écrans) dans `app/src/androidTest/java/com/miamia/ingredients/ResponsiveLayoutTest.kt`
 - [X] T039 Vérifier dépendances minimales et supprimer libs inutilisées dans `app/build.gradle.kts`
 
 ---
@@ -161,9 +161,9 @@
 ## Parallel Example: User Story 1
 
 ```bash
-Task: "Écrire test d'acceptation capture->extraction->liste dans app/src/androidTest/java/com/foodgpt/ingredients/US1ExtractIngredientsFlowTest.kt"
-Task: "Écrire test de contrat StartIngredientRecognitionCommand et IngredientRecognitionResult dans app/src/test/java/com/foodgpt/recognition/IngredientRecognitionContractTest.kt"
-Task: "Implémenter le pipeline parsing ingrédients dans app/src/main/java/com/foodgpt/recognition/IngredientExtractionPipeline.kt"
+Task: "Écrire test d'acceptation capture->extraction->liste dans app/src/androidTest/java/com/miamia/ingredients/US1ExtractIngredientsFlowTest.kt"
+Task: "Écrire test de contrat StartIngredientRecognitionCommand et IngredientRecognitionResult dans app/src/test/java/com/miamia/recognition/IngredientRecognitionContractTest.kt"
+Task: "Implémenter le pipeline parsing ingrédients dans app/src/main/java/com/miamia/recognition/IngredientExtractionPipeline.kt"
 ```
 
 ---

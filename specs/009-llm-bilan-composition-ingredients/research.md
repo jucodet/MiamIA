@@ -3,7 +3,7 @@
 ## Décision 1: Runtime LLM = Gemma via LiteRT (on-device)
 
 - **Decision**: Exécuter Gemma **localement** avec le runtime **LiteRT** (`com.google.ai.edge.litert:litert`), déjà déclaré dans le module `app`, pour transformer le **texte capturé** en structure **bilan** (liste d’ingrédients + analyse composition).
-- **Rationale**: Alignement avec la directive produit/plan (« grâce à Gemma »), avec FR-011 (pas d’envoi texte hors appareil), cohérence stack FoodGPT (LiteRT déjà intégré), une seule pile à maintenir pour inférence edge.
+- **Rationale**: Alignement avec la directive produit/plan (« grâce à Gemma »), avec FR-011 (pas d’envoi texte hors appareil), cohérence stack MiamIA (LiteRT déjà intégré), une seule pile à maintenir pour inférence edge.
 - **Alternatives considered**:
   - **MediaPipe Tasks GenAI / LLM Inference** avec Gemma : viable ; rejetée comme primaire pour MVP pour éviter une deuxième stack si LiteRT suffit — réouverture possible si contraintes modèle/format imposent MediaPipe.
   - **Service cloud LLM**: exclu (contradictoire avec spec + clarifications).

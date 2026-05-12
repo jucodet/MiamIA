@@ -35,5 +35,5 @@
 ## Validation implementation
 
 - Les composants `welcome` (provider, selector, policy, etat UI, logger) sont implementes et relies a l'ecran principal.
-- Les tests unitaires et d'instrumentation de la feature sont ajoutes dans `app/src/test/java/com/foodgpt/welcome/` et `app/src/androidTest/java/com/foodgpt/welcome/`.
+- Les tests unitaires et d'instrumentation de la feature sont ajoutes dans `app/src/test/java/com/miamia/welcome/` et `app/src/androidTest/java/com/miamia/welcome/`.
 - Execution automatique locale non finalisee dans cet environnement car le wrapper Gradle est incomplet (`org.gradle.wrapper.GradleWrapperMain` introuvable).

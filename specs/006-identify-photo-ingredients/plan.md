@@ -54,7 +54,7 @@ specs/006-identify-photo-ingredients/
 ```text
 app/
 └── src/
-    ├── main/java/com/foodgpt/
+    ├── main/java/com/miamia/
     │   ├── camera/
     │   │   ├── CameraScreen.kt
     │   │   └── CameraViewModel.kt
