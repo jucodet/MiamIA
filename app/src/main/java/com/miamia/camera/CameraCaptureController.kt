@@ -3,7 +3,9 @@ package com.miamia.camera
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
@@ -15,6 +17,7 @@ import com.miamia.core.FeatureConfig
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -25,6 +28,8 @@ class CameraCaptureController(
     private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
+    private var camera: Camera? = null
+    private var boundPreviewView: PreviewView? = null
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
 
@@ -45,12 +50,13 @@ class CameraCaptureController(
                 .build()
             imageCapture = capture
 
-            provider.bindToLifecycle(
+            camera = provider.bindToLifecycle(
                 lifecycleOwner,
                 CameraSelector.DEFAULT_BACK_CAMERA,
                 previewUseCase,
                 capture
             )
+            boundPreviewView = previewView
             Result.success(Unit)
         } catch (t: Throwable) {
             Log.e(TAG, "bind_failed", t)
@@ -64,10 +70,22 @@ class CameraCaptureController(
         } catch (_: Throwable) {
             // ignore
         }
+        camera = null
+        boundPreviewView = null
         preview = null
         imageCapture = null
         cameraProvider = null
         captureInFlight.set(false)
+    }
+
+    fun focusOnPoint(x: Float, y: Float) {
+        val cam = camera ?: return
+        val pv = boundPreviewView ?: return
+        val point = pv.meteringPointFactory.createPoint(x, y)
+        val action = FocusMeteringAction.Builder(point)
+            .setAutoCancelDuration(3, TimeUnit.SECONDS)
+            .build()
+        cam.cameraControl.startFocusAndMetering(action)
     }
 
     suspend fun captureToFile(outputFile: File): Result<Unit> {

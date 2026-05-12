@@ -1,5 +1,9 @@
 package com.miamia.camera
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,14 +22,21 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -34,6 +45,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.miamia.home.HomeSpacingRules
 import com.miamia.home.MediaPipeStatusIndicator
 import com.miamia.welcome.WelcomeMessageUiState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
@@ -287,6 +300,8 @@ fun CameraScreen(
             ScanState.PreviewActive,
             ScanState.Capturing,
             ScanState.Analyzing -> {
+                var focusTapOffset by remember { mutableStateOf<Offset?>(null) }
+                var focusTapKey by remember { mutableIntStateOf(0) }
                 Column(verticalArrangement = Arrangement.spacedBy(HomeSpacingRules.standardFixedSpacing)) {
                     key(previewSession) {
                         Box(
@@ -301,6 +316,27 @@ fun CameraScreen(
                                 },
                                 modifier = Modifier.fillMaxSize()
                             )
+                            if (state == ScanState.PreviewActive) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .pointerInput(Unit) {
+                                            detectTapGestures { offset ->
+                                                focusTapOffset = offset
+                                                focusTapKey++
+                                                viewModel.tapToFocus(offset.x, offset.y)
+                                            }
+                                        }
+                                )
+                            }
+                            focusTapOffset?.let { offset ->
+                                key(focusTapKey) {
+                                    FocusRingIndicator(
+                                        position = offset,
+                                        onAnimationEnd = { focusTapOffset = null }
+                                    )
+                                }
+                            }
                             if (state is ScanState.PreviewInitializing) {
                                 Box(
                                     modifier = Modifier.fillMaxSize(),
@@ -356,5 +392,36 @@ fun CameraScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FocusRingIndicator(
+    position: Offset,
+    onAnimationEnd: () -> Unit
+) {
+    val alpha = remember { Animatable(1f) }
+    val scale = remember { Animatable(1.4f) }
+    val ringRadiusDp = 28.dp
+    val strokeWidthDp = 2.dp
+    val density = LocalDensity.current
+    val ringRadiusPx = with(density) { ringRadiusDp.toPx() }
+    val strokeWidthPx = with(density) { strokeWidthDp.toPx() }
+
+    LaunchedEffect(Unit) {
+        launch { scale.animateTo(1f, tween(durationMillis = 250)) }
+        delay(700)
+        alpha.animateTo(0f, tween(durationMillis = 300))
+        onAnimationEnd()
+    }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        drawCircle(
+            color = Color.White,
+            radius = ringRadiusPx * scale.value,
+            center = position,
+            alpha = alpha.value,
+            style = Stroke(width = strokeWidthPx)
+        )
     }
 }

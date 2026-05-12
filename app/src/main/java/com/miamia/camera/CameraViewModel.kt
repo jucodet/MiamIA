@@ -306,6 +306,10 @@ class CameraViewModel(
         _scanState.value = ScanState.Success(transcriptText = raw, items = items)
     }
 
+    fun tapToFocus(x: Float, y: Float) {
+        captureController.focusOnPoint(x, y)
+    }
+
     fun attachPreview(previewView: PreviewView, lifecycleOwner: LifecycleOwner) {
         if (!permissionHandler.hasCameraPermission(getApplication())) {
             _scanState.value = ScanState.PermissionDenied
