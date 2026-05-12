@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.LocalDining
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -100,7 +101,8 @@ fun LlmResultScreen(
                         rawTranscript = state.rawTranscript,
                         additiveKpi = null,
                         showRaw = showRaw,
-                        onToggleRaw = { showRaw = !showRaw }
+                        onToggleRaw = { showRaw = !showRaw },
+                        inferenceTimeMs = state.inferenceTimeMs
                     )
                 }
 
@@ -178,6 +180,33 @@ private fun StreamingHeader() {
 
 @Composable
 private fun StreamingContent(state: StreamingBilanState.Streaming) {
+    AnimatedVisibility(
+        visible = state.partialProduct != null,
+        enter = fadeIn()
+    ) {
+        StreamingSectionCard(
+            icon = Icons.Filled.LocalDining,
+            iconTint = MiamIAColors.SectionSynthese,
+            title = "Produit identifié",
+            isLoading = state.sectionReached == StreamingSection.PRODUIT,
+            testTag = "streaming_product_card"
+        ) {
+            if (state.partialProduct != null) {
+                val label = if (state.partialProductConfidence != null) {
+                    "Identification d'un ${state.partialProduct} à ${state.partialProductConfidence}\u00A0%"
+                } else {
+                    "Identification d'un ${state.partialProduct}"
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+    }
+
     AnimatedVisibility(
         visible = state.partialAnalysis != null,
         enter = fadeIn()

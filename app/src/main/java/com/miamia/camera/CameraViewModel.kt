@@ -209,9 +209,11 @@ class CameraViewModel(
             _scanState.value = ScanState.CompositionAnalyzing()
             _streamingBilan.value = StreamingBilanState.Streaming()
             navigateToResultScreen()
+            val mockInferenceStart = SystemClock.elapsedRealtime()
             try {
                 when (val outcome = runner.run()) {
                     is HomeLlmMockOutcome.Success -> {
+                        val mockInferenceTimeMs = SystemClock.elapsedRealtime() - mockInferenceStart
                         val parsed = StreamingBilanParser.parsePartial(outcome.responseText)
                         _streamingBilan.value = parsed.copy(
                             sectionReached = StreamingSection.DONE
@@ -220,7 +222,8 @@ class CameraViewModel(
                         if (bilan != null) {
                             _streamingBilan.value = StreamingBilanState.Complete(
                                 bilan = bilan,
-                                rawTranscript = outcome.responseText
+                                rawTranscript = outcome.responseText,
+                                inferenceTimeMs = mockInferenceTimeMs
                             )
                         }
                     }
@@ -448,6 +451,7 @@ class CameraViewModel(
         _streamingBilan.value = StreamingBilanState.Streaming()
         navigateToResultScreen()
 
+        val inferenceStart = SystemClock.elapsedRealtime()
         val outcome = engine.analyze(
             rawText,
             FeatureConfig.COMPOSITION_ANALYSIS_TIMEOUT_MS
@@ -461,6 +465,7 @@ class CameraViewModel(
             }
             _streamingBilan.value = StreamingBilanParser.parsePartial(partial)
         }
+        val inferenceTimeMs = SystemClock.elapsedRealtime() - inferenceStart
         clearAdditiveKpiDisplay()
         when (outcome) {
             is AnalyzeCompositionResult.BilanSuccess -> {
@@ -483,7 +488,8 @@ class CameraViewModel(
                             _lastValidatedSegmentForHealth.value = rawText
                             _streamingBilan.value = StreamingBilanState.Complete(
                                 bilan = v.bilan,
-                                rawTranscript = rawText
+                                rawTranscript = rawText,
+                                inferenceTimeMs = inferenceTimeMs
                             )
                             if (!_captureRouteActive.value) {
                                 val kpi = withContext(Dispatchers.Default) {
@@ -493,7 +499,8 @@ class CameraViewModel(
                                 _scanState.value = ScanState.BilanReady(
                                     bilan = v.bilan,
                                     rawTranscript = rawText,
-                                    itemsPreview = itemsPreview
+                                    itemsPreview = itemsPreview,
+                                    inferenceTimeMs = inferenceTimeMs
                                 )
                             }
                         }

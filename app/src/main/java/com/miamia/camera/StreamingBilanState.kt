@@ -17,7 +17,8 @@ sealed class StreamingBilanState {
 
     data class Complete(
         val bilan: CompositionBilan,
-        val rawTranscript: String
+        val rawTranscript: String,
+        val inferenceTimeMs: Long = 0L
     ) : StreamingBilanState()
 
     data class Error(

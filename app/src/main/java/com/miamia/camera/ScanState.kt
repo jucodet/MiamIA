@@ -34,7 +34,8 @@ sealed class ScanState {
     data class BilanReady(
         val bilan: CompositionBilan,
         val rawTranscript: String,
-        val itemsPreview: List<String>
+        val itemsPreview: List<String>,
+        val inferenceTimeMs: Long = 0L
     ) : ScanState()
 
     /** Gemma absent ou exécution impossible (spec 009 US3). */

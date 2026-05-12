@@ -170,7 +170,8 @@ fun CameraScreen(
                         rawTranscript = bilanState.rawTranscript,
                         additiveKpi = additiveKpi,
                         showRaw = showRaw,
-                        onToggleRaw = { showRaw = !showRaw }
+                        onToggleRaw = { showRaw = !showRaw },
+                        inferenceTimeMs = bilanState.inferenceTimeMs
                     )
                     Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
                         Text("Nouveau scan")

@@ -67,6 +67,7 @@ fun BilanResultCard(
     additiveKpi: AnalysisDisplayResult?,
     showRaw: Boolean,
     onToggleRaw: () -> Unit,
+    inferenceTimeMs: Long = 0L,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -86,10 +87,40 @@ fun BilanResultCard(
             AdditivesSection(kpi, onRequestShowRaw = onToggleRaw)
         }
         DisclaimerSection(bilan.disclaimer)
+        if (inferenceTimeMs > 0L) {
+            InferenceTimeBadge(inferenceTimeMs)
+        }
         RawTranscriptToggle(
             showRaw = showRaw,
             rawTranscript = rawTranscript,
             onToggle = onToggleRaw
+        )
+    }
+}
+
+@Composable
+private fun InferenceTimeBadge(inferenceTimeMs: Long) {
+    val seconds = inferenceTimeMs / 1000.0
+    val formatted = "%.1f".format(seconds)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Info,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = "Inférence : ${formatted}s",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag("inference_time_label")
         )
     }
 }

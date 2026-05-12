@@ -102,12 +102,15 @@ class HybridGemma4LocalGateway(
         return try {
             engine.initialize()
             val systemInstruction = Contents.of(
-                "Tu analyses des listes d'ingredients alimentaires. " +
-                    "Reponds uniquement avec 4 sections dans cet ordre : ###LISTE, ###ANALYSE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
-                    "Exemple : ###LISTE\n- eau\n- sucre\n- E300\n###ANALYSE\nProduit simple. Peu d'additifs.\n" +
+                "Tu analyses des listes d'ingredients alimentaires (contexte UE, francais). " +
+                    "Ne pas inventer d'ingredients absents du texte source. " +
+                    "Reponds uniquement avec 5 sections dans cet ordre : ###LISTE, ###PRODUIT, ###ANALYSE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
+                    "Exemple : ###LISTE\n- eau\n- sucre\n- E300\n###PRODUIT\nLimonade ou soda sucre|80\n###ANALYSE\nProduit simple. Peu d'additifs.\n" +
                     "###ADDITIFS_RISQUE\nVERT|E300|Vitamine C naturelle\n" +
                     "###IMPACT_SANTE\nVERT|eau|Hydratation essentielle\nORANGE|sucre|Exces lie au surpoids\nVERT|E300|Sans risque aux doses alimentaires\n" +
-                    "Regles : ###LISTE un ingredient par ligne avec -. ###ANALYSE 3 phrases max. " +
+                    "Regles : ###LISTE un ingredient par ligne avec -. " +
+                    "###PRODUIT une seule ligne, format nom_du_produit|pourcentage_certitude (0-100). Le produit alimentaire le plus probable auquel ces ingredients appartiennent. " +
+                    "###ANALYSE 3 phrases max, factuelles, prudentes. " +
                     "###ADDITIFS_RISQUE et ###IMPACT_SANTE : chaque ligne commence par VERT ou ORANGE ou ROUGE ou INCERTAIN puis | puis nom puis | puis note courte. " +
                     "Si aucun additif, laisser ###ADDITIFS_RISQUE vide."
             )
