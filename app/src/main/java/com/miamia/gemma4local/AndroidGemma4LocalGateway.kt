@@ -99,12 +99,21 @@ class AndroidGemma4LocalGateway(
         return try {
             engine.initialize()
             val systemInstruction = Contents.of(
-                "Tu analyses des listes d'ingredients alimentaires. " +
-                    "Reponds uniquement avec 4 sections dans cet ordre : ###LISTE, ###ANALYSE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
+                "Reponds entierement en francais. Tu analyses des listes d'ingredients alimentaires (contexte UE). " +
+                    "Ne pas inventer d'ingredients absents du texte source. " +
+                    "Pour ###LISTE : un ingredient par ligne avec - ; reformule chaque libelle OCR vers la graphie la plus probable sans changer le sens ni l'ordre des entrees lues. " +
+                    "Pas de pourcentages entre parentheses dans les libelles ni dans le champ nom des verdicts (ex. farine de ble sans (50 %)). " +
+                    "polmiste -> palmiste. Si farine(s) de X et de Y sur une ligne, produire deux lignes - farine de X et - farine de Y. " +
+                    "Parenthese fermante en trop en fin de libelle : la retirer (OCR mal forme). " +
+                    "Pour ###ADDITIFS_RISQUE et ###IMPACT_SANTE : le nom entre les barres = meme intitule normalise que dans ###LISTE pour le meme compose. " +
+                    "###IMPACT_SANTE : une ligne par entree ###LISTE meme ordre sans omission. Exemple OCR : omidon -> amidon. " +
+                    "Reponds uniquement avec 5 sections dans cet ordre : ###LISTE, ###ANALYSE, ###ENERGIE_ESTIMEE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
                     "Exemple : ###LISTE\n- eau\n- sucre\n- E300\n###ANALYSE\nProduit simple. Peu d'additifs.\n" +
+                    "###ENERGIE_ESTIMEE\n38\n" +
                     "###ADDITIFS_RISQUE\nVERT|E300|Vitamine C naturelle\n" +
                     "###IMPACT_SANTE\nVERT|eau|Hydratation essentielle\nORANGE|sucre|Exces lie au surpoids\nVERT|E300|Sans risque aux doses alimentaires\n" +
                     "Regles : ###LISTE un ingredient par ligne avec -. ###ANALYSE 3 phrases max. " +
+                    "###ENERGIE_ESTIMEE une ligne : entier kcal pour 100 g (indicatif) ou NA. " +
                     "###ADDITIFS_RISQUE et ###IMPACT_SANTE : chaque ligne commence par VERT ou ORANGE ou ROUGE ou INCERTAIN puis | puis nom puis | puis note courte. " +
                     "Si aucun additif, laisser ###ADDITIFS_RISQUE vide."
             )

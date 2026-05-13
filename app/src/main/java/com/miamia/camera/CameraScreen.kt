@@ -52,9 +52,6 @@ import java.io.File
 
 private const val CapturePrimaryActionLabel = "Y a quoi là-dedans ?"
 
-/** Libellé explicite état prêt (Feature F — plus de « Aperçu caméra actif » / « Disponible » seul). */
-private const val CapturePreviewReadyStatusLabel = "Caméra prête — vous pouvez scanner"
-
 @Composable
 fun CameraScreen(
     viewModel: CameraViewModel,
@@ -266,47 +263,6 @@ fun CameraScreen(
                     }
                 )
             }
-            is ScanState.SegmentConfirmationRequired -> {
-                val confirmation = state as ScanState.SegmentConfirmationRequired
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("Vérifier la liste d'ingrédients", style = MaterialTheme.typography.titleMedium)
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState())
-                            .testTag("segment_preview_scroll"),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = confirmation.segmentPreview,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.testTag("segment_preview_text")
-                        )
-                    }
-                    Button(
-                        onClick = viewModel::confirmSegmentAndAnalyze,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("confirm_segment_button")
-                    ) {
-                        Text("Confirmer et analyser")
-                    }
-                    OutlinedButton(
-                        onClick = viewModel::rejectSegmentConfirmation,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("reject_segment_button")
-                    ) {
-                        Text("Reprendre la photo")
-                    }
-                }
-            }
             is ScanState.Empty -> {
                 Text((state as ScanState.Empty).message)
                 Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("retry_after_empty")) {
@@ -396,17 +352,18 @@ fun CameraScreen(
                         canCapture = viewModel.canCapturePhoto()
                     )
 
-                    Text(
-                        text = when (state) {
-                            ScanState.PreviewActive -> CapturePreviewReadyStatusLabel
-                            ScanState.PreviewInitializing -> "Démarrage de l'aperçu caméra…"
-                            ScanState.Capturing -> "Capture en cours…"
-                            ScanState.Analyzing -> "Traitement de l'image…"
-                            else -> "Préparez le cadrage"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.testTag("capture_scan_status_text")
-                    )
+                    if (state != ScanState.PreviewActive) {
+                        Text(
+                            text = when (state) {
+                                ScanState.PreviewInitializing -> "Démarrage de l'aperçu caméra…"
+                                ScanState.Capturing -> "Capture en cours…"
+                                ScanState.Analyzing -> "Traitement de l'image…"
+                                else -> "Préparez le cadrage"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("capture_scan_status_text")
+                        )
+                    }
                 }
             }
         }

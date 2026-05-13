@@ -230,8 +230,20 @@ class LiteRtGemmaEngine(
     ): AnalyzeCompositionResult {
         val systemInstruction = buildString {
             appendLine("Tu analyses des listes d'ingrédients alimentaires (contexte UE, français).")
+            appendLine("Rédige toute ta réponse en français.")
             appendLine("Tu ne dois pas inventer d'ingrédients absents du texte source.")
-            appendLine("Réponds uniquement avec les 5 sections ci-dessous, dans cet ordre exact.")
+            appendLine(
+                "Pour ###LISTE : un ingrédient par ligne avec - ; à partir du texte OCR, " +
+                    "reformule chaque libellé vers la graphie / dénomination **la plus probable** " +
+                    "(orthographe correcte, accents, formulation UE courante) tout en restant fidèle au contenu " +
+                    "réellement lu (même ordre logique que sur l’étiquette ; ne pas fusionner ni scinder des entrées distinctes). " +
+                    "**N’inclus pas** les pourcentages seuls entre parenthèses issus de l’étiquette dans le libellé " +
+                    "(ex. écrire « Farine de blé », pas « Farine de blé (50,2 %) ») ; le champ **nom** des verdicts suit la même règle. " +
+                    "Corrige les fautes OCR évidentes sur les huiles (ex. **polmiste** → **palmiste**). " +
+                    "Si l’étiquette regroupe **farine(s) de X et de Y** sur une seule ligne, produis **deux** lignes `- farine de X` et `- farine de Y`. " +
+                    "Ne laisse pas de parenthèse fermante seule en fin de libellé (ex. `colza)` → `colza`)."
+            )
+            appendLine("Réponds uniquement avec les 6 sections ci-dessous, dans cet ordre exact.")
             appendLine("Aucun texte avant ###LISTE.")
             appendLine()
             appendLine("Exemple de réponse attendue :")
@@ -244,6 +256,8 @@ class LiteRtGemmaEngine(
             appendLine("Limonade ou soda sucré|80")
             appendLine("###ANALYSE")
             appendLine("Produit simple. Le sucre est l'ingrédient principal après l'eau. Peu d'additifs.")
+            appendLine("###ENERGIE_ESTIMEE")
+            appendLine("38")
             appendLine("###ADDITIFS_RISQUE")
             appendLine("VERT|E300|Vitamine C, antioxydant naturel courant")
             appendLine("###IMPACT_SANTE")
@@ -252,11 +266,29 @@ class LiteRtGemmaEngine(
             appendLine("VERT|E300|Vitamine C sans risque aux doses alimentaires")
             appendLine()
             appendLine("Règles :")
-            appendLine("- ###LISTE : un ingrédient par ligne, préfixé par -")
+            appendLine(
+                "- ###LISTE : une entrée par ligne avec - ; appliquer la reformulation « la plus probable » " +
+                    "décrite plus haut, sans inventer d'ingrédient."
+            )
+            appendLine(
+                "- ###ADDITIFS_RISQUE : une ligne par additif, format VERT|nom|raison ou ORANGE|nom|raison ou ROUGE|nom|raison ou INCERTAIN|nom|raison ; " +
+                    "le champ **nom** doit reprendre le **même intitulé normalisé** que dans ###LISTE pour ce composé."
+            )
             appendLine("- ###PRODUIT : une seule ligne, format nom_du_produit|pourcentage_certitude (0–100). Le produit alimentaire le plus probable auquel ces ingrédients appartiennent (ex. « Yaourt aux fruits|85 », « Biscuit fourré chocolat|60 »).")
             appendLine("- ###ANALYSE : 3 phrases max, factuelles, prudentes")
-            appendLine("- ###ADDITIFS_RISQUE : une ligne par additif, format VERT|nom|raison ou ORANGE|nom|raison ou ROUGE|nom|raison ou INCERTAIN|nom|raison")
-            appendLine("- ###IMPACT_SANTE : une ligne par ingrédient, même format (VERT ou ORANGE ou ROUGE ou INCERTAIN puis | puis nom puis | puis note courte)")
+            appendLine(
+                "- ###ENERGIE_ESTIMEE : **une seule ligne** avec l'estimation entière des **kcal pour 100 g** " +
+                    "dérivée **uniquement** de la composition (liste + produit identifié si présent), **à titre indicatif** ; " +
+                    "pas de décimales ; si tu ne peux pas estimer de façon raisonnable, écris exactement `NA` sur cette ligne."
+            )
+            appendLine(
+                "- ###IMPACT_SANTE : une ligne par ingrédient, même format (VERT ou ORANGE ou ROUGE ou INCERTAIN puis | puis nom puis | puis note courte) ; " +
+                    "le champ **nom** doit être le **même intitulé normalisé** que dans ###LISTE pour cet ingrédient. " +
+                    "**Aucune omission** : une ligne de verdict pour **chaque** entrée de ###LISTE, dans le **même ordre**."
+            )
+            appendLine(
+                "Erreurs OCR fréquentes (liste UE) : par ex. **omidon** → **amidon** ; applique la même correction dans ###IMPACT_SANTE et ###ADDITIFS_RISQUE."
+            )
             appendLine("- Si aucun additif, écrire ###ADDITIFS_RISQUE suivi d'une ligne vide")
         }
         val conversationConfig = ConversationConfig(

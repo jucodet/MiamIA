@@ -177,3 +177,31 @@ Aucune entrée NEEDS CLARIFICATION résiduelle pour Feature D.
 | F-5 | Sync contrat `capture-recognition` | ✅ (tracé plan) |
 
 Aucun NEEDS CLARIFICATION résiduel pour Feature F.
+
+---
+
+## Addendum Feature G — OCR direct, accueil épuré (2026-05-13)
+
+### G-Decision 1 : Validation implicite systématique côté orchestration capture
+
+- **Decision** : Dans `CameraViewModel.capturePhoto`, appeler `AnalysisSubmissionGate.evaluate` avec `implicitValidationFromIngredientsFraming = true` pour la décision pré-analyse (sans chip utilisateur), afin que `submissionAllowed` reflète uniquement les garde-fous transcript (vide, label seul) et non une attente de confirmation.
+- **Rationale** : Alignement avec UGE-G-FR-001 / UGE-G-FR-004 sans étendre la surface API du gate ; le gate conserve les tests contractuels existants (chemins `userConfirmed` / `implicit` inchangés).
+- **Alternatives considered** :
+  - **Nouveau paramètre « directAnalyze » sur le gate** : rejeté — surface API plus large pour un besoin déjà couvert par `implicitValidationFromIngredientsFraming`.
+  - **Supprimer le gate** : rejeté — garde-fous label-seul / vide restent nécessaires.
+
+### G-Decision 2 : Retrait `SegmentConfirmationRequired` et chrome associée
+
+- **Decision** : Supprimer la variante `SegmentConfirmationRequired` de `ScanState`, retirer la branche Compose correspondante, supprimer `rejectSegmentConfirmation` et le chip « Balise ingrédients » + `ingredientsFramingTagActive` / `setIngredientsFramingTagActive`.
+- **Rationale** : UGE-G-FR-002, UGE-G-FR-004 ; modèle d’état minimal.
+- **Alternatives considered** :
+  - **Conserver l’état pour tests/debug** : rejeté — risque de réactivation accidentelle ; les tests peuvent cibler l’absence d’UI et le flux direct.
+
+### G-Decision 3 : Ligne de statut sous l’aperçu pour `PreviewActive`
+
+- **Decision** : Ne pas afficher de `Text` de statut dédié pour `PreviewActive` (ni chaîne interdite, ni invitation obligatoire). Conserver des libellés optionnels pour les états transitoires (`PreviewInitializing`, `Capturing`, `Analyzing`) hors chaîne interdite.
+- **Rationale** : UGE-G-FR-003, US-G2 scénario 3.
+- **Alternatives considered** :
+  - **Texte alternatif « prêt »** : rejeté — l’exigence est l’absence de ligne imposée à cet emplacement pour l’état prêt.
+
+Aucun NEEDS CLARIFICATION résiduel pour Feature G.

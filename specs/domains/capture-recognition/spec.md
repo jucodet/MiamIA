@@ -1,5 +1,7 @@
 # Domain Spec - capture-recognition
 
+**Last Modified**: 2026-05-13 — alignement doc post-drift (Feature G / `speckit-sync-apply` interactif)
+
 ## Purpose
 
 Capturer une image produit de facon fiable, produire un `RawOcrText` rattache a une session et garantir un parcours de reprise explicite quand la capture/OCR echoue.
@@ -11,7 +13,7 @@ Capturer une image produit de facon fiable, produire un `RawOcrText` rattache a 
 - Gestion temporaire des photos (ephemeres, suppression fin de cycle).
 - Emission de donnees brutes vers l'ACL de normalisation.
 
-**Ref. domaine aval** : lorsque l’intention produit « balise / mode ingrédients » est portée **uniquement** par l’UI de capture (choix utilisateur avant la photo), ce signal est consommé par `ingredient-normalization-validation` pour l’enchaînement analyse sans écran de validation du segment (FR-010). Ce domaine ne redéfinit pas les règles d’ancrage ni le gate — voir `specs/domains/ingredient-normalization-validation/contracts/session-capture-intent-for-implicit-validation.md`.
+**Ref. domaines aval / UX** : l’enchaînement **OCR → analyse LLM** sur **transcript complet**, sans écran intermédiaire de relecture du texte sur le parcours nominal, est porté par **`user-guidance-experience`** (Feature G, UGE-G-FR-001–004) et consommé avec le domaine **`ingredient-normalization-validation`** (FR-010, FR-012, contrat `contracts/session-capture-intent-for-implicit-validation.md`). **Il n’existe plus de chip UI « balise ingrédients »** sur l’écran capture ; l’intention d’enchaînement direct est documentée comme **politique produit / orchestration** (`CameraViewModel` + `AnalysisSubmissionGate`), et non comme choix utilisateur distinct avant la photo. Ce domaine **capture-recognition** ne redéfinit pas les règles d’ancrage ni le gate.
 
 ## Invariants
 
@@ -33,6 +35,8 @@ Capturer une image produit de facon fiable, produire un `RawOcrText` rattache a 
 - CR-FR-009: l’aperçu caméra MUST rester intégralement visible (aucun bouton, surface d’action ou élément persistant de l’UI capture ne MUST recouvrir, même partiellement, la zone de prévisualisation vidéo).
 - CR-FR-010: l’action principale de capture MUST être présentée sous l’aperçu caméra (en dehors de la zone vidéo), sur une bande d’action dédiée, atteignable sans masquer le flux.
 - CR-FR-011: le libellé de l’action principale de capture MUST être « Y a quoi là-dedans ? » (texte exact, casse et ponctuation comprises, dans la langue d’interface française).
+
+**Note (sync 2026-05-13 — Ref. `user-guidance-experience` Feature G)** : le parcours nominal capture → OCR exploitable → analyse LLM **ne présente plus** d’écran intermédiaire de relecture du transcript. Les exigences **CR-FR-006** et **CR-FR-007** s’appliquent lorsqu’un écran du produit affiche encore un `RawOcrText` dans une zone défilante avec actions sous le bloc (ex. états de repli, succès sans moteur, parcours de diagnostic ou historiques) ; elles **ne décrivent pas** une étape obligatoire sur le **chemin nominal** vers le LLM.
 
 ## Feature increment — Bouton capture sous l’aperçu et libellé « Y a quoi là-dedans ? »
 
@@ -125,7 +129,7 @@ Le texte OCR tient en peu de lignes. L'écran reste équilibré : le texte reste
 
 ### Hypothèses
 
-- L'écran concerné est celui qui présente le `RawOcrText` issu de la capture avec des actions disposées sous le bloc de texte (même parcours qu'aujourd'hui, seule la disposition change).
+- L'écran concerné est celui qui présente le `RawOcrText` **lorsqu'un parcours produit affiche encore une feuille de relecture** avec actions sous le bloc (hors enchaînement nominal OCR→LLM sans relecture, voir note UGE-G sur CR-FR-006/007) ; seule la géométrie / contrainte de mise en page est ajustée pour ces parcours.
 - Les libellés et nombre de boutons ne changent pas dans le cadre de cette évolution ; seule la géométrie / contrainte de mise en page est ajustée.
 
 ## Cross-domain Notes

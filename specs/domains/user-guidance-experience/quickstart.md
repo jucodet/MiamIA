@@ -92,6 +92,19 @@
    - Les libellés d'état visibles ne se réduisent pas au seul mot « Disponible » pour indiquer « prêt à scanner ».
 3. (Optionnel) Parcourir un état transitoire (`PreviewInitializing`) : texte lisible, sans chaîne interdite.
 
+### Scénario G1 — Accueil épuré (Feature G, P1, US-G2)
+
+1. Même contexte qu’en F1 (`PreviewActive`).
+2. **Attendu** :
+   - Aucun nœud avec tag `ingredients_framing_tag_chip` ; aucun chip « Balise ingrédients ».
+   - Aucune occurrence de la chaîne exacte « Caméra prête — vous pouvez scanner ».
+   - Pas de ligne de statut textuelle obligatoire sous l’aperçu pour signifier « prêt » (la vidéo live et le bouton « Y a quoi là-dedans ? » suffisent).
+
+### Scénario G2 — Parcours nominal sans relecture transcript (Feature G, P1, US-G1)
+
+1. Capturer une étiquette avec texte OCR exploitable (non vide, pas seulement le mot « Ingrédients : »).
+2. **Attendu** : transition vers chargement / analyse ou écran résultat **sans** feuille intermédiaire « Vérifier le texte reconnu » / boutons « Confirmer et analyser ».
+
 ### Commandes de tests (locales)
 
 ```bash

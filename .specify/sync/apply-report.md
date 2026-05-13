@@ -1,75 +1,41 @@
 # Sync Apply Report
 
-Applied: 2026-05-12T17:52:00+02:00
-Based on: proposals.json from 2026-05-12T17:29:00+02:00
+**Applied** : 2026-05-13 (mode interactif : lot `proposals.json` historique **non appliqué** ; correctifs drift Feature G **appliqués** sur les specs domaine)
+
+## Décision interactive
+
+- **`proposals.json` (P1–P16)** : statut `approved` présent mais cibles **obsolètes** (chemins `photo-capture-llm-result-flow`, FRs pré-consolidation). **Aucune** modification de spec n'a été faite à partir de ce fichier pour éviter la corruption documentaire.
+- **Correctifs approuvés implicitement** (alignement dernier `drift-report` + Feature G) : **appliqués** ci-dessous.
 
 ## Changes Made
 
-### Specs Updated
+### Specs / contrats mis à jour
 
-| Spec | Requirement(s) | Change Type | Proposal |
-|------|----------------|-------------|----------|
-| `user-guidance-experience/spec.md` | FR-006 | Modified (backfill streaming) | P1 |
-| `user-guidance-experience/spec.md` | FR-007 | Modified (backfill streaming) | P1 |
-| `user-guidance-experience/spec.md` | FR-013 | Modified (backfill streaming) | P1 |
-| `user-guidance-experience/spec.md` | FR-014 | Modified (backfill écran résultat) | P1 |
-| `user-guidance-experience/spec.md` | FR-017 | Modified (backfill état d'attente) | P2a |
-| `user-guidance-experience/spec-llm-download-onboarding.md` | FR-002 | Modified (backfill "Refuser et quitter") | P3 |
-| `user-guidance-experience/spec-llm-download-onboarding.md` | FR-008 | Modified (backfill AnimatedMarmite) | P4 |
-| `user-guidance-experience/spec-llm-download-onboarding.md` | FR-011 | Modified (backfill finishAffinity) | P3 |
-| `ingredient-health-intelligence/spec.md` | FR-008 | Modified (backfill 180s timeout) | P7 |
-| `ingredient-health-intelligence/spec.md` | SC-002 | Modified (30s → 180s) | P7 |
-| `ingredient-health-intelligence/spec.md` | SC-006 | Modified (30s → 180s) | P7 |
-| `ingredient-normalization-validation/spec.md` | FR-009 | Modified (backfill traçabilité mémoire) | P12 |
-| `capture-recognition/spec.md` | CR-FR-005 | Annotated (aligné, note architecturale) | P13 |
+| Fichier | Type | Résumé |
+|---------|------|--------|
+| `specs/domains/capture-recognition/spec.md` | Modified | Scope aval sans chip UI ; note CR-FR-006/007 vs parcours nominal UGE-G ; hypothèses incrément 019 ; `Last Modified` |
+| `specs/domains/ingredient-normalization-validation/contracts/session-capture-intent-for-implicit-validation.md` | Rewritten | Suppression obligation `SegmentConfirmationRequired` ; orchestration implicite Feature G |
+| `specs/domains/ingredient-normalization-validation/spec.md` | Modified | FR-010, US2b, SC-005, clarifications session FR-010, hypothèses ; statut doc |
+| `specs/domains/ingredient-normalization-validation/tasks.md` | Modified | Note historique T014–T020 (déjà présente si doublon évité) |
 
-### New Specs Created
+### Sauvegarde
 
-| Spec | Domain | Source | Proposal |
-|------|--------|--------|----------|
-| `ingredient-health-intelligence/spec-composition-health-critique.md` | ingredient-health-intelligence | healthcritique/ + composition/ | P14 |
-| `local-llm-runtime/spec.md` | local-llm-runtime (nouveau domaine) | gemma4local/ | P15 |
-| `user-guidance-experience/spec-welcome-home.md` | user-guidance-experience | welcome/ + home/ | P16 |
+| Fichier |
+|---------|
+| `.specify/sync/backups/2026-05-13/capture-recognition_spec.md` (snapshot pré-edit partiel) |
 
-### Implementation Tasks Generated
+### Tâches d'implémentation générées
 
-7 tâches dans `.specify/sync/align-tasks.md` :
+- `.specify/sync/align-tasks.md` — nettoyage `CameraUiState` ; tests instrumentés chip / confirmation
 
-| Task | Proposal | Effort | Phase |
-|------|----------|--------|-------|
-| Restaurer diacritiques MOCK_INGREDIENTS_INPUT | P6 | small | 2 |
-| Assertion non-altération trim | P8a | small | 2 |
-| Enrichir HomeLlmMockOutcome avec inputUsed | P8b | small | 2 |
-| Ajouter @Tag("manual") au test mock | P8c | small | 2 |
-| Supprimer enum mortes LINE_END / NO_NEWLINE_TO_EOF | P9 | small | 2 |
-| Ancre absente → ScanState.Empty | P11 | small | 2 |
-| Connecter fallback OCR à LlmResultScreen | P2b | medium | 3 |
-| Implémenter reprise HTTP Range | P5 | medium | 3 |
-| Refactorer regex ancre + supprimer duplication | P10 | medium | 3 |
+### Non appliqué
 
-### Not Applied
-
-| Proposal | Reason |
-|----------|--------|
-| — | Toutes les 16 propositions ont été approuvées et appliquées |
-
-### Backups
-
-Backups des specs originales dans :
-`.specify/sync/backups/2026-05-12/`
-
-| Fichier backup | Spec originale |
-|----------------|----------------|
-| `user-guidance-experience_spec.md` | `specs/domains/user-guidance-experience/spec.md` |
-| `user-guidance-experience_spec-llm-download-onboarding.md` | `specs/domains/user-guidance-experience/spec-llm-download-onboarding.md` |
-| `ingredient-health-intelligence_spec.md` | `specs/domains/ingredient-health-intelligence/spec.md` |
-| `ingredient-normalization-validation_spec.md` | `specs/domains/ingredient-normalization-validation/spec.md` |
-| `capture-recognition_spec.md` | `specs/domains/capture-recognition/spec.md` |
+| Source | Raison |
+|--------|--------|
+| `proposals.json` P1–P16 | Cibles et identifiants FR non alignés sur la consolidation domaine actuelle |
 
 ## Next Steps
 
-1. **Relire les specs modifiées** pour valider la formulation des backfills
-2. **Commit** : `git add specs/ .specify/ && git commit -m "sync: apply drift resolutions (7 backfills, 3 new specs, 9 align tasks)"`
-3. **Phase 2 — Corrections simples** : exécuter les 6 tâches d'alignement `small` dans `align-tasks.md`
-4. **Phase 3 — Modifications modérées** : exécuter les 3 tâches d'alignement `medium`
-5. **Phase 4 — Backfill specs** : compléter les 3 placeholders via `/speckit-sync-backfill`
+1. Relire les trois artefacts modifiés dans une PR « sync doc ».
+2. Exécuter les tâches de `align-tasks.md` lorsque le wrapper Gradle est disponible.
+3. Régénérer `proposals.json` via **`speckit.sync.propose`** si un nouveau cycle formel est souhaité.

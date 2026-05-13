@@ -2,18 +2,21 @@
 
 **Domain Context**: `user-guidance-experience`
 **Created**: 2026-05-06
-**Last Modified**: 2026-05-13 (Feature F — libellés capture, fin test LLM)
+**Last Modified**: 2026-05-13 (Feature H — splash lancement ; cohérence Feature A / B ; **UGE-A-FR-022** pastille kcal inchangée)
 **Status**: Draft
+
+**Dernière entrée utilisateur (intake)** : « Rajoute un splash screen qui s'affiche pendant quelques secondes avant d'afficher le 1er écran. Ce splash doit montrer un beau logo de marmite style dessin animé southpark, et le logo "MiamIA" en police southpark également. Les couleurs doivent être dans le thème de l'application, pastel. »
 
 ## Purpose
 
-Orchestrer l'expérience utilisatrice de bout en bout : onboarding (téléchargement du modèle), capture photo, analyse LLM avec streaming progressif, affichage du résultat, et messages de bienvenue. Ce domaine ne possède pas la logique d'analyse elle-même (déléguée à `ingredient-health-intelligence` et `ingredient-normalization-validation`) mais contrôle la navigation, le feedback visuel et les états utilisateur.
+Orchestrer l'expérience utilisatrice de bout en bout : moment de marque au lancement (splash), onboarding (téléchargement du modèle), capture photo, analyse LLM avec streaming progressif, affichage du résultat, et messages de bienvenue. Ce domaine ne possède pas la logique d'analyse elle-même (déléguée à `ingredient-health-intelligence` et `ingredient-normalization-validation`) mais contrôle la navigation, le feedback visuel et les états utilisateur.
 
 ## Scope
 
+- Écran splash de lancement (marque, courte durée) avant le premier écran applicatif
 - Onboarding téléchargement du modèle LLM (confirmation, attente, reprise, refus)
 - Écran de capture comme accueil (sans onglets)
-- Flux photo → streaming analyse → écran résultat
+- Flux photo → analyse LLM (sans ecran intermediaire de relecture du transcript OCR) → streaming / ecran resultat
 - Gestion des indisponibilités (caméra, modèle, réseau)
 - Messages de bienvenue et ton positif
 - Catalogue partagé de phrases humoristiques pour écrans d'attente (téléchargement modèle, analyse LLM)
@@ -21,7 +24,8 @@ Orchestrer l'expérience utilisatrice de bout en bout : onboarding (télécharge
 
 ## Invariants
 
-- L'écran de capture est toujours le point d'entrée après onboarding.
+- Au lancement à froid, un splash de marque de courte durée précède le premier écran applicatif (sauf adaptation liée aux préférences utilisateur de réduction du mouvement — Feature H).
+- L'écran de capture est toujours le point d'entrée après onboarding (et après le splash lorsqu'il est affiché).
 - Aucune barre d'onglets multi-sections comme navigation principale.
 - L'utilisatrice n'est jamais bloquée sans issue (bouton retour, réessayer, ou information claire).
 - Aucune navigation automatique si l'utilisatrice a quitté l'écran actif pendant un traitement.
@@ -50,11 +54,11 @@ Orchestrer l'expérience utilisatrice de bout en bout : onboarding (télécharge
 
 #### US-A1 — Disposer de l'écran de capture comme accueil, sans onglets (P1)
 
-En tant qu'utilisatrice, je veux que le premier écran soit l'écran de prise de photo — prévisualisation, bouton photo — sans barre d'onglets ni action de test LLM.
+En tant qu'utilisatrice, je veux que le premier écran **fonctionnel** soit l'écran de prise de photo — prévisualisation, bouton photo — sans barre d'onglets ni action de test LLM, **une fois** tout splash de lancement (Feature H) et, le cas échéant, le parcours d'onboarding modèle (Feature B) terminés.
 
 **Acceptance Scenarios**:
 
-1. **Given** l'application ouverte, **When** l'interface principale apparaît, **Then** l'écran de prise de photo est affiché sans passage par un écran d'accueil à onglets.
+1. **Given** l'application ouverte jusqu'à la fin du splash et de l'onboarding modèle si requis, **When** l'interface principale applicative apparaît, **Then** l'écran de prise de photo est affiché sans passage par un écran d'accueil à onglets.
 2. **Given** l'application au premier plan, **When** l'utilisatrice observe la navigation, **Then** aucune barre d'onglets multi-sections n'est présentée.
 3. **Given** la caméra disponible, **When** l'écran s'affiche, **Then** la prévisualisation est visible et le bouton photo est placé sous cette zone.
 4. **Given** l'écran affiché, **When** l'utilisatrice parcourt les actions sous la prévisualisation, **Then** aucun bouton ni entrée « Test LLM » (ni équivalent de diagnostic) n'est proposé.
@@ -74,6 +78,7 @@ En tant qu'utilisatrice, après une photo, je veux voir le streaming progressif 
 5. **Given** le streaming en cours, **When** l'utilisatrice quitte l'écran résultat (retour arrière), **Then** aucune navigation automatique de retour à la fin du traitement. *(Backfill P1.)*
 6. **Given** texte OCR disponible mais analyse échouée, **When** l'écran résultat affiché, **Then** un état de repli utile (texte reconnu + action) est proposé.
 7. **Given** transcription très longue, **When** résultat affiché, **Then** le contenu reste lisible et les contrôles sous le texte restent atteignables.
+8. **Given** bilan de composition classé succès par `ingredient-health-intelligence` et une estimation d’énergie pour 100 g **disponible** selon les garde-fous de ce domaine (**Feature K**, **IHI-K-FR-001**), **When** l’écran de résultat affiche le bilan complet, **Then** une pastille en **tête** d’écran respecte **UGE-A-FR-022** (libellé d’analyse terminée, valeur ou absence sûre, caractère **estimé** visible — **Ref.** **IHI-K-FR-002**, **IHI-K-FR-003**).
 
 #### US-A3 — ~~Lancer le test LLM depuis le même écran (P2)~~ *(révoqué — Feature F, 2026-05-13)*
 
@@ -95,15 +100,16 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - OCR présent mais analyse absente : repli OCR exploitable, jamais écran vide bloquant.
 - Analyse très longue : le streaming reste visible ou indication claire que le traitement continue.
 - Retour arrière depuis résultat : pile de navigation simple, pas de réintroduction d'onglets.
+- Estimation kcal/100 g absente ou rejetée par garde-fous : pastille cohérente sans nombre trompeur (**Ref.** `ingredient-health-intelligence` **US-K2**).
 
 ### Functional Requirements (Feature A)
 
-- **UGE-A-FR-001**: Le système MUST présenter un écran de prise de photo comme premier écran affiché après lancement normal (écran d'accueil = écran de capture).
+- **UGE-A-FR-001**: Le système MUST présenter un écran de prise de photo comme premier écran **fonctionnel** affiché après lancement normal, **après** tout écran splash de lancement (Feature H) et **après** le parcours d'onboarding téléchargement du modèle lorsqu'il s'applique (Feature B) ; hors ces phases transitoires, l'écran d'accueil = écran de capture.
 - **UGE-A-FR-002**: Le système MUST afficher une prévisualisation caméra réelle lorsque la caméra est disponible.
 - **UGE-A-FR-003**: Le système MUST permettre un contrôle de mise au point sur la prévisualisation.
 - **UGE-A-FR-004**: Le système MUST afficher sous la prévisualisation un bouton de prise de photo qui lance le flux existant de capture.
 - **UGE-A-FR-005** *(révoqué — Feature F)*: ~~bouton test LLM~~ — voir UGE-F-FR-002.
-- **UGE-A-FR-006**: Le système MUST, après capture photo et lancement de l'analyse LLM, naviguer vers l'écran de résultat dédié et y afficher un indicateur de chargement (fouet animé, phrases humoristiques rotatives) suivi du streaming progressif des sections d'analyse (produit identifié, ingrédients, synthèse, impacts santé) au fur et à mesure de leur disponibilité. *(Backfill P1 — 2026-05-12.)*
+- **UGE-A-FR-006**: Le système MUST, après capture photo et lancement de l'analyse LLM, naviguer vers l'écran de résultat dédié et y afficher un indicateur de chargement (fouet animé, phrases humoristiques rotatives) suivi du streaming progressif des sections d'analyse (produit identifié, ingrédients, synthèse, impacts santé) au fur et à mesure de leur disponibilité, **sans** interposer au préalable un écran de relecture du texte OCR (**Ref.** Feature G, UGE-G-FR-001). *(Backfill P1 — 2026-05-12.)*
 - **UGE-A-FR-007**: Le système MUST, lorsque l'analyse LLM se termine avec succès et que l'utilisatrice est sur l'écran de résultat, afficher le bilan complet. En cas d'échec, afficher un état d'erreur actionnable sur le même écran. *(Backfill P1 — 2026-05-12.)*
 - **UGE-A-FR-008** *(révoqué — Feature F)*: ~~runner test LLM~~ — voir UGE-F-FR-002.
 - **UGE-A-FR-009** *(révoqué — Feature F)*: ~~désactivation bouton test~~ — voir UGE-F-FR-002.
@@ -119,10 +125,11 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - **UGE-A-FR-019**: Le système MUST, lorsqu'une erreur d'analyse survient, afficher un message explicite avec action de récupération (retenter, revenir à la capture, ou équivalent).
 - **UGE-A-FR-020**: Le système MUST contenir une transcription longue dans une zone de lecture adaptée sans débordement.
 - **UGE-A-FR-021**: Le système MUST permettre l'accès aux contrôles sous la transcription même lorsque le texte occupe plusieurs écrans de hauteur.
+- **UGE-A-FR-022**: Lorsque le bilan de composition fourni par `ingredient-health-intelligence` est classé **succès**, le système MUST afficher en **tête** de l’écran de résultat / synthèse une **pastille** (ou bandeau équivalent visuellement prioritaire) conforme aux exigences **IHI-K-FR-001** à **IHI-K-FR-003** : état d’analyse terminée, estimation d’énergie en **kcal pour 100 g** lorsqu’elle est **disponible** côté domaine d’analyse, qualification **estimée / indicative**, et **aucune** présentation comme donnée nutritionnelle réglementaire ou certifiée. Lorsque l’estimation n’est pas disponible ou n’est pas fiable, le système MUST respecter **IHI-K-FR-004** / **US-K2** (pas de chiffre inventé ; libellé d’indisponibilité ou pastille sans valeur numérique trompeuse, selon design validé). La pastille MUST respecter **contraste** et **taille de texte** au moins équivalents aux autres bandeaux d’état du haut de l’écran résultat (détails de conformité accessibilité documentés en plan d’implémentation).
 
 ### Key Entities (Feature A)
 
-- **AppNavigationShell**: Navigation sans onglets ; premier écran = capture ; empilement simple.
+- **AppNavigationShell**: Navigation sans onglets ; après splash (Feature H) et onboarding modèle si requis (Feature B), premier écran fonctionnel = capture ; empilement simple.
 - **CaptureScreenState**: État prévisualisation (`disponible`, `indisponible`) et visibilité des boutons.
 - **PhotoCaptureIntent**: Action de prise de photo vers le flux existant.
 - **LlmTestIntent** *(hors produit depuis Feature F)*: conservé uniquement en documentation historique ; aucune entrée UI ne l'expose.
@@ -303,7 +310,7 @@ En tant qu'utilisatrice, le retrait du message d'accueil ne MUST modifier ni le 
 
 ### Functional Requirements (Feature D)
 
-- **UGE-D-FR-001** : Le système MUST NOT afficher de bannière de message d'accueil sur l'écran capture (= écran d'accueil) dans **aucun** état (`CameraReady`, `PreviewInitializing`, `PreviewActive`, `Capturing`, `Analyzing`, `CameraUnavailable`, `PermissionDenied`, `Empty`, `Error`, `BilanReady`, `CompositionLimit`, `CompositionAnalyzing`, `GemmaUnavailable`, `SegmentConfirmationRequired`, `Success`).
+- **UGE-D-FR-001** : Le système MUST NOT afficher de bannière de message d'accueil sur l'écran capture (= écran d'accueil) dans **aucun** état (`CameraReady`, `PreviewInitializing`, `PreviewActive`, `Capturing`, `Analyzing`, `CameraUnavailable`, `PermissionDenied`, `Empty`, `Error`, `BilanReady`, `CompositionLimit`, `CompositionAnalyzing`, `GemmaUnavailable`, `Success`).
 - **UGE-D-FR-002** : Le système MUST NOT exposer dans l'arbre Compose de l'écran capture un nœud porteur du test tag `welcome_message_banner` ou de toute sémantique de « message d'accueil ».
 - **UGE-D-FR-003** : Le système MUST conserver, dans le code de l'application, les autres éléments structurants de l'écran capture (`MediaPipeStatusIndicator`, aperçu caméra, bande d'action avec au minimum le bouton « Y a quoi là-dedans ? ») ; les libellés secondaires d'état peuvent évoluer selon Feature F sans violer cette exigence.
 - **UGE-D-FR-004** : Les tests existants nommés `US1WelcomeAfterLoginFlowTest`, `US2PositiveToneWelcomeTest`, `US3EmptyCatalogNoMessageTest` (sous `app/src/androidTest/java/com/miamia/welcome/`) sont, après audit, des tests de **logique pure** (policy / sélecteur / règles de ton) — ils n'instancient pas de `createAndroidComposeRule` ni n'asservissent l'arbre Compose. Ils ne sont **pas contradictoires** avec UGE-D-FR-001/002 et MUST être laissés inchangés. La couverture « pas de message d'accueil rendu sur l'écran capture » est portée par le nouveau test d'instrumentation dédié (cf. plan / tasks Feature D).
@@ -344,19 +351,9 @@ En tant qu'utilisatrice, le retrait du message d'accueil ne MUST modifier ni le 
 
 ### User Scenarios (Feature F)
 
-#### US-F1 — Comprendre l'état « caméra prête » sans jargon ambigu (P1)
+#### US-F1 — ~~Libellé « caméra prête » sous l'aperçu (P1)~~ *(révoqué — Feature G, 2026-05-13)*
 
-En tant qu'utilisatrice, lorsque la prévisualisation caméra est opérationnelle, je veux un texte d'état qui dit clairement que je peux scanner l'étiquette, et non un mot isolé comme « Disponible » qui ne précise pas *de quoi* il s'agit.
-
-**Pourquoi P1** : la clarté réduit l'hésitation avant la capture et l'impression d'interface « technique ».
-
-**Test indépendant** : en état prévisualisation active, vérifier que la chaîne affichée pour l'état « prêt » contient une formulation explicite (ex. présence de « caméra » ou « prêt » + intention de scan) et n'est pas réduite au seul terme « Disponible ».
-
-**Acceptance Scenarios** :
-
-1. **Given** la caméra en prévisualisation active, **When** l'utilisatrice lit le statut sous la zone caméra / bande d'action, **Then** le libellé MUST communiquer sans ambiguïté que l'aperçu est prêt pour une capture (ex. « Caméra prête — vous pouvez scanner » ou formulation équivalente en français, ≤ 80 caractères).
-2. **Given** le même état, **When** le texte est inspecté, **Then** il MUST NOT être exactement ni « Disponible » seul, ni une variante à un seul mot générique sans lien avec la capture.
-3. **Given** les autres états transitoires (initialisation, capture en cours, traitement), **When** affichés, **Then** leurs libellés restent compréhensibles sans jargon interne non défini dans le glossaire utilisateur.
+*L'exigence d'une ligne explicite sous la prévisualisation (ex. « Caméra prête — vous pouvez scanner ») est **abrogée**. Voir **US-G2** et **UGE-G-FR-003**.*
 
 #### US-F2 — Parcours produit sans test LLM (P1)
 
@@ -379,27 +376,84 @@ En tant qu'utilisatrice, je ne veux plus voir le libellé redondant « Aperçu c
 
 ### Edge Cases (Feature F)
 
-- **Accessibilité** : le libellé explicite reste lisible avec police agrandie (troncature élégante ou multiligne dans la zone prévue).
+- **Accessibilité** : le bouton principal de capture et les zones d'état utiles (erreurs, chargement) restent lisibles avec police agrandie.
 - **Traduction future** : la règle « pas de "Disponible" seul » et « pas d'« Aperçu caméra actif » » s'applique aux chaînes équivalentes dans chaque locale (même intention).
 - **Tests automatisés** : les tests qui assertaient la présence du bouton test LLM ou du libellé « Aperçu caméra actif » doivent être mis à jour ou retirés pour refléter la nouvelle vérité produit.
 
 ### Functional Requirements (Feature F)
 
-- **UGE-F-FR-001** : Le système MUST, lorsque la prévisualisation caméra est prête pour une capture, afficher un libellé d'état en français qui décrit explicitement la disponibilité de la caméra pour scanner (intention utilisateur), et MUST NOT utiliser seul le mot « Disponible » comme seul contenu informatif de cet état.
+- **UGE-F-FR-001** *(révoqué — Feature G, 2026-05-13)* : ~~Le système MUST, lorsque la prévisualisation caméra est prête pour une capture, afficher un libellé d'état en français qui décrit explicitement la disponibilité de la caméra pour scanner~~ — **remplacé par** **UGE-G-FR-003** (aucune ligne d'invitation imposée ; chaîne « Caméra prête — vous pouvez scanner » interdite).
 - **UGE-F-FR-002** : Le système MUST retirer de l'interface tout bouton, menu ou raccourci « Test LLM » (ou sémantique équivalente de test/démo LLM) présent sur l'écran d'accueil / capture ; le système MUST retirer la logique produit associée (navigation, runner dédié exposé à l'utilisatrice). *(Les utilitaires purement internes ou tests instrumentés hors UI MAY rester dans le dépôt si isolés.)*
 - **UGE-F-FR-003** : Le système MUST NOT afficher la chaîne « Aperçu caméra actif » sur l'écran d'accueil (= écran capture), dans aucun état d'interface.
 - **UGE-F-FR-004** : Le domaine `capture-recognition` MUST aligner ses contrats UI documentés (`contracts/capture-action-bar.md`, test tags, quickstarts) sur l'absence du bouton test LLM et sur la suppression du libellé « Aperçu caméra actif » lors de l'implémentation — **Ref** propriétaire technique des tags et de la disposition de la `PreviewRegion`.
 
 ### Success Criteria (Feature F)
 
-- **UGE-F-SC-001** : Sur 100 % des sessions observées en prévisualisation active, 0 occurrence du seul libellé « Disponible » comme unique texte d'état « prêt » ; ≥ 95 % des testeurs comprennent sans aide que la caméra est prête (enquête interne légère ou test d'utilisabilité à 5 personnes).
+- **UGE-F-SC-001** *(révoqué — Feature G, 2026-05-13)* : ~~Sur 100 % des sessions observées en prévisualisation active, 0 occurrence du seul libellé « Disponible »~~ — le critère de « libellé prêt obligatoire » ne s'applique plus ; **UGE-G-SC-002** couvre l'absence de la ligne marketing interdite et du chip balise.
 - **UGE-F-SC-002** : 100 % des parcours depuis l'écran d'accueil → aucun élément interactif « Test LLM » visible ni activable.
 - **UGE-F-SC-003** : 100 % des inspections d'UI (manuel ou test Compose) → 0 occurrence de « Aperçu caméra actif ».
 
 ### Assumptions (Feature F)
 
-- La formulation exacte du libellé « prêt » peut être ajustée par le design (A/B mineur) tant que UGE-F-FR-001 et UGE-F-SC-001 sont respectés.
+- ~~La formulation exacte du libellé « prêt » peut être ajustée par le design (A/B mineur) tant que UGE-F-FR-001 et UGE-F-SC-001 sont respectés.~~ *(Assumption révoquée — Feature G : pas de libellé d'invitation imposé sous l'aperçu.)*
 - La suppression du test LLM n'empêche pas les tests unitaires ou d'intégration d'invoquer le moteur LLM avec des données fictives hors écran capture.
+
+---
+
+## Feature G — OCR direct, sans écran intermédiaire, accueil sans chip ni statut « prêt à scanner »
+
+**Branche** : *(via hook `speckit.git.feature` si utilisé)* · **Date** : 2026-05-13 · **Statut** : Draft
+
+> Input : « L'analyse doit se déclencher directement à partir de l'OCR, sur la base de la totalité du texte capturé. Je ne veux plus voir l'écran intermédiaire qui affiche le texte capturé. Supprime toute la logique de segmentation de la liste des ingrédients. Supprime aussi de l'écran d'accueil, la pastille balise ingrédients et le texte caméra prête vous pouvez scanner. »
+
+### Clarifications (session 2026-05-13)
+
+- **Révocation partielle de Feature F** : les scénarios US-F1 et les exigences **UGE-F-FR-001** / **UGE-F-SC-001** qui imposaient une ligne de statut explicite (« Caméra prête — vous pouvez scanner » ou équivalent) sous la prévisualisation sont **abrogés** pour l'écran accueil (= capture). L'état « prêt » est désormais **purement visuel** (flux vidéo + bouton principal de capture) ; **aucune** phrase marketing ou pédagogique obligatoire ne doit occuper la zone sous l'aperçu pour signifier « prêt ».
+- **Segmentation** : la fin de toute logique d'isolation / ancrage / proposition de segment ingrédients et des validations associées **avant** l'analyse LLM relève du domaine **`ingredient-normalization-validation`** (spec et code) ; le présent document fixe les **attendus UX et de navigation** correspondants (pas d'écran intermédiaire de relecture, pas de chrome « balise » sur l'accueil).
+
+### User Scenarios (Feature G)
+
+#### US-G1 — Enchaînement direct OCR → analyse (P1)
+
+En tant qu'utilisatrice, après une capture et une reconnaissance réussies avec un texte exploitable, je veux que l'application enchaîne vers l'analyse (indicateur de chargement / navigation vers le résultat) **sans** m'obliger à passer par un écran intermédiaire dont le rôle principal est d'afficher le texte capturé pour relecture ou confirmation.
+
+**Acceptance Scenarios** :
+
+1. **Given** un résultat OCR `success` ou `partial` avec transcript non vide admissible pour l'analyse, **When** le flux se poursuit, **Then** aucun écran ou feuille intermédiaire dont l'objet principal est la relecture du transcript ne s'intercale avant le démarrage de l'analyse LLM ou l'affichage du chargement résultat.
+2. **Given** le même contexte, **When** l'analyse est invoquée, **Then** l'entrée transmise au parcours d'analyse est l'intégralité du texte capturé disponible pour la session (**Ref.** FR-012 domaine `ingredient-normalization-validation`).
+
+#### US-G2 — Accueil sans pastille « balise ingrédients » ni ligne « Caméra prête — vous pouvez scanner » (P1)
+
+En tant qu'utilisatrice sur l'écran d'accueil (= écran de capture), je ne veux **ni** pastille, chip ou interrupteur « balise ingrédients » (ou libellé fonctionnellement équivalent), **ni** la ligne de texte « Caméra prête — vous pouvez scanner » (casse et tiret comme ci-dessus) ni une formulation imposée au même emplacement pour le même rôle d'« invitation à scanner ».
+
+**Acceptance Scenarios** :
+
+1. **Given** l'écran capture affiché en état prêt à photographier, **When** l'utilisatrice examine la zone sous la prévisualisation (hors bande d'action principale et hors indicateurs techniques déjà prévus, ex. disponibilité moteur), **Then** aucun contrôle « balise ingrédients » n'est visible.
+2. **Given** le même écran, **When** le texte sous l'aperçu est inspecté, **Then** la chaîne exacte « Caméra prête — vous pouvez scanner » n'apparaît pas.
+3. **Given** les états transitoires (`PreviewInitializing`, `Capturing`, `Analyzing`), **When** affichés, **Then** aucune réintroduction de la pastille balise ni de la chaîne interdite n'est faite à la place des messages d'état utiles déjà prévus ailleurs (ex. traitement en cours).
+
+### Edge Cases (Feature G)
+
+- **OCR vide ou non exploitable** : un message d'erreur ou de reprise reste autorisé ; il ne constitue pas un « écran de relecture » du transcript.
+- **Indicateur technique** (ex. disponibilité du modèle / MediaPipe) : peut rester distinct de la zone visée par US-G2 tant qu'il n'est pas substitut d'une pastille « balise » ni de la ligne de statut marketing révoquée.
+- **Accessibilité** : la suppression des libellés marketing ne dispense pas d'alternatives accessibles sur le bouton d'action principal (libellé existant « Y a quoi là-dedans ? » ou évolution ultérieure documentée).
+
+### Functional Requirements (Feature G)
+
+- **UGE-G-FR-001** : Le système MUST, après capture et reconnaissance aboutissant à un transcript utilisable pour l'analyse, enchaîner vers le parcours d'analyse LLM **sans** présenter d'étape utilisateur dont la fonction première est la consultation ou la validation du transcript avant analyse.
+- **UGE-G-FR-002** : Le système MUST NOT afficher sur l'écran d'accueil (= écran capture) de pastille, chip, interrupteur ou entrée de menu « balise ingrédients » (ou libellé sémantiquement équivalent d'intention de cadrage « ingrédients seuls »).
+- **UGE-G-FR-003** : Le système MUST NOT afficher sur l'écran d'accueil la chaîne exacte « Caméra prête — vous pouvez scanner » ; le système MUST NOT exiger une ligne de texte d'invitation à scanner sous la prévisualisation pour l'état « prêt » (la prévisualisation live et le bouton principal suffisent).
+- **UGE-G-FR-004** : Le système MUST retirer de l'expérience produit tout écran intermédiaire équivalent historique à `SegmentConfirmationRequired` pour le parcours nominal de scan vers analyse (**Ref.** implémentation `ingredient-normalization-validation` + module capture).
+
+### Success Criteria (Feature G)
+
+- **UGE-G-SC-001** : 100 % des parcours nominaux capture → OCR réussi → analyse : 0 affichage d'un écran intermédiaire de relecture du transcript (vérification manuelle ou tests d'UI ciblés).
+- **UGE-G-SC-002** : 100 % des inspections d'UI sur l'écran accueil capture en état prêt : 0 chip « balise ingrédients » (ou équivalent) ; 0 occurrence de la chaîne « Caméra prête — vous pouvez scanner ».
+
+### Assumptions (Feature G)
+
+- Le bouton principal de capture et l'indicateur de disponibilité du moteur / pipeline restent les leviers d'action et de confiance technique ; leur évolution de libellé hors périmètre de la phrase interdite reste libre tant que UGE-G-FR-003 est respecté.
+- La mise en œuvre technique de la suppression de code (segmentation, gate, états) est répartie entre modules capture et domaine ingrédients ; la présente spec reste la source de vérité **comportementale** vis-à-vis de l'utilisatrice.
 
 ---
 
@@ -468,10 +522,67 @@ Les formulations suivantes satisfont UGE-E-FR-002 à UGE-E-FR-005 et sont distin
 
 ---
 
+## Feature H — Splash de lancement (marque MiamIA, marmite, pastel)
+
+> Input (intake 2026-05-13) : écran splash de quelques secondes avant le premier écran applicatif ; illustration marmite au style visuel volontairement simplifié et cartoonesque (référence produit : esthétique proche du dessin animé *South Park*) ; libellé « MiamIA » avec une typographie du même esprit ; couleurs pastels alignées sur le thème visuel de l'application.
+
+### User Scenarios (Feature H)
+
+#### US-H1 — Voir la marque au démarrage (P1)
+
+En tant qu'utilisatrice, au lancement à froid de l'application, je veux voir un écran plein dédié à la marque pendant une courte durée avant d'accéder au reste du parcours (onboarding modèle ou écran de capture selon les règles existantes).
+
+**Acceptance Scenarios**:
+
+1. **Given** un lancement à froid de l'application, **When** l'interface apparaît, **Then** un écran splash plein écran s'affiche en premier, avant tout écran de capture ou d'onboarding modèle.
+2. **Given** le splash affiché, **When** la durée prévue s'écoule, **Then** l'application enchaîne automatiquement vers le prochain écran du parcours nominal (Feature B si le modèle n'est pas prêt, sinon écran de capture — cohérent avec Feature A).
+3. **Given** le splash affiché, **When** l'utilisatrice l'observe, **Then** elle y distingue clairement une illustration centrale de marmite et le texte de marque « MiamIA ».
+4. **Given** le splash affiché, **When** l'utilisatrice compare les couleurs au reste de l'application, **Then** la palette est cohérente avec le thème pastel existant (pas de rupture chromatique brutale avec l'accueil capture).
+
+#### US-H2 — Lire une identité visuelle décalée et lisible (P2)
+
+En tant qu'utilisatrice, je veux que le splash soit visuellement marquant et lisible : traits simples, aplats, contours nets pour la marmite, et un titre « MiamIA » au caractère informel et robuste évoquant l'esthétique des génériques du dessin animé de référence, sans nuire à la lisibilité du nom de l'app.
+
+**Acceptance Scenarios**:
+
+1. **Given** le splash affiché, **When** l'utilisatrice lit le nom « MiamIA », **Then** les lettres restent identifiables sur téléphone en portrait à distance de lecture normale.
+2. **Given** le splash affiché, **When** l'utilisatrice regarde l'illustration marmite, **Then** celle-ci est reconnaissable comme marmite (couvercle, corps, anses ou équivalent stylisé) et adopte une esthétique volontairement « cut-out » / cartoonesque plutôt que photoréaliste.
+
+### Edge Cases (Feature H)
+
+- Relance de l'app depuis le multitâche (app déjà en mémoire) : le splash ne s'impose pas à chaque retour au premier plan ; il s'applique au lancement à froid (définition : session applicative démarrée depuis zéro après fermeture ou eviction mémoire — formulation vérifiable par parcours « tuer l'app puis rouvrir »).
+- Préférence utilisateur de réduction des animations / mouvement : le splash MUST éviter les effets de mouvement agressifs ; la durée d'exposition MAY être réduite ou l'écran simplifié tant que la marque reste identifiable (détail exact laissé au design d'accessibilité, borne : pas plus long que le parcours nominal sans préférence).
+- Écran très petit ou grand facteur d'échelle : le logo texte et la marmite restent entièrement visibles sans recadrage tronquant le nom « MiamIA ».
+- Thème clair / sombre si l'application en propose : le splash reste harmonisé pastel dans chaque variante sans perdre le contraste minimal pour la lisibilité.
+
+### Functional Requirements (Feature H)
+
+- **UGE-H-FR-001** : Le système MUST, sur lancement à froid, afficher un écran splash plein écran avant le premier écran fonctionnel (capture ou onboarding modèle).
+- **UGE-H-FR-002** : Le splash MUST rester affiché pendant une durée brève et bornée (cible produit : entre **2 s** et **4 s** inclusivement sur parcours nominal sans préférence de réduction du mouvement), puis céder la place automatiquement sans action utilisateur obligatoire.
+- **UGE-H-FR-003** : Le splash MUST inclure une illustration principale représentant une marmite, stylisée selon une esthétique simple, plate ou quasi plate, à contours marqués, évoquant l'animation américaine *South Park* (cut-out, humour visuel léger).
+- **UGE-H-FR-004** : Le splash MUST afficher le nom de marque « MiamIA » avec une typographie assortie à la même esthétique (lettres pleines, informelles, lisibles).
+- **UGE-H-FR-005** : Le splash MUST utiliser une palette de couleurs pastels cohérente avec le thème visuel global de l'application.
+- **UGE-H-FR-006** : Le système MUST NOT exiger d'interaction (bouton « Continuer ») pour quitter le splash sur le parcours nominal ; la transition est automatique à l'issue du temporisage.
+- **UGE-H-FR-007** : Le système MUST, lorsque l'application revient simplement au premier plan sans redémarrage de session, ne pas réinsérer le splash comme s'il s'agissait d'un nouveau lancement à froid.
+
+### Success Criteria (Feature H)
+
+- **UGE-H-SC-001** : Sur trois lancements à froid consécutifs observés, le splash apparaît systématiquement avant capture ou onboarding modèle, puis disparaît sans action utilisateur dans la fenêtre 2–4 s (sauf parcours avec préférence de réduction du mouvement documenté).
+- **UGE-H-SC-002** : En test d'utilisabilité informel (≥ 3 personnes) ou revue produit interne, 100 % des participantes identifient le mot « MiamIA » et la marmite sur le splash en moins de 5 s d'exposition.
+- **UGE-H-SC-003** : Aucune régression documentée sur l'ordre du parcours post-splash : Feature B et Feature A conservent leurs enchaînements relatifs (onboarding si requis, sinon capture).
+
+### Hypothèses (Feature H)
+
+- L'acquisition ou la création des actifs graphiques et typographiques respecte les contraintes légales sur les polices et les marques tierces ; l'inspiration stylistique reste une direction produit, pas une reproduction de fichiers protégés.
+- « Quelques secondes » est interprété comme 2–4 s pour rester testable ; ajustement mineur acceptable si la revue accessibilité impose une borne inférieure.
+- Le splash est purement présentationnel : aucune donnée métier ni OCR n'y est saisie.
+
+---
+
 ## Cross-domain Notes
 
 - Le segment ingrédients n'est pas déterminé ici : délégation à `ingredient-normalization-validation`.
-- L'analyse de composition et la critique santé sont du ressort de `ingredient-health-intelligence`.
+- L'analyse de composition et la critique santé sont du ressort de `ingredient-health-intelligence` ; la pastille d’énergie estimée (kcal/100 g) en tête d’écran résultat est **orchestrée** ici (**UGE-A-FR-022**) et **spécifiée** côté analyse (**Feature K**, **IHI-K-FR-***).
 - Le runtime LLM local (chargement modèle, inférence) est du ressort de `local-llm-runtime`.
 - La capture OCR est du ressort de `capture-recognition`.
 - Les KPI additifs sont du ressort de `additive-risk-insights`.
@@ -481,10 +592,11 @@ Les formulations suivantes satisfont UGE-E-FR-002 à UGE-E-FR-005 et sont distin
 - `specs/017-photo-analyse-ecran-resultat/` (Feature A)
 - `specs/018-llm-download-onboarding/` (Feature B)
 - `specs/012-home-layout-mediapipe-status/` (Feature C — home)
+- Intake `/speckit-design` + `/speckit-specify` 2026-05-13 (pastille kcal — **UGE-A-FR-022** ; ref. `specs/domains/ingredient-health-intelligence/spec.md` Feature K)
 
 ## Assumptions
 
-- L'écran de capture est l'écran d'accueil ; pas de page d'accueil distincte à onglets.
+- L'écran de capture est l'écran d'accueil fonctionnel après splash et onboarding modèle ; pas de page d'accueil distincte à onglets.
 - Le flux de capture photo reste la référence fonctionnelle pour l'entrée utilisateur vers l'analyse (le test LLM UI est retiré — Feature F).
 - La nature du résultat exploitable relève des domaines d'analyse ; cet écran se contente d'une présentation lisible.
 - Le parcours reste local (pas de dépendance réseau pour le flux de base, sauf téléchargement modèle).

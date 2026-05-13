@@ -47,4 +47,19 @@ class CompositionResultValidatorGroundingTest {
         val out = CompositionResultValidator.validateAgainstSource(bilan, segment)
         assertTrue(out is AnalyzeCompositionResult.BilanSuccess)
     }
+
+    @Test
+    fun reformulatedImpact_andListe_acceptedWhenFragmentGrounds() {
+        val bilan = CompositionBilan(
+            ingredientLines = listOf("Huile de colza"),
+            compositionAnalysis = "Analyse.",
+            disclaimer = "d",
+            healthImpacts = listOf(
+                IngredientHealthImpact("VERT", "Huile de colza", "ok"),
+            ),
+        )
+        val segment = "hul colza"
+        val out = CompositionResultValidator.validateAgainstSource(bilan, segment)
+        assertTrue(out is AnalyzeCompositionResult.BilanSuccess)
+    }
 }

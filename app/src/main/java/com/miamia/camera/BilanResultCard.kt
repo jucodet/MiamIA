@@ -74,6 +74,7 @@ fun BilanResultCard(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        CompositionEnergyPastille(estimatedKcalPer100g = bilan.estimatedKcalPer100g)
         BilanHeader()
         if (!bilan.identifiedProduct.isNullOrBlank()) {
             ProductSection(bilan.identifiedProduct, bilan.productConfidence)
@@ -126,6 +127,43 @@ private fun InferenceTimeBadge(inferenceTimeMs: Long) {
 }
 
 @Composable
+private fun CompositionEnergyPastille(estimatedKcalPer100g: Int?, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("composition_energy_pastille"),
+        shape = RoundedCornerShape(12.dp),
+        color = MiamIAColors.StatusSuccess.copy(alpha = 0.1f),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = CompositionEnergyUiStrings.TITLE,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = if (estimatedKcalPer100g != null) {
+                    CompositionEnergyUiStrings.primaryLine(estimatedKcalPer100g)
+                } else {
+                    CompositionEnergyUiStrings.UNAVAILABLE
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = CompositionEnergyUiStrings.HELPER,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
 private fun BilanHeader() {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -146,18 +184,11 @@ private fun BilanHeader() {
             )
         }
         Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(
-                text = "Bilan composition",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "Analyse terminée",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            text = "Bilan composition",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

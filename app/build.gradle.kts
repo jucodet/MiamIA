@@ -44,6 +44,7 @@ android {
     // Évite la compression APK des .litertlm (gros binaires ; openFd / mmap plus fiables si besoin).
     androidResources {
         noCompress += "litertlm"
+        noCompress += "lottie"
     }
     testOptions {
         unitTests {
@@ -66,6 +67,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.compose.ui:ui:1.6.8")
+    implementation("com.airbnb.android:lottie-compose:6.6.7")
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.8")

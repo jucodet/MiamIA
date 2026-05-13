@@ -24,13 +24,15 @@ class AnalysisSubmissionDecisionAcceptanceTest {
             fallbackMode = IngredientSegmentFallbackMode.NONE
         )
 
-        val blocked = gate.evaluate("scan-confirm", extraction, userConfirmed = false)
-        val allowed = gate.evaluate("scan-confirm", extraction, userConfirmed = true)
+        val full = "ingredients: sucre, sel"
+        val blocked = gate.evaluate("scan-confirm", extraction, userConfirmed = false, fullOcrTranscript = full)
+        val allowed = gate.evaluate("scan-confirm", extraction, userConfirmed = true, fullOcrTranscript = full)
         val implicitAllowed = gate.evaluate(
             "scan-confirm",
             extraction,
             userConfirmed = false,
-            implicitValidationFromIngredientsFraming = true
+            implicitValidationFromIngredientsFraming = true,
+            fullOcrTranscript = full,
         )
 
         assertFalse(blocked.submissionAllowed)
@@ -46,7 +48,12 @@ class AnalysisSubmissionDecisionAcceptanceTest {
         assertTrue(extraction.anchorFound)
         assertTrue(extraction.segmentText!!.contains("E.621"))
 
-        val decision = gate.evaluate("scan-dot-gate", extraction, userConfirmed = true)
+        val decision = gate.evaluate(
+            "scan-dot-gate",
+            extraction,
+            userConfirmed = true,
+            fullOcrTranscript = OcrFixtures.DOT_INTERNAL_ADDITIVE,
+        )
 
         assertTrue(decision.submissionAllowed)
     }

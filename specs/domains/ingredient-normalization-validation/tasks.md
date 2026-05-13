@@ -7,6 +7,8 @@
 
 **Organization**: Phases par priorité métier : fondations → **US1 (P1)** → **US2b (P1)** → **US2 (P2)** → **US3 (P3)** → polish.
 
+> **Note sync 2026-05-13 (`speckit-sync-apply` interactif)** : **Feature G** (`user-guidance-experience`) a retiré le chip `ingredients_framing_tag_chip`, l'état `SegmentConfirmationRequired` et les méthodes UI associées. Les tâches **T014–T020** ci-dessous restent cochées comme historique de livraison mais **ne décrivent plus** l'état courant du code ; se reporter au drift-report et au contrat `session-capture-intent-for-implicit-validation.md` mis à jour.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: parallélisable (fichiers distincts, pas de dépendance sur une tâche incomplète du même lot)
@@ -213,10 +215,30 @@ Task: "T014 IngredientSegmentConfirmationUiTest balise active"
 
 ---
 
+## Phase 7: OCR intégral → LLM (FR-012 / FR-014) — 2026-05-13
+
+**Goal**: Entrée du modèle de composition = transcript OCR sessionnel intégral ; plus de refus basé sur `anchorFound` seul ; garde-fou sur transcript vide / label seul.
+
+**Independent Test**: `AnalysisSubmissionGateContractTest` + flux `CameraViewModel` (confirmation affiche le transcript complet).
+
+- [x] T024 [US1] Étendre `AnalysisSubmissionGate.evaluate(..., fullOcrTranscript)` dans `app/src/main/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionGate.kt`.
+- [x] T025 [P] [US1] Mettre à jour les tests gate dans `app/src/test/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionGateContractTest.kt` et `AnalysisSubmissionDecisionAcceptanceTest.kt` (cas sans ancre + transcript non vide).
+- [x] T026 [US1] Orchestration `CameraViewModel.capturePhoto` et `confirmSegmentAndAnalyze` : transcript complet vers le gate et `runCompositionStage` ; suppression du court-circuit `Success` sur `!anchorFound` dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`.
+- [x] T027 [P] [US1] Libellé confirmation « Vérifier le texte reconnu » dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`.
+- [x] T028 [P] Artefacts spec : `specs/domains/ingredient-normalization-validation/plan.md`, `research.md`, `data-model.md`, `quickstart.md`, `contracts/llm-input-full-ocr-contract.md`.
+
+**Checkpoint**: SC-006 — `segmentPreview` / entrée LLM alignés sur le transcript trim ; ancre absente n’empêche plus une soumission valide si le transcript est substantiel.
+
+---
+
 ## Notes
 
+- **017** : changement principal `IngredientSegmentBoundaryResolver.kt` ; fixtures `OcrFixtures` et tests boundary associés.
+- **021 (FR-010)** : `AnalysisSubmissionGate`, `CameraViewModel`, `CameraScreen`, `AnalysisSubmissionDecision` ; exécuter `./gradlew :app:testDebugUnitTest` avec SDK Android (`ANDROID_HOME` ou `local.properties`).
+- **2026-05-13 (FR-012)** : paramètre `fullOcrTranscript` sur le gate ; wrapper Gradle requis (`gradle/wrapper/gradle-wrapper.jar` présent) pour lancer les tests en local.
 - **T004 / T025** : restent **ouverts** tant que le SDK Android n’est pas configuré (`local.properties` / `ANDROID_HOME`) — exécuter Gradle localement pour clore.
 - **T026** : validation manuelle quickstart (A–H) — à faire côté équipe / device réel.
 - Les IDs **T001–T028** sont séquentiels pour éviter les collisions avec d’anciens plans ; marquer `[x]` au fur et à mesure dans ce fichier.
 - Frontière DDD : pas d’inférence « balise » depuis le seul texte OCR — voir [contracts/session-capture-intent-for-implicit-validation.md](./contracts/session-capture-intent-for-implicit-validation.md).
 - **SC-004** : ne s’applique pas au parcours FR-010 (clarification spec 2026-05-13).
+- US2 / US3 (phases 3–4) : vérifications de non-régression autour du gate et du fallback.

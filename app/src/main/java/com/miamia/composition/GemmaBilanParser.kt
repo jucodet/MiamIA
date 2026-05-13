@@ -8,14 +8,63 @@ object GemmaBilanParser {
 
     private val LISTE_PATTERN = Regex("""#{1,4}\s*LISTE\s*:?""", RegexOption.IGNORE_CASE)
     private val PRODUIT_PATTERN = Regex("""#{1,4}\s*PRODUIT\s*:?""", RegexOption.IGNORE_CASE)
-    private val ANALYSE_PATTERN = Regex("""#{1,4}\s*ANALYSE\s*:?""", RegexOption.IGNORE_CASE)
+    /** Tolère « ANALYSIS » (mélange EN) et fautes de frappe courantes sur le marqueur. */
+    private val ANALYSE_PATTERN = Regex("""#{1,4}\s*(?:ANALYSE|ANALYSIS)\s*:?""", RegexOption.IGNORE_CASE)
     private val ADDITIFS_PATTERN = Regex("""#{1,4}\s*ADDITIFS[_\s]*RISQUE\s*:?""", RegexOption.IGNORE_CASE)
+    private val ENERGIE_PATTERN = Regex("""#{1,4}\s*ENERGIE(?:_ESTIMEE)?\s*:?""", RegexOption.IGNORE_CASE)
     private val IMPACT_SANTE_PATTERN = Regex("""#{1,4}\s*IMPACT[_\s]*SANT[EÉ]\s*:?""", RegexOption.IGNORE_CASE)
 
     private val VALID_LEVELS = setOf("VERT", "ORANGE", "ROUGE", "INCERTAIN")
 
+    /**
+     * Nettoie / répare une sortie modèle tronquée ou mal fermée avant [parse]
+     * (ex. `##]` en fin de flux, section analyse vide avant additifs).
+     */
+    internal fun prepareCompositionRawOutput(raw: String): String {
+        var t = raw.trim()
+        if (t.isEmpty()) return t
+        t = patchEmptyAnalysisBeforeAdditifs(t)
+        t = stripTrailingGenerationArtifacts(t)
+        return t.trim()
+    }
+
+    private fun stripTrailingGenerationArtifacts(text: String): String {
+        var t = text.trimEnd()
+        while (true) {
+            val next = t.replace(Regex("""(?s)\s*##\]\s*$"""), "")
+                .replace(Regex("""(?s)\s*##\s*$"""), "")
+                .trimEnd()
+            if (next == t) break
+            t = next
+        }
+        return t
+    }
+
+    /**
+     * Si le modèle enchaîne `###ANALYSE` → `###ADDITIFS_RISQUE` sans texte, [parse] échouait
+     * ([compositionAnalysis] vide). On insère une phrase de repli minimaliste.
+     */
+    private fun patchEmptyAnalysisBeforeAdditifs(text: String): String {
+        val analyseMatch = ANALYSE_PATTERN.find(text) ?: return text
+        val headEnd = analyseMatch.range.last + 1
+        if (headEnd >= text.length) return text
+        val tail = text.substring(headEnd)
+        val addMatch = ADDITIFS_PATTERN.find(tail) ?: return text
+        val between = tail.substring(0, addMatch.range.first).trim()
+        if (between.isNotEmpty()) return text
+        val placeholder =
+            "Synthèse indisponible (réponse du modèle incomplète après la section analyse)."
+        return text.take(headEnd) + "\n" + placeholder + "\n" + text.substring(headEnd)
+    }
+
+    private fun stripAnalysisNoise(text: String): String =
+        text.trim()
+            .replace(Regex("""(?s)\s*##\]\s*$"""), "")
+            .replace(Regex("""(?s)\s*##\s*$"""), "")
+            .trim()
+
     fun parse(modelOutput: String, disclaimer: String = CompositionMessages.DISCLAIMER_DEFAULT): CompositionBilan? {
-        val trimmed = modelOutput.trim()
+        val trimmed = prepareCompositionRawOutput(modelOutput)
         if (trimmed.isEmpty()) return null
 
         val listMatch = LISTE_PATTERN.find(trimmed)
@@ -47,11 +96,15 @@ object GemmaBilanParser {
 
         val afterAnalysisStart = trimmed.substring(analysisMatch.range.last + 1)
         val additivesMatch = ADDITIFS_PATTERN.find(afterAnalysisStart)
-        val analysisBlock = if (additivesMatch == null) {
-            afterAnalysisStart.trim()
-        } else {
-            afterAnalysisStart.substring(0, additivesMatch.range.first).trim()
-        }
+        val energyMatch = ENERGIE_PATTERN.find(afterAnalysisStart)
+        val analysisContentEnd = analysisEndExclusive(
+            afterAnalysisStart = afterAnalysisStart,
+            energyMatch = energyMatch,
+            additivesMatch = additivesMatch,
+        )
+        val analysisBlockRaw = afterAnalysisStart.substring(0, analysisContentEnd).trim()
+        val analysisBlock = stripAnalysisNoise(analysisBlockRaw)
+        val estimatedKcal = parseEstimatedKcalBlock(afterAnalysisStart, energyMatch, additivesMatch)
 
         val rawLines = listBlock.lines()
             .map { it.trim().removePrefix("-").removePrefix("*").removePrefix("•").trim() }
@@ -78,7 +131,43 @@ object GemmaBilanParser {
             compositionAnalysis = analysisBlock,
             disclaimer = disclaimer,
             healthImpacts = healthImpacts,
+            estimatedKcalPer100g = estimatedKcal,
         )
+    }
+
+    /**
+     * Fin du texte d’analyse : premier marqueur ### parmi énergie / additifs (ordre attendu : énergie puis additifs).
+     */
+    internal fun analysisEndExclusive(
+        afterAnalysisStart: String,
+        energyMatch: MatchResult?,
+        additivesMatch: MatchResult?,
+    ): Int {
+        val orderedEnergy = energyMatch?.takeIf { m ->
+            additivesMatch == null || m.range.first < additivesMatch.range.first
+        }
+        val candidates = listOfNotNull(
+            orderedEnergy?.range?.first,
+            additivesMatch?.range?.first,
+        ).filter { it >= 0 }
+        return candidates.minOrNull() ?: afterAnalysisStart.length
+    }
+
+    internal fun parseEstimatedKcalBlock(
+        afterAnalysisStart: String,
+        energyMatch: MatchResult?,
+        additivesMatch: MatchResult?,
+    ): Int? {
+        if (energyMatch == null) return null
+        if (additivesMatch != null && energyMatch.range.first >= additivesMatch.range.first) {
+            return null
+        }
+        val blockStart = energyMatch.range.last + 1
+        val blockEnd = additivesMatch?.range?.first?.takeIf { it > energyMatch.range.first }
+            ?: afterAnalysisStart.length
+        if (blockStart > blockEnd) return null
+        val energyBlock = afterAnalysisStart.substring(blockStart, blockEnd).trim()
+        return EnergyEstimateValidator.parseKcalFromEnergyBlock(energyBlock)
     }
 
     internal fun parseProductLine(raw: String?): Pair<String?, Int?> {

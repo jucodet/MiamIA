@@ -27,3 +27,18 @@
 - `app/src/main/java/com/miamia/healthcritique/HealthCritiqueEngine.kt`
 - `app/src/main/java/com/miamia/additives/BuildAdditiveKpiDisplay.kt`
 - `app/src/main/java/com/miamia/camera/CameraViewModel.kt` (orchestration)
+
+---
+
+## Quickstart — pastille kcal / 100 g (Feature K)
+
+1. Lancer une analyse composition jusqu’au **succès** avec une sortie modèle incluant `###ENERGIE_ESTIMEE` et une valeur entière plausible (ex. `420`).
+2. Vérifier en tête de carte résultat une pastille du type **analyse terminée** + nombre + **/ 100 g** + mention **estimée** (ou équivalent clair).
+3. Refaire avec une valeur **hors 1..1100** ou section absente : aucun entier trompeur ; pastille cohérente (**US-K2**).
+4. Confirmer que le libellé ne suggère pas une **déclaration nutritionnelle officielle**.
+
+### Fichiers utiles (Feature K)
+
+- `app/src/main/java/com/miamia/composition/GemmaBilanParser.kt`
+- `app/src/main/java/com/miamia/composition/EnergyEstimateValidator.kt`
+- `app/src/main/java/com/miamia/camera/BilanResultCard.kt`

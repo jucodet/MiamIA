@@ -2,7 +2,7 @@
 
 **Domain Context**: `ingredient-health-intelligence`
 **Created**: 2026-05-06
-**Last Modified**: 2026-05-13 (Feature C + clarify session complète)
+**Last Modified**: 2026-05-13 (Feature K — pastille kcal/100 g ; clarify bornes affichage 1–1100)
 **Status**: Draft
 
 ## Purpose
@@ -18,6 +18,7 @@ Analyser une liste d'ingrédients via le LLM local Gemma pour produire un bilan 
 - Q: Réponse partiellement ancrée (une partie « fait produit » ancrée, une autre non) ? → A: **Option A** — **tout ou rien** : pas de succès avec analyse produit tronquée ; **IHI-C-FR-003** si l’ensemble des affirmations « fait produit » n’est pas entièrement ancré.
 - Q: Faits additifs / read-model `additive-risk-insights` à côté du bilan LLM ? → A: **Option B** — enrichissement autorisé **si** attribution explicite au domaine `additive-risk-insights` (pas comme étiquette) **et** chaque sujet/additif est **littéralement** dans le segment (voir **IHI-C-FR-007**).
 - Q: Vérification indépendante (**IHI-C-FR-006**) pour le MVP ? → A: **Option A** — **relecture humaine** et traçabilité suffisent ; pas d’exigence d’audit automatisé bloquant sur chaque succès au MVP (l’automatisation peut être ajoutée ultérieurement au plan).
+- Q: Plage métier d’acceptation pour afficher un entier **N** (kcal / 100 g) issu du modèle (valeurs aberrantes — **Feature K**) ? → A: **Option B** — afficher **N** comme estimation chiffrée seulement si **1 ≤ N ≤ 1100** (kcal pour 100 g, après arrondi entier documenté) ; sinon traiter comme non fiable (**IHI-K-FR-004** / **US-K2**), sans nombre trompeur.
 
 ## Scope
 
@@ -28,6 +29,7 @@ Analyser une liste d'ingrédients via le LLM local Gemma pour produire un bilan 
 - Gestion des erreurs et limites (timeout, modèle indisponible, réponse non analysable)
 - Persistance et consultation du dernier résultat
 - Copie et partage des résultats
+- Estimation indicative d’énergie (kcal/100 g) en synthèse lorsque le bilan composition le permet (**Feature K**)
 
 ## Invariants
 
@@ -234,17 +236,90 @@ En tant qu’utilisatrice, si des informations générales sur la nutrition sont
 
 ---
 
+## Feature K — Pastille énergie (kcal / 100 g) sur l’écran de synthèse
+
+> Origine : intake `/speckit-design` + `/speckit-specify` 2026-05-13  
+> Intention : après analyse de composition terminée, afficher en tête de l’écran de synthèse une pastille du type « Analyse terminée : **N** kcal estimées / 100 g », valeur **estimée** à partir de la composition (liste d’ingrédients + produit identifié si présent), avec formulation prudente (indicatif, non valeur réglementaire).
+
+### Clarifications (Feature K)
+
+#### Session 2026-05-13
+
+- **Indicateur vs allégation** : la pastille est un **résumé indicatif** ; elle MUST NOT remplacer une déclaration nutritionnelle réglementée sur l’étiquette.
+- **Source du chiffre (v1 par défaut)** : estimation produite dans le **même flux** que le bilan composition (champ ou section dédiée dans la sortie analysable du modèle ou post-traitement contractuellement aligné sur cette sortie). Toute évolution (heuristique locale seule, seconde passe LLM) MUST rester documentée dans le plan d’implémentation et respecter les garde-fous ci-dessous.
+- **Ref. UX** : placement visuel, accessibilité et cohérence avec les autres bandeaux du haut de l’écran de résultat → domaine **`user-guidance-experience`** (**UGE-A-FR-022**).
+- **Bornes affichage kcal/100 g (clarify 2026-05-13)** : **Option B** — une estimation numérique **N** n’est affichée dans la pastille que si **1 ≤ N ≤ 1100** (kcal pour 100 g, entier issu de la sortie analysable après règle d’arrondi publiée) ; toute valeur strictement en dehors de cet intervalle (y compris négative ou nulle) est considérée comme non fiable pour l’affichage chiffré.
+
+### User Scenarios (Feature K)
+
+#### US-K1 — Voir l’estimation énergétique après succès (P1)
+
+En tant qu’utilisatrice, lorsque mon analyse de composition est terminée avec succès, je veux voir en haut de l’écran de synthèse une pastille indiquant une estimation de kcal pour 100 g, afin d’avoir une indication rapide d’ordre de grandeur.
+
+**Acceptance Scenarios**:
+
+1. **Given** un bilan composition classé succès et une estimation kcal/100 g disponible selon les garde-fous, **When** l’écran de synthèse s’affiche, **Then** une pastille en tête montre un entier (ou valeur arrondie documentée) suivi de la mention « / 100 g » et d’une qualification du type « estimé » / « indicatif ».
+2. **Given** le même cas, **When** la pastille est visible, **Then** le libellé inclut explicitement que l’analyse est terminée (ou équivalent clair) sans contredire l’état réel du flux.
+3. **Given** une estimation disponible, **When** l’utilisatrice lit la pastille, **Then** aucune formulation ne présente la valeur comme analyse nutritionnelle officielle ou certifiée du produit.
+
+#### US-K2 — Absence de chiffre plutôt qu’invention (P2)
+
+En tant qu’utilisatrice, je préfère ne pas voir de nombre inventé si le modèle ou les garde-fous ne permettent pas une estimation fiable.
+
+**Acceptance Scenarios**:
+
+1. **Given** bilan succès mais estimation non disponible ou non fiable, **When** l’écran de synthèse s’affiche, **Then** la pastille indique l’état d’analyse terminée **sans** valeur numérique d’énergie trompeuse, ou un libellé d’« estimation indisponible » cohérent avec le design UX (**Ref.** UGE).
+2. **Given** une sortie modèle incohérente (ex. **N** hors de l'intervalle 1–1100 kcal/100 g, ou non numérique), **When** le contrôle métier s’applique, **Then** aucune valeur aberrante n’est affichée comme estimation.
+
+#### US-K3 — Cohérence avec l’ancrage (Feature C) (P1)
+
+En tant qu’utilisatrice, je ne veux pas qu’une estimation soit présentée comme un « fait étiquette » si elle n’est pas compatible avec les règles d’ancrage du domaine.
+
+**Acceptance Scenarios**:
+
+1. **Given** les règles Feature C sur le segment validé, **When** l’estimation est affichée, **Then** elle est présentée comme **dérivée de la composition analysée** (indication), et non comme relevé de tableau nutritionnel étiquette.
+
+#### Edge Cases (Feature K)
+
+- Modèle qui omet toute information d’énergie malgré un bilan succès.
+- Valeur négative, nulle, strictement supérieure à 1100, non entière après arrondi documenté, ou non numérique : pas d’affichage chiffré en pastille (**clarify** : plage d’affichage **1–1100** kcal/100 g).
+- Streaming partiel : pas de pastille définitive incohérente avant fin de traitement (comportement aligné sur l’écran résultat existant).
+- Accessibilité : contraste et taille de police de la pastille (détails **Ref.** UGE).
+
+### Functional Requirements (Feature K)
+
+- **IHI-K-FR-001**: Le système MUST, lorsque le bilan de composition est classé **succès** et qu’une estimation d’énergie en **kcal pour 100 g** est **disponible** selon les garde-fous documentés, exposer cette valeur à l’UI de synthèse pour affichage dans la pastille décrite en **IHI-K-FR-002**.
+- **IHI-K-FR-002**: Le système MUST présenter la valeur dans une **pastille** (ou composant équivalent visuellement distinct) **en tête** de l’écran de synthèse / résultat composition, avec libellé du type « Analyse terminée : **N** kcal estimées / 100 g » (formulation française acceptable sous réserve d’équivalence claire : état terminé + nombre + unité + caractère estimé).
+- **IHI-K-FR-003**: Le système MUST qualifier explicitement la valeur comme **estimée** ou **indicative** (libellé ou pictogramme + texte d’aide court) ; MUST NOT la présenter comme donnée réglementaire ou analyse nutritionnelle certifiée.
+- **IHI-K-FR-004**: Le système MUST dériver l’estimation des **éléments de composition** connus du bilan (liste d’ingrédients ; produit identifié **si** présent dans le bilan) ; MUST NOT **inventer** un nombre lorsque la sortie analysable ne fournit pas d’estimation exploitable ou lorsque les garde-fous concluent à une fiabilité insuffisante.
+- **IHI-K-FR-005**: Le système MUST respecter **Feature C** : l’estimation MUST être présentée comme **indication liée à l’analyse de composition**, et non comme extraction du tableau nutritionnel de l’étiquette.
+- **IHI-K-FR-006**: Le système MUST documenter en conception d’implémentation la **source** de l’estimation (champ / section modèle, validations, règle d’arrondi vers entier). Les **bornes** d’acceptation pour **afficher** une valeur numérique **N** (kcal pour 100 g) dans la pastille sont **1 ≤ N ≤ 1100** (entier) ; toute valeur en dehors de cet intervalle MUST être traitée comme non fiable pour l’affichage chiffré (**IHI-K-FR-004** / **US-K2**).
+
+### Key Entities (Feature K)
+
+- **EstimatedEnergyPer100g**: valeur entière dans **1–1100** (kcal/100 g) si affichage chiffré autorisé, sinon état sans nombre exploitable + unité + flag « disponible / indisponible » + raison d’indisponibilité optionnelle.
+- **EnergyEstimateSource**: trace minimale reliant l’estimation au contenu analysé (sortie modèle / règle de validation).
+
+### Success Criteria (Feature K)
+
+- **IHI-K-SC-001**: Sur un jeu de bilans de démo/fixtures où une estimation valide est fournie, 100 % des affichages montrent **N** cohérent avec la sortie attendue après validation.
+- **IHI-K-SC-002**: Sur un jeu de contre-exemples (sortie sans estimation, **N** non compris dans **1–1100** kcal/100 g, ou non numérique), 0 % n’affichent de nombre trompeur ; la pastille reste cohérente avec **US-K2**.
+- **IHI-K-SC-003**: 100 % des affichages incluent la qualification **estimé / indicatif** visible sans action utilisateur supplémentaire.
+
+---
+
 ## Cross-domain Notes
 
 - Consomme le segment validé de `ingredient-normalization-validation` (source de vérité pour l’ancrage — Feature C).
 - Utilise le gateway de `local-llm-runtime` pour l'inférence.
-- L'orchestration UX est gérée par `user-guidance-experience`.
+- L'orchestration UX est gérée par `user-guidance-experience` (**Ref.** pastille kcal en tête d’écran résultat — **UGE-A-FR-022**, Feature K).
 - Les KPI additifs détaillés sont du ressort de `additive-risk-insights` ; leur juxtaposition à une analyse LLM succès est régie par **IHI-C-FR-007** (attribution explicite + ancrage littéral des mentions dans le segment).
 
 ## Source Mapping
 
 - `specs/016-test-llm-mock/` (Feature A)
 - Intake `/speckit-design` 2026-05-13 (Feature C)
+- Intake `/speckit-design` + `/speckit-specify` 2026-05-13 (Feature K)
 
 ## Assumptions
 
@@ -255,3 +330,4 @@ En tant qu’utilisatrice, si des informations générales sur la nutrition sont
 - La classification `non-analysable-response` (et équivalents) est acceptée comme résultat utilisateur valide lorsque l’ancrage échoue.
 - Un **contrat de read-model** (ou équivalent) avec `additive-risk-insights` est disponible pour permettre l’attribution explicite visée par **IHI-C-FR-007** ; à défaut, l’enrichissement additif ne s’affiche pas en juxtaposition d’un succès LLM.
 - Au **MVP**, la conformité à **IHI-C-FR-006** est démontrable par **relecture humaine** et traçabilité ; des garde-fous automatisés supplémentaires relèvent du plan d’évolution hors obligation minimale.
+- Pour **Feature K**, la **source** exacte du champ modèle et la **règle d’arrondi** vers l’entier affiché relèvent du plan d’implémentation ; les **bornes d’affichage** **1–1100** kcal/100 g et les contraintes **IHI-K-FR-004** / **IHI-K-FR-006** sont désormais fixées en spec.

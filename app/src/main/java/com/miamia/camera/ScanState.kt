@@ -21,11 +21,6 @@ sealed class ScanState {
         val items: List<String> = emptyList()
     ) : ScanState()
 
-    data class SegmentConfirmationRequired(
-        val segmentPreview: String,
-        val itemsPreview: List<String> = emptyList()
-    ) : ScanState()
-
     /** OCR terminé ; inférence Gemma / bilan en cours (spec 009). */
     /** [partialResponse] : sortie modèle en cours (streaming) pour feedback immédiat. */
     data class CompositionAnalyzing(val partialResponse: String = "") : ScanState()

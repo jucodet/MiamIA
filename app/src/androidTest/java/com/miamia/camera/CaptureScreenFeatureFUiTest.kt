@@ -1,12 +1,10 @@
 package com.miamia.camera
 
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.miamia.MainActivity
@@ -21,7 +19,7 @@ class CaptureScreenFeatureFUiTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun previewActive_noLlmButton_noLegacyStatus_explicitReadyCopy() {
+    fun previewActive_noLlmButton_noLegacyStatus_featureGChrome() {
         composeRule.waitForIdle()
         val vm = ViewModelProvider(composeRule.activity)[CameraViewModel::class.java]
         composeRule.runOnIdle {
@@ -34,9 +32,9 @@ class CaptureScreenFeatureFUiTest {
         composeRule.onAllNodesWithText("Aperçu caméra actif").assertCountEquals(0)
         composeRule.onAllNodesWithText("Test LLM").assertCountEquals(0)
 
-        composeRule.onNodeWithTag("capture_scan_status_text")
-            .assertIsDisplayed()
-            .assertTextContains("Caméra")
-            .assertTextContains("scanner")
+        composeRule.onAllNodesWithTag("ingredients_framing_tag_chip", useUnmergedTree = true)
+            .assertCountEquals(0)
+        composeRule.onAllNodesWithText("Caméra prête — vous pouvez scanner").assertCountEquals(0)
+        composeRule.onNodeWithTag("capture_scan_status_text").assertDoesNotExist()
     }
 }

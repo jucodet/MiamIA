@@ -43,3 +43,15 @@ Les « inconnues » techniques ont été résolues par la spec + session **clari
 ## 7. Dette spec Feature B (implémenté 2026-05-13)
 
 - **Note** : le code `composition/` et `healthcritique/` a été aligné sur Feature C sans backfill exhaustif de **Feature B** dans `spec.md` ; poursuivre `/speckit-sync-backfill` pour refermer l’écart doc ↔ code.
+
+## 8. Estimation énergétique Feature K (2026-05-13)
+
+- **Decision** : section dédiée **`###ENERGIE_ESTIMEE`** placée **après** `###ANALYSE` et **avant** `###ADDITIFS_RISQUE` ; première valeur entière **kcal pour 100 g** lisible sur la première ligne du bloc (ex. `420` ou `kcal_pour_100g: 420`).
+- **Rationale** : même flux LLM, parseur déjà sectionné ; ordre compatible avec extension progressive des prompts (LiteRt 6 sections, Hybrid 6, Android 5 → alignés).
+- **Alternatives considered** : second passage LLM dédié (rejeté v1 — coût/latence) ; heuristique locale seule (rejeté v1 — spec privilégie sortie analysable du même flux).
+
+## 9. Bornes d’affichage kcal/100 g
+
+- **Decision** : entier **inclus 1..1100** (**clarify** 2026-05-13, **Option B**) ; toute valeur hors intervalle ou non parseable → `estimatedKcalPer100g = null` (pastille sans nombre trompeur).
+- **Rationale** : aligné **IHI-K-FR-006** / **IHI-K-SC-002** ; couvre huiles et matrices très denses (~900 kcal/100 g) sans accepter valeurs absurdes (ex. 12_000).
+- **Alternatives considered** : **1..950** (impl antérieure — trop strict vs spec) ; plage 50..900 (trop stricte) ; laisser 0 (rejeté, min = 1).

@@ -19,6 +19,8 @@ data class CompositionBilan(
     val compositionAnalysis: String,
     val disclaimer: String,
     val healthImpacts: List<IngredientHealthImpact> = emptyList(),
+    /** kcal pour 100 g, indicatif — null si absent ou hors bornes après garde-fous (Feature K). */
+    val estimatedKcalPer100g: Int? = null,
     val promptVersion: String = GemmaModelPaths.PROMPT_VERSION,
 )
 

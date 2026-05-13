@@ -10,17 +10,18 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.miamia.analysis.Gemma4LocalUiMessageResolver
-import com.miamia.analysis.AnalysisInputBuilder
 import androidx.lifecycle.viewModelScope
 import com.miamia.analysis.ingredientsegment.AnalysisSubmissionGate
 import com.miamia.analysis.ingredientsegment.IngredientSegmentPreparationService
-import com.miamia.analysis.ingredientsegment.SubmissionBlockedReason
 import com.miamia.additives.AnalysisDisplayResult
 import com.miamia.additives.BuildAdditiveKpiDisplay
 import com.miamia.composition.AnalyzeCompositionResult
 import com.miamia.composition.CompositionAnalysisEngine
 import com.miamia.composition.CompositionMessages
+import com.miamia.composition.CompositionImpactCompleter
 import com.miamia.composition.CompositionResultValidator
+import com.miamia.composition.IngredientLabelNormalizer
+import com.miamia.composition.IngredientOcrLexicon
 import com.miamia.composition.GemmaErrorCode
 import com.miamia.core.FeatureConfig
 import com.miamia.ingredients.ExtractedIngredientMapper
@@ -314,41 +315,23 @@ class CameraViewModel(
                     val itemLabels = uiItems.map { it.text }
                     val transcriptText = result.items.joinToString("\n") { it.normalizedText }
                     val extraction = segmentPreparationService.prepare(result.scanId, transcriptText)
-                    if (!extraction.anchorFound) {
-                        lastRawTranscript = transcriptText
-                        lastItemsPreview = itemLabels
-                        _scanState.value = ScanState.Success(
-                            transcriptText = transcriptText,
-                            items = itemLabels
-                        )
-                        return@launch
-                    }
+                    lastRawTranscript = transcriptText
+                    lastItemsPreview = itemLabels
                     val previewDecision = submissionGate.evaluate(
                         scanId = result.scanId,
                         extraction = extraction,
                         userConfirmed = false,
-                        /** Validation implicite : enchaînement direct analyse LLM si le segment est exploitable (plus d’écran intermédiaire). */
-                        implicitValidationFromIngredientsFraming = true
+                        implicitValidationFromIngredientsFraming = true,
+                        fullOcrTranscript = transcriptText,
                     )
-                    if (!extraction.anchorFound || previewDecision.blockedReason == SubmissionBlockedReason.EMPTY_SEGMENT) {
-                        _scanState.value = ScanState.Error(
-                            "Section ingredients introuvable ou vide. Reprenez la photo ou editez le texte."
-                        )
-                        return@launch
-                    }
                     if (!previewDecision.submissionAllowed) {
                         _scanState.value = ScanState.Error(
-                            "Analyse bloquee: segment non exploitable pour l'instant."
+                            "Texte non exploitable pour l'analyse. Reprenez la photo ou editez le texte.",
                         )
                         return@launch
                     }
-                    val segmentForAnalysis = AnalysisInputBuilder.buildSegmentPayload(
-                        extraction.segmentText.orEmpty()
-                    )
-                    pendingAnalysisSegment = segmentForAnalysis
+                    pendingAnalysisSegment = previewDecision.segmentPreview
                     pendingScanId = result.scanId
-                    lastRawTranscript = transcriptText
-                    lastItemsPreview = itemLabels
                     confirmSegmentAndAnalyze()
                 } else if (result.outcome == "empty") {
                     _scanState.value = ScanState.Empty(result.userMessage.ifBlank { "Aucun texte détecté" })
@@ -369,14 +352,16 @@ class CameraViewModel(
     }
 
     fun confirmSegmentAndAnalyze() {
-        val segment = pendingAnalysisSegment ?: return
         val scanId = pendingScanId ?: return
+        val sourceOcr = lastRawTranscript ?: pendingAnalysisSegment ?: return
         val items = lastItemsPreview.orEmpty()
-        val extraction = segmentPreparationService.prepare(scanId, segment)
+        val extraction = segmentPreparationService.prepare(scanId, sourceOcr)
         val decision = submissionGate.evaluate(
             scanId = scanId,
             extraction = extraction,
-            userConfirmed = true
+            userConfirmed = true,
+            implicitValidationFromIngredientsFraming = false,
+            fullOcrTranscript = sourceOcr,
         )
         if (!decision.submissionAllowed) {
             _scanState.value = ScanState.Error("Analyse bloquee: confirmation ou segment invalide.")
@@ -395,11 +380,6 @@ class CameraViewModel(
         viewModelScope.launch {
             runCompositionStage(engine, decision.segmentPreview, items)
         }
-    }
-
-    fun rejectSegmentConfirmation() {
-        _lastValidatedSegmentForHealth.value = null
-        _scanState.value = ScanState.Error("Analyse annulee. Vous pouvez reprendre une photo.")
     }
 
     private suspend fun runCompositionStage(
@@ -442,9 +422,14 @@ class CameraViewModel(
                         )
                     }
                 } else {
+                    val bilanPrepared = CompositionImpactCompleter.completeMissingHealthImpacts(
+                        IngredientLabelNormalizer.normalizeBilanIngredientLabels(
+                            IngredientOcrLexicon.applyToBilan(outcome.bilan),
+                        ),
+                    )
                     when (
                         val v = CompositionResultValidator.validateAgainstSource(
-                            outcome.bilan,
+                            bilanPrepared,
                             rawText,
                             outcome.rawModelOutput,
                         )
