@@ -1,25 +1,25 @@
-# Specification Quality Checklist: Feature F — libellés capture, fin test LLM
+# Specification Quality Checklist: Feature G — OCR direct, accueil épuré
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-05-13  
-**Feature**: [spec.md](../spec.md) — Feature F (+ révisions Feature A, D, C, hypothèses globales)
+**Feature**: [spec.md](../spec.md) — Feature G (+ révisions Feature F ciblées, UGE-A-FR-006)
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs) — références aux test tags / fichiers de tests uniquement comme critères de vérification, non comme conception imposée
+- [x] No implementation details (languages, frameworks, APIs) as mandatory design
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
-- [x] All mandatory sections completed for Feature F (User Scenarios, FR, Success Criteria, Assumptions)
+- [x] All mandatory sections completed for Feature G (User Scenarios, FR, Success Criteria, Assumptions)
 
 ## Requirement Completeness
 
 - [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
-- [x] Success criteria are technology-agnostic (UGE-F-SC-003 autorise « inspection UI » sans imposer un outil)
+- [x] Success criteria are technology-agnostic (inspection UI / parcours nominal autorisés)
 - [x] All acceptance scenarios are defined
 - [x] Edge cases are identified
-- [x] Scope is clearly bounded (écran accueil = capture ; ref alignement `capture-recognition`)
+- [x] Scope is clearly bounded (UX + navigation ; **Ref.** segmentation code → `ingredient-normalization-validation`)
 - [x] Dependencies and assumptions identified
 
 ## Feature Readiness
@@ -27,9 +27,9 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification (UGE-F-FR-004 est une dépendance inter-domaines documentée, pas une spec d’implémentation)
+- [x] No implementation details leak into specification
 
 ## Notes
 
-- Validation manuelle : Feature F insérée après Feature D ; Feature A/D/C et hypothèses globales mis à jour pour cohérence (révocation test LLM, SC-D-003). La checklist Feature E (phrases loaders) reste historiquement validée dans le commit précédent du même fichier.
-- Spécification prête pour `/speckit.clarify` ou `/speckit.plan`.
+- Révocation explicite de US-F1 / UGE-F-FR-001 / UGE-F-SC-001 documentée ; cohérence avec Feature F conservée pour test LLM et « Aperçu caméra actif » (US-F2, US-F3).
+- Prêt pour `/speckit.plan` sur ce domaine ou alignement spec domaine ingrédients en parallèle.

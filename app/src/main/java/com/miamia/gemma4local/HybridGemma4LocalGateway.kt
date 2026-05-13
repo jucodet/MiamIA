@@ -102,9 +102,14 @@ class HybridGemma4LocalGateway(
         return try {
             engine.initialize()
             val systemInstruction = Contents.of(
-                "Tu analyses des listes d'ingredients alimentaires (contexte UE, francais). " +
+                "Reponds entierement en francais. " +
+                    "Tu analyses des listes d'ingredients alimentaires (contexte UE). " +
                     "Ne pas inventer d'ingredients absents du texte source. " +
-                    "Pour ###LISTE, reprend chaque libelle exactement comme dans l'OCR (memes mots), sans corriger l'orthographe ; seules tolerances : casse et espaces. " +
+                    "Pour ###LISTE : un ingredient par ligne avec - ; reformule chaque libelle OCR vers la graphie la plus probable (orthographe, accents, formulation UE) sans changer le sens ni l'ordre des entrees reellement lues. " +
+                    "Sans pourcentages entre parentheses dans les libelles (ex. farine de ble sans (50 %) ; meme regle pour le champ nom des verdicts). " +
+                    "Pour ###ADDITIFS_RISQUE et ###IMPACT_SANTE : le champ nom entre les barres doit reprendre le meme intitule normalise que dans ###LISTE pour le meme compose. " +
+                    "###IMPACT_SANTE : exactement une ligne par entree de ###LISTE, meme ordre, aucune omission. " +
+                    "Exemple correction OCR : omidon -> amidon. " +
                     "Reponds uniquement avec 5 sections dans cet ordre : ###LISTE, ###PRODUIT, ###ANALYSE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
                     "Exemple : ###LISTE\n- eau\n- sucre\n- E300\n###PRODUIT\nLimonade ou soda sucre|80\n###ANALYSE\nProduit simple. Peu d'additifs.\n" +
                     "###ADDITIFS_RISQUE\nVERT|E300|Vitamine C naturelle\n" +

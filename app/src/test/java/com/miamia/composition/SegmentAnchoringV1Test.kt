@@ -22,9 +22,17 @@ class SegmentAnchoringV1Test {
     }
 
     @Test
-    fun inventedIngredient_stillFails() {
-        val segment = "eau, sucre, farine"
-        assertFalse(SegmentAnchoringV1.isAnchoredInSegment("ingredient_invente_xyz", segment))
+    fun reformulatedLine_groundsWhenOcrFragmentFuzzyMatchesInsideLine() {
+        val segment = "hul colza"
+        val line = "Huile de colza"
+        assertTrue(SegmentAnchoringV1.isGroundedIngredientLine(line, segment))
+    }
+
+    @Test
+    fun inventedIngredient_stillFailsGrounding() {
+        assertFalse(
+            SegmentAnchoringV1.isGroundedIngredientLine("cyanure de potassium", "eau, sucre, farine"),
+        )
     }
 
     @Test

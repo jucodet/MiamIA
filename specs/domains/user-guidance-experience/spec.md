@@ -2,8 +2,10 @@
 
 **Domain Context**: `user-guidance-experience`
 **Created**: 2026-05-06
-**Last Modified**: 2026-05-13 (Feature F — libellés capture, fin test LLM)
+**Last Modified**: 2026-05-13 (Feature G — OCR direct, accueil epure ; revise Feature F statut caméra)
 **Status**: Draft
+
+**Dernière entrée utilisateur (intake)** : « L'analyse doit se déclencher directement à partir de l'OCR, sur la base de la totalité du texte capturé. Je ne veux plus voir l'écran intermédiaire qui affiche le texte capturé. Supprime toute la logique de segmentation de la liste des ingrédients. Supprime aussi de l'écran d'accueil, la pastille balise ingrédients et le texte caméra prête vous pouvez scanner. »
 
 ## Purpose
 
@@ -13,7 +15,7 @@ Orchestrer l'expérience utilisatrice de bout en bout : onboarding (télécharge
 
 - Onboarding téléchargement du modèle LLM (confirmation, attente, reprise, refus)
 - Écran de capture comme accueil (sans onglets)
-- Flux photo → streaming analyse → écran résultat
+- Flux photo → analyse LLM (sans ecran intermediaire de relecture du transcript OCR) → streaming / ecran resultat
 - Gestion des indisponibilités (caméra, modèle, réseau)
 - Messages de bienvenue et ton positif
 - Catalogue partagé de phrases humoristiques pour écrans d'attente (téléchargement modèle, analyse LLM)
@@ -103,7 +105,7 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - **UGE-A-FR-003**: Le système MUST permettre un contrôle de mise au point sur la prévisualisation.
 - **UGE-A-FR-004**: Le système MUST afficher sous la prévisualisation un bouton de prise de photo qui lance le flux existant de capture.
 - **UGE-A-FR-005** *(révoqué — Feature F)*: ~~bouton test LLM~~ — voir UGE-F-FR-002.
-- **UGE-A-FR-006**: Le système MUST, après capture photo et lancement de l'analyse LLM, naviguer vers l'écran de résultat dédié et y afficher un indicateur de chargement (fouet animé, phrases humoristiques rotatives) suivi du streaming progressif des sections d'analyse (produit identifié, ingrédients, synthèse, impacts santé) au fur et à mesure de leur disponibilité. *(Backfill P1 — 2026-05-12.)*
+- **UGE-A-FR-006**: Le système MUST, après capture photo et lancement de l'analyse LLM, naviguer vers l'écran de résultat dédié et y afficher un indicateur de chargement (fouet animé, phrases humoristiques rotatives) suivi du streaming progressif des sections d'analyse (produit identifié, ingrédients, synthèse, impacts santé) au fur et à mesure de leur disponibilité, **sans** interposer au préalable un écran de relecture du texte OCR (**Ref.** Feature G, UGE-G-FR-001). *(Backfill P1 — 2026-05-12.)*
 - **UGE-A-FR-007**: Le système MUST, lorsque l'analyse LLM se termine avec succès et que l'utilisatrice est sur l'écran de résultat, afficher le bilan complet. En cas d'échec, afficher un état d'erreur actionnable sur le même écran. *(Backfill P1 — 2026-05-12.)*
 - **UGE-A-FR-008** *(révoqué — Feature F)*: ~~runner test LLM~~ — voir UGE-F-FR-002.
 - **UGE-A-FR-009** *(révoqué — Feature F)*: ~~désactivation bouton test~~ — voir UGE-F-FR-002.
@@ -303,7 +305,7 @@ En tant qu'utilisatrice, le retrait du message d'accueil ne MUST modifier ni le 
 
 ### Functional Requirements (Feature D)
 
-- **UGE-D-FR-001** : Le système MUST NOT afficher de bannière de message d'accueil sur l'écran capture (= écran d'accueil) dans **aucun** état (`CameraReady`, `PreviewInitializing`, `PreviewActive`, `Capturing`, `Analyzing`, `CameraUnavailable`, `PermissionDenied`, `Empty`, `Error`, `BilanReady`, `CompositionLimit`, `CompositionAnalyzing`, `GemmaUnavailable`, `SegmentConfirmationRequired`, `Success`).
+- **UGE-D-FR-001** : Le système MUST NOT afficher de bannière de message d'accueil sur l'écran capture (= écran d'accueil) dans **aucun** état (`CameraReady`, `PreviewInitializing`, `PreviewActive`, `Capturing`, `Analyzing`, `CameraUnavailable`, `PermissionDenied`, `Empty`, `Error`, `BilanReady`, `CompositionLimit`, `CompositionAnalyzing`, `GemmaUnavailable`, `Success`).
 - **UGE-D-FR-002** : Le système MUST NOT exposer dans l'arbre Compose de l'écran capture un nœud porteur du test tag `welcome_message_banner` ou de toute sémantique de « message d'accueil ».
 - **UGE-D-FR-003** : Le système MUST conserver, dans le code de l'application, les autres éléments structurants de l'écran capture (`MediaPipeStatusIndicator`, aperçu caméra, bande d'action avec au minimum le bouton « Y a quoi là-dedans ? ») ; les libellés secondaires d'état peuvent évoluer selon Feature F sans violer cette exigence.
 - **UGE-D-FR-004** : Les tests existants nommés `US1WelcomeAfterLoginFlowTest`, `US2PositiveToneWelcomeTest`, `US3EmptyCatalogNoMessageTest` (sous `app/src/androidTest/java/com/miamia/welcome/`) sont, après audit, des tests de **logique pure** (policy / sélecteur / règles de ton) — ils n'instancient pas de `createAndroidComposeRule` ni n'asservissent l'arbre Compose. Ils ne sont **pas contradictoires** avec UGE-D-FR-001/002 et MUST être laissés inchangés. La couverture « pas de message d'accueil rendu sur l'écran capture » est portée par le nouveau test d'instrumentation dédié (cf. plan / tasks Feature D).
@@ -344,19 +346,9 @@ En tant qu'utilisatrice, le retrait du message d'accueil ne MUST modifier ni le 
 
 ### User Scenarios (Feature F)
 
-#### US-F1 — Comprendre l'état « caméra prête » sans jargon ambigu (P1)
+#### US-F1 — ~~Libellé « caméra prête » sous l'aperçu (P1)~~ *(révoqué — Feature G, 2026-05-13)*
 
-En tant qu'utilisatrice, lorsque la prévisualisation caméra est opérationnelle, je veux un texte d'état qui dit clairement que je peux scanner l'étiquette, et non un mot isolé comme « Disponible » qui ne précise pas *de quoi* il s'agit.
-
-**Pourquoi P1** : la clarté réduit l'hésitation avant la capture et l'impression d'interface « technique ».
-
-**Test indépendant** : en état prévisualisation active, vérifier que la chaîne affichée pour l'état « prêt » contient une formulation explicite (ex. présence de « caméra » ou « prêt » + intention de scan) et n'est pas réduite au seul terme « Disponible ».
-
-**Acceptance Scenarios** :
-
-1. **Given** la caméra en prévisualisation active, **When** l'utilisatrice lit le statut sous la zone caméra / bande d'action, **Then** le libellé MUST communiquer sans ambiguïté que l'aperçu est prêt pour une capture (ex. « Caméra prête — vous pouvez scanner » ou formulation équivalente en français, ≤ 80 caractères).
-2. **Given** le même état, **When** le texte est inspecté, **Then** il MUST NOT être exactement ni « Disponible » seul, ni une variante à un seul mot générique sans lien avec la capture.
-3. **Given** les autres états transitoires (initialisation, capture en cours, traitement), **When** affichés, **Then** leurs libellés restent compréhensibles sans jargon interne non défini dans le glossaire utilisateur.
+*L'exigence d'une ligne explicite sous la prévisualisation (ex. « Caméra prête — vous pouvez scanner ») est **abrogée**. Voir **US-G2** et **UGE-G-FR-003**.*
 
 #### US-F2 — Parcours produit sans test LLM (P1)
 
@@ -379,27 +371,84 @@ En tant qu'utilisatrice, je ne veux plus voir le libellé redondant « Aperçu c
 
 ### Edge Cases (Feature F)
 
-- **Accessibilité** : le libellé explicite reste lisible avec police agrandie (troncature élégante ou multiligne dans la zone prévue).
+- **Accessibilité** : le bouton principal de capture et les zones d'état utiles (erreurs, chargement) restent lisibles avec police agrandie.
 - **Traduction future** : la règle « pas de "Disponible" seul » et « pas d'« Aperçu caméra actif » » s'applique aux chaînes équivalentes dans chaque locale (même intention).
 - **Tests automatisés** : les tests qui assertaient la présence du bouton test LLM ou du libellé « Aperçu caméra actif » doivent être mis à jour ou retirés pour refléter la nouvelle vérité produit.
 
 ### Functional Requirements (Feature F)
 
-- **UGE-F-FR-001** : Le système MUST, lorsque la prévisualisation caméra est prête pour une capture, afficher un libellé d'état en français qui décrit explicitement la disponibilité de la caméra pour scanner (intention utilisateur), et MUST NOT utiliser seul le mot « Disponible » comme seul contenu informatif de cet état.
+- **UGE-F-FR-001** *(révoqué — Feature G, 2026-05-13)* : ~~Le système MUST, lorsque la prévisualisation caméra est prête pour une capture, afficher un libellé d'état en français qui décrit explicitement la disponibilité de la caméra pour scanner~~ — **remplacé par** **UGE-G-FR-003** (aucune ligne d'invitation imposée ; chaîne « Caméra prête — vous pouvez scanner » interdite).
 - **UGE-F-FR-002** : Le système MUST retirer de l'interface tout bouton, menu ou raccourci « Test LLM » (ou sémantique équivalente de test/démo LLM) présent sur l'écran d'accueil / capture ; le système MUST retirer la logique produit associée (navigation, runner dédié exposé à l'utilisatrice). *(Les utilitaires purement internes ou tests instrumentés hors UI MAY rester dans le dépôt si isolés.)*
 - **UGE-F-FR-003** : Le système MUST NOT afficher la chaîne « Aperçu caméra actif » sur l'écran d'accueil (= écran capture), dans aucun état d'interface.
 - **UGE-F-FR-004** : Le domaine `capture-recognition` MUST aligner ses contrats UI documentés (`contracts/capture-action-bar.md`, test tags, quickstarts) sur l'absence du bouton test LLM et sur la suppression du libellé « Aperçu caméra actif » lors de l'implémentation — **Ref** propriétaire technique des tags et de la disposition de la `PreviewRegion`.
 
 ### Success Criteria (Feature F)
 
-- **UGE-F-SC-001** : Sur 100 % des sessions observées en prévisualisation active, 0 occurrence du seul libellé « Disponible » comme unique texte d'état « prêt » ; ≥ 95 % des testeurs comprennent sans aide que la caméra est prête (enquête interne légère ou test d'utilisabilité à 5 personnes).
+- **UGE-F-SC-001** *(révoqué — Feature G, 2026-05-13)* : ~~Sur 100 % des sessions observées en prévisualisation active, 0 occurrence du seul libellé « Disponible »~~ — le critère de « libellé prêt obligatoire » ne s'applique plus ; **UGE-G-SC-002** couvre l'absence de la ligne marketing interdite et du chip balise.
 - **UGE-F-SC-002** : 100 % des parcours depuis l'écran d'accueil → aucun élément interactif « Test LLM » visible ni activable.
 - **UGE-F-SC-003** : 100 % des inspections d'UI (manuel ou test Compose) → 0 occurrence de « Aperçu caméra actif ».
 
 ### Assumptions (Feature F)
 
-- La formulation exacte du libellé « prêt » peut être ajustée par le design (A/B mineur) tant que UGE-F-FR-001 et UGE-F-SC-001 sont respectés.
+- ~~La formulation exacte du libellé « prêt » peut être ajustée par le design (A/B mineur) tant que UGE-F-FR-001 et UGE-F-SC-001 sont respectés.~~ *(Assumption révoquée — Feature G : pas de libellé d'invitation imposé sous l'aperçu.)*
 - La suppression du test LLM n'empêche pas les tests unitaires ou d'intégration d'invoquer le moteur LLM avec des données fictives hors écran capture.
+
+---
+
+## Feature G — OCR direct, sans écran intermédiaire, accueil sans chip ni statut « prêt à scanner »
+
+**Branche** : *(via hook `speckit.git.feature` si utilisé)* · **Date** : 2026-05-13 · **Statut** : Draft
+
+> Input : « L'analyse doit se déclencher directement à partir de l'OCR, sur la base de la totalité du texte capturé. Je ne veux plus voir l'écran intermédiaire qui affiche le texte capturé. Supprime toute la logique de segmentation de la liste des ingrédients. Supprime aussi de l'écran d'accueil, la pastille balise ingrédients et le texte caméra prête vous pouvez scanner. »
+
+### Clarifications (session 2026-05-13)
+
+- **Révocation partielle de Feature F** : les scénarios US-F1 et les exigences **UGE-F-FR-001** / **UGE-F-SC-001** qui imposaient une ligne de statut explicite (« Caméra prête — vous pouvez scanner » ou équivalent) sous la prévisualisation sont **abrogés** pour l'écran accueil (= capture). L'état « prêt » est désormais **purement visuel** (flux vidéo + bouton principal de capture) ; **aucune** phrase marketing ou pédagogique obligatoire ne doit occuper la zone sous l'aperçu pour signifier « prêt ».
+- **Segmentation** : la fin de toute logique d'isolation / ancrage / proposition de segment ingrédients et des validations associées **avant** l'analyse LLM relève du domaine **`ingredient-normalization-validation`** (spec et code) ; le présent document fixe les **attendus UX et de navigation** correspondants (pas d'écran intermédiaire de relecture, pas de chrome « balise » sur l'accueil).
+
+### User Scenarios (Feature G)
+
+#### US-G1 — Enchaînement direct OCR → analyse (P1)
+
+En tant qu'utilisatrice, après une capture et une reconnaissance réussies avec un texte exploitable, je veux que l'application enchaîne vers l'analyse (indicateur de chargement / navigation vers le résultat) **sans** m'obliger à passer par un écran intermédiaire dont le rôle principal est d'afficher le texte capturé pour relecture ou confirmation.
+
+**Acceptance Scenarios** :
+
+1. **Given** un résultat OCR `success` ou `partial` avec transcript non vide admissible pour l'analyse, **When** le flux se poursuit, **Then** aucun écran ou feuille intermédiaire dont l'objet principal est la relecture du transcript ne s'intercale avant le démarrage de l'analyse LLM ou l'affichage du chargement résultat.
+2. **Given** le même contexte, **When** l'analyse est invoquée, **Then** l'entrée transmise au parcours d'analyse est l'intégralité du texte capturé disponible pour la session (**Ref.** FR-012 domaine `ingredient-normalization-validation`).
+
+#### US-G2 — Accueil sans pastille « balise ingrédients » ni ligne « Caméra prête — vous pouvez scanner » (P1)
+
+En tant qu'utilisatrice sur l'écran d'accueil (= écran de capture), je ne veux **ni** pastille, chip ou interrupteur « balise ingrédients » (ou libellé fonctionnellement équivalent), **ni** la ligne de texte « Caméra prête — vous pouvez scanner » (casse et tiret comme ci-dessus) ni une formulation imposée au même emplacement pour le même rôle d'« invitation à scanner ».
+
+**Acceptance Scenarios** :
+
+1. **Given** l'écran capture affiché en état prêt à photographier, **When** l'utilisatrice examine la zone sous la prévisualisation (hors bande d'action principale et hors indicateurs techniques déjà prévus, ex. disponibilité moteur), **Then** aucun contrôle « balise ingrédients » n'est visible.
+2. **Given** le même écran, **When** le texte sous l'aperçu est inspecté, **Then** la chaîne exacte « Caméra prête — vous pouvez scanner » n'apparaît pas.
+3. **Given** les états transitoires (`PreviewInitializing`, `Capturing`, `Analyzing`), **When** affichés, **Then** aucune réintroduction de la pastille balise ni de la chaîne interdite n'est faite à la place des messages d'état utiles déjà prévus ailleurs (ex. traitement en cours).
+
+### Edge Cases (Feature G)
+
+- **OCR vide ou non exploitable** : un message d'erreur ou de reprise reste autorisé ; il ne constitue pas un « écran de relecture » du transcript.
+- **Indicateur technique** (ex. disponibilité du modèle / MediaPipe) : peut rester distinct de la zone visée par US-G2 tant qu'il n'est pas substitut d'une pastille « balise » ni de la ligne de statut marketing révoquée.
+- **Accessibilité** : la suppression des libellés marketing ne dispense pas d'alternatives accessibles sur le bouton d'action principal (libellé existant « Y a quoi là-dedans ? » ou évolution ultérieure documentée).
+
+### Functional Requirements (Feature G)
+
+- **UGE-G-FR-001** : Le système MUST, après capture et reconnaissance aboutissant à un transcript utilisable pour l'analyse, enchaîner vers le parcours d'analyse LLM **sans** présenter d'étape utilisateur dont la fonction première est la consultation ou la validation du transcript avant analyse.
+- **UGE-G-FR-002** : Le système MUST NOT afficher sur l'écran d'accueil (= écran capture) de pastille, chip, interrupteur ou entrée de menu « balise ingrédients » (ou libellé sémantiquement équivalent d'intention de cadrage « ingrédients seuls »).
+- **UGE-G-FR-003** : Le système MUST NOT afficher sur l'écran d'accueil la chaîne exacte « Caméra prête — vous pouvez scanner » ; le système MUST NOT exiger une ligne de texte d'invitation à scanner sous la prévisualisation pour l'état « prêt » (la prévisualisation live et le bouton principal suffisent).
+- **UGE-G-FR-004** : Le système MUST retirer de l'expérience produit tout écran intermédiaire équivalent historique à `SegmentConfirmationRequired` pour le parcours nominal de scan vers analyse (**Ref.** implémentation `ingredient-normalization-validation` + module capture).
+
+### Success Criteria (Feature G)
+
+- **UGE-G-SC-001** : 100 % des parcours nominaux capture → OCR réussi → analyse : 0 affichage d'un écran intermédiaire de relecture du transcript (vérification manuelle ou tests d'UI ciblés).
+- **UGE-G-SC-002** : 100 % des inspections d'UI sur l'écran accueil capture en état prêt : 0 chip « balise ingrédients » (ou équivalent) ; 0 occurrence de la chaîne « Caméra prête — vous pouvez scanner ».
+
+### Assumptions (Feature G)
+
+- Le bouton principal de capture et l'indicateur de disponibilité du moteur / pipeline restent les leviers d'action et de confiance technique ; leur évolution de libellé hors périmètre de la phrase interdite reste libre tant que UGE-G-FR-003 est respecté.
+- La mise en œuvre technique de la suppression de code (segmentation, gate, états) est répartie entre modules capture et domaine ingrédients ; la présente spec reste la source de vérité **comportementale** vis-à-vis de l'utilisatrice.
 
 ---
 

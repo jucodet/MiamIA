@@ -1,264 +1,177 @@
 {
-  "generated": "2026-05-12T17:29:00+02:00",
-  "based_on": "drift-report from 2026-05-12T17:14:00+02:00",
+  "generated": "2026-05-13T14:00:00Z",
+  "based_on": ".specify/sync/drift-report.json (2026-05-13T12:00:00Z)",
+  "notes": "Partie du drift capture/ingredient/contrat a deja ete corrigee par speckit-sync-apply (2026-05-13). Les entrees VERIFY referencent cette reconciliation.",
   "summary": {
-    "backfill": 7,
-    "align": 6,
-    "new_specs": 3,
-    "remove_from_spec": 0,
-    "human_decision": 0
+    "backfill": 2,
+    "align": 1,
+    "human_decision": 4,
+    "verify": 3,
+    "defer": 1,
+    "remove": 1,
+    "new_specs": 0
   },
   "proposals": [
     {
-      "id": "P1",
-      "spec": "user-guidance-experience/photo-capture-llm-result-flow",
-      "requirements": [
-        "FR-006",
-        "FR-007",
-        "FR-013",
-        "FR-014"
-      ],
-      "direction": "BACKFILL",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Réécrire les 4 FRs pour refléter le flux streaming progressif sur l'écran résultat",
-      "phase": 1
-    },
-    {
-      "id": "P2",
-      "spec": "user-guidance-experience/photo-capture-llm-result-flow",
-      "requirements": [
-        "FR-017",
-        "FR-018"
-      ],
-      "direction": "BACKFILL+ALIGN",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Backfill FR-017 (état d'attente streaming accepté) + Align FR-018 (connecter fallback OCR à LlmResultScreen)",
-      "phase_backfill": 1,
-      "phase_align": 3
-    },
-    {
-      "id": "P3",
-      "spec": "user-guidance-experience/llm-download-onboarding",
-      "requirements": [
-        "FR-002",
-        "FR-011"
-      ],
-      "direction": "BACKFILL",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Spec s'aligne sur le code : 'Refuser et quitter' + finishAffinity()",
-      "phase": 1
-    },
-    {
-      "id": "P4",
-      "spec": "user-guidance-experience/llm-download-onboarding",
-      "requirements": [
-        "FR-008"
-      ],
-      "direction": "BACKFILL",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "AnimatedMarmite avec progression intégrée remplace le fouet dans la spec",
-      "phase": 1
-    },
-    {
-      "id": "P5",
-      "spec": "user-guidance-experience/llm-download-onboarding",
-      "requirements": [
-        "FR-013"
-      ],
-      "direction": "ALIGN",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Implémenter la vraie reprise HTTP Range dans GemmaModelDownloader",
-      "phase": 3,
-      "files_to_modify": [
-        "app/src/main/java/com/miamia/gemma4local/GemmaModelDownloader.kt",
-        "app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt"
-      ]
-    },
-    {
-      "id": "P6",
-      "spec": "ingredient-health-intelligence/test-llm-mock-ingredients",
-      "requirements": [
-        "FR-002",
-        "FR-010"
-      ],
-      "direction": "ALIGN",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Restaurer les diacritiques dans MOCK_INGREDIENTS_INPUT",
-      "phase": 2,
-      "files_to_modify": [
-        "app/src/main/java/com/miamia/home/HomeLlmMockRunner.kt"
-      ]
-    },
-    {
-      "id": "P7",
-      "spec": "ingredient-health-intelligence/test-llm-mock-ingredients",
-      "requirements": [
-        "FR-008"
-      ],
-      "direction": "BACKFILL",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Timeout spec mis à jour de 30s à 180s (réalisme Gemma local)",
-      "phase": 1
-    },
-    {
-      "id": "P8",
-      "spec": "ingredient-health-intelligence/test-llm-mock-ingredients",
-      "requirements": [
-        "FR-003",
-        "FR-005",
-        "FR-011"
-      ],
-      "direction": "ALIGN",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Assertion trim + inputUsed dans outcome + @Tag('manual')",
-      "phase": 2,
-      "files_to_modify": [
-        "app/src/test/java/com/miamia/home/HomeLlmMockTriggerTest.kt",
-        "app/src/main/java/com/miamia/home/HomeViewModel.kt",
-        "app/src/main/java/com/miamia/home/HomeLlmMockRunner.kt"
-      ]
-    },
-    {
-      "id": "P9",
-      "spec": "ingredient-normalization-validation/ingredient-phrase-segment",
-      "requirements": [
-        "FR-001",
-        "FR-004"
-      ],
-      "direction": "ALIGN",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Supprimer enum mortes LINE_END et NO_NEWLINE_TO_EOF",
-      "phase": 2,
-      "files_to_modify": [
-        "app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentModels.kt"
-      ]
-    },
-    {
-      "id": "P10",
-      "spec": "ingredient-normalization-validation/ingredient-phrase-segment",
-      "requirements": [
-        "FR-002"
-      ],
-      "direction": "ALIGN",
-      "status": "approved",
-      "confidence": "MEDIUM",
-      "summary": "Retirer contrainte début de ligne regex ancre + supprimer duplication",
-      "phase": 3,
-      "files_to_modify": [
-        "app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientAnchorNormalizer.kt",
-        "app/src/main/java/com/miamia/recognition/IngredientExtractionPipeline.kt"
-      ]
-    },
-    {
-      "id": "P11",
-      "spec": "ingredient-normalization-validation/ingredient-phrase-segment",
-      "requirements": [
-        "FR-008"
-      ],
-      "direction": "ALIGN",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Ancre absente → ScanState.Empty avec message explicite et reprise",
-      "phase": 2,
-      "files_to_modify": [
-        "app/src/main/java/com/miamia/camera/CameraViewModel.kt"
-      ]
-    },
-    {
-      "id": "P12",
-      "spec": "ingredient-normalization-validation/ingredient-phrase-segment",
-      "requirements": [
-        "FR-009"
-      ],
-      "direction": "BACKFILL",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Traçabilité mémoire via scanId suffisante pour le MVP",
-      "phase": 1
-    },
-    {
-      "id": "P13",
-      "spec": "capture-recognition",
-      "requirements": [
-        "CR-FR-005"
-      ],
-      "direction": "BACKFILL",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Aucune modification — reclassifier comme aligné",
-      "phase": 1
-    },
-    {
-      "id": "P14",
-      "spec": "ingredient-health-intelligence",
-      "requirements": [],
-      "direction": "NEW_SPEC",
-      "status": "approved",
-      "confidence": "HIGH",
-      "summary": "Backfill spec composition + health critique (1758 lignes non spécifiées)",
-      "phase": 4,
-      "target_file": "specs/domains/ingredient-health-intelligence/spec-composition-health-critique.md",
-      "source_packages": [
-        "app/src/main/java/com/miamia/healthcritique/",
-        "app/src/main/java/com/miamia/composition/"
-      ]
-    },
-    {
-      "id": "P15",
-      "spec": "local-llm-runtime",
-      "requirements": [],
-      "direction": "NEW_SPEC",
-      "status": "approved",
-      "confidence": "MEDIUM",
-      "summary": "Créer domaine local-llm-runtime pour gemma4local/ (902 lignes)",
-      "phase": 4,
-      "target_file": "specs/domains/local-llm-runtime/spec.md",
-      "source_packages": [
-        "app/src/main/java/com/miamia/gemma4local/"
-      ]
-    },
-    {
-      "id": "P16",
+      "id": "PR-001",
       "spec": "user-guidance-experience",
-      "requirements": [],
-      "direction": "NEW_SPEC",
-      "status": "approved",
-      "confidence": "MEDIUM",
-      "summary": "Backfill welcome/ + nettoyage home/ dans user-guidance-experience",
-      "phase": 4,
-      "source_packages": [
-        "app/src/main/java/com/miamia/welcome/",
-        "app/src/main/java/com/miamia/home/"
+      "requirements": ["SC-D-004"],
+      "direction": "BACKFILL",
+      "status": "pending",
+      "approved": false,
+      "confidence": "HIGH",
+      "summary": "Aligner SC-D-004 sur le contrat capture (WelcomeMessageUiState autorise en ViewModel, interdit en rendu UI capture)",
+      "spec_text": "SC-D-004 exige 0 occurrence de WelcomeMessageUiState dans le package camera",
+      "actual": "CameraViewModel expose welcomeUiState sans rendu sur CameraScreen",
+      "proposed_resolution": "Remplacer le critere SC-D-004 par: pas de collectAsState/rendu welcome sur CameraScreen; rg welcome_message_banner => 0; autoriser les types dans CameraViewModel comme dans capture-screen-no-welcome-banner.md §3.",
+      "rationale": "Le contrat domaine et research Feature D sont autoritaires; le critere rg sur le nom de type est trop strict.",
+      "files_to_modify": [
+        "specs/domains/user-guidance-experience/spec.md",
+        "specs/domains/user-guidance-experience/checklists/requirements.md"
       ]
-    }
-  ],
-  "consolidation_note": {
-    "applied": "2026-05-12",
-    "description": "FR IDs renumbered during domain spec consolidation",
-    "mapping": {
-      "user-guidance-experience": {
-        "spec.md FR-001..FR-021": "now UGE-A-FR-001..UGE-A-FR-021",
-        "spec-llm-download-onboarding.md FR-001..FR-016": "now UGE-B-FR-001..UGE-B-FR-016",
-        "spec-welcome-home.md": "now Feature C placeholder in spec.md"
-      },
-      "ingredient-health-intelligence": {
-        "spec.md FR-001..FR-011": "now IHI-A-FR-001..IHI-A-FR-011",
-        "spec-composition-health-critique.md": "now Feature B placeholder in spec.md"
-      }
     },
-    "files_removed": [
-      "specs/domains/user-guidance-experience/spec-llm-download-onboarding.md",
-      "specs/domains/user-guidance-experience/spec-welcome-home.md",
-      "specs/domains/ingredient-health-intelligence/spec-composition-health-critique.md"
-    ]
-  }
+    {
+      "id": "PR-002",
+      "spec": "capture-recognition",
+      "requirements": ["scope", "CR-FR-006", "increment-019"],
+      "direction": "VERIFY",
+      "status": "pending",
+      "approved": false,
+      "confidence": "HIGH",
+      "summary": "Valider que spec.md post-sync-apply supprime la fausse derive; relancer speckit.sync.analyze",
+      "proposed_resolution": "Relire capture-recognition/spec.md; regenere drift-report; marquer resolu si absent du nouveau rapport.",
+      "rationale": "Eviter double edition.",
+      "files_to_modify": []
+    },
+    {
+      "id": "PR-003",
+      "spec": "ingredient-normalization-validation",
+      "requirements": ["FR-010", "session-capture-intent"],
+      "direction": "VERIFY",
+      "status": "pending",
+      "approved": false,
+      "confidence": "HIGH",
+      "summary": "Valider alignement FR-010 et contrat session apres sync-apply",
+      "proposed_resolution": "Si coherent avec CameraViewModel + gate, fermer la derive; sinon ouvrir PR-004.",
+      "rationale": "Documentation deja mise a jour dans le lot apply interactif.",
+      "files_to_modify": []
+    },
+    {
+      "id": "PR-004",
+      "spec": "ingredient-normalization-validation",
+      "requirements": ["IngredientSegmentPreparationService"],
+      "direction": "HUMAN_DECISION",
+      "status": "pending",
+      "approved": false,
+      "confidence": "MEDIUM",
+      "summary": "Conserver prepare() pour auxiliaire/logs vs simplifier le chemin nominal",
+      "proposed_resolution": "Option A: documenter dans research/plan. Option B: refactor gate sans extraction sur chemin nominal.",
+      "rationale": "Deux strategies valides; effort different.",
+      "files_to_modify": []
+    },
+    {
+      "id": "PR-005",
+      "spec": "capture-recognition",
+      "requirements": ["CameraUiState"],
+      "direction": "ALIGN",
+      "status": "pending",
+      "approved": false,
+      "confidence": "HIGH",
+      "summary": "Supprimer CameraUiState.kt si aucune reference",
+      "proposed_resolution": "Supprimer app/src/main/java/com/miamia/camera/CameraUiState.kt apres rg; ou documenter usage.",
+      "rationale": "Code unspecced / mort.",
+      "files_to_modify": ["app/src/main/java/com/miamia/camera/CameraUiState.kt"]
+    },
+    {
+      "id": "PR-006",
+      "spec": "user-guidance-experience",
+      "requirements": ["SC-A-001", "SC-B-003"],
+      "direction": "HUMAN_DECISION",
+      "status": "pending",
+      "approved": false,
+      "confidence": "MEDIUM",
+      "summary": "Statut des criteres performance hors CI",
+      "proposed_resolution": "Marquer comme validation manuelle/bench OU ajouter tests perf (cout eleve).",
+      "rationale": "Non verifiables en statique seul.",
+      "files_to_modify": ["specs/domains/user-guidance-experience/spec.md"]
+    },
+    {
+      "id": "PR-007",
+      "spec": "capture-recognition",
+      "requirements": ["SC-CR-004"],
+      "direction": "HUMAN_DECISION",
+      "status": "pending",
+      "approved": false,
+      "confidence": "LOW",
+      "summary": "SC-CR-004 qualitatif",
+      "proposed_resolution": "Ajouter note hors CI automatise sauf campagne utilisateur.",
+      "rationale": "Critere utile mais pas automatisables tel quel.",
+      "files_to_modify": ["specs/domains/capture-recognition/spec.md"]
+    },
+    {
+      "id": "PR-008",
+      "spec": "ingredient-normalization-validation",
+      "requirements": ["FR-009"],
+      "direction": "DEFER",
+      "status": "pending",
+      "approved": false,
+      "confidence": "HIGH",
+      "summary": "Persistance Room hors MVP — clarifier non-derive",
+      "proposed_resolution": "Renforcer dans spec que MVP = memoire session seulement; pas d action code requise.",
+      "rationale": "Spec deja indique souhaitable MVP+.",
+      "files_to_modify": ["specs/domains/ingredient-normalization-validation/spec.md"]
+    },
+    {
+      "id": "PR-009",
+      "spec": "ingredient-normalization-validation",
+      "requirements": ["tasks.md"],
+      "direction": "BACKFILL",
+      "status": "pending",
+      "approved": false,
+      "confidence": "MEDIUM",
+      "summary": "Archiver ou regenerer tasks.md (phases chip / SegmentConfirmation)",
+      "proposed_resolution": "Section Historique pre-Feature G ou /speckit.tasks.",
+      "rationale": "Eviter taches [x] descriptives du code supprime.",
+      "files_to_modify": ["specs/domains/ingredient-normalization-validation/tasks.md"]
+    },
+    {
+      "id": "PR-010",
+      "spec": "_meta",
+      "requirements": ["conflicts"],
+      "direction": "VERIFY",
+      "status": "pending",
+      "approved": false,
+      "confidence": "MEDIUM",
+      "summary": "Relancer analyze apres specs a jour",
+      "proposed_resolution": "speckit.sync.analyze; verifier conflicts[] vide.",
+      "rationale": "Fermeture du cycle drift.",
+      "files_to_modify": []
+    },
+    {
+      "id": "PR-011",
+      "spec": "additive-risk-insights,ingredient-health-intelligence,local-llm-runtime",
+      "requirements": [],
+      "direction": "HUMAN_DECISION",
+      "status": "pending",
+      "approved": false,
+      "confidence": "LOW",
+      "summary": "Planifier analyse domaine par domaine",
+      "proposed_resolution": "Pas de proposition FR sans speckit.sync.analyze cible.",
+      "rationale": "Non audites dans le drift source.",
+      "files_to_modify": []
+    },
+    {
+      "id": "PR-012",
+      "spec": "_meta",
+      "requirements": ["proposals.json"],
+      "direction": "REMOVE",
+      "status": "pending",
+      "approved": false,
+      "confidence": "HIGH",
+      "summary": "Archiver ancien proposals P1-P16 apres adoption du lot PR-*",
+      "proposed_resolution": "Renommer proposals.json en proposals.archive-2026-05-12.json une fois PR approuves appliques; ce fichier devient SSOT.",
+      "rationale": "Eviter re-application de propositions obsoletes.",
+      "files_to_modify": [".specify/sync/proposals.json"]
+    }
+  ]
 }

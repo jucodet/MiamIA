@@ -11,18 +11,19 @@ object StreamingBilanParser {
 
     private val LISTE_PATTERN = Regex("""#{1,4}\s*LISTE\s*:?""", RegexOption.IGNORE_CASE)
     private val PRODUIT_PATTERN = Regex("""#{1,4}\s*PRODUIT\s*:?""", RegexOption.IGNORE_CASE)
-    private val ANALYSE_PATTERN = Regex("""#{1,4}\s*ANALYSE\s*:?""", RegexOption.IGNORE_CASE)
+    private val ANALYSE_PATTERN = Regex("""#{1,4}\s*(?:ANALYSE|ANALYSIS)\s*:?""", RegexOption.IGNORE_CASE)
     private val ADDITIFS_PATTERN = Regex("""#{1,4}\s*ADDITIFS[_\s]*RISQUE\s*:?""", RegexOption.IGNORE_CASE)
     private val IMPACT_PATTERN = Regex("""#{1,4}\s*IMPACT[_\s]*SANT[EÉ]\s*:?""", RegexOption.IGNORE_CASE)
 
     private val VALID_LEVELS = setOf("VERT", "ORANGE", "ROUGE", "INCERTAIN")
 
     fun parsePartial(partialText: String): StreamingBilanState.Streaming {
-        if (partialText.isBlank()) {
+        val normalizedPartial = GemmaBilanParser.prepareCompositionRawOutput(partialText)
+        if (normalizedPartial.isBlank()) {
             return StreamingBilanState.Streaming(partialText = partialText)
         }
 
-        val listMatch = LISTE_PATTERN.find(partialText)
+        val listMatch = LISTE_PATTERN.find(normalizedPartial)
         if (listMatch == null) {
             return StreamingBilanState.Streaming(
                 partialText = partialText,
@@ -30,10 +31,10 @@ object StreamingBilanParser {
             )
         }
 
-        val produitMatch = PRODUIT_PATTERN.find(partialText)
-        val analysisMatch = ANALYSE_PATTERN.find(partialText)
-        val additivesMatch = ADDITIFS_PATTERN.find(partialText)
-        val impactMatch = IMPACT_PATTERN.find(partialText)
+        val produitMatch = PRODUIT_PATTERN.find(normalizedPartial)
+        val analysisMatch = ANALYSE_PATTERN.find(normalizedPartial)
+        val additivesMatch = ADDITIFS_PATTERN.find(normalizedPartial)
+        val impactMatch = IMPACT_PATTERN.find(normalizedPartial)
 
         val ingredients: List<String>
         val product: String?
@@ -47,7 +48,7 @@ object StreamingBilanParser {
                 produitMatch?.range?.first,
                 analysisMatch.range.first
             ).filter { it > listMatch.range.last }.min()
-            val listBlock = partialText.substring(listMatch.range.last + 1, listEnd).trim()
+            val listBlock = normalizedPartial.substring(listMatch.range.last + 1, listEnd).trim()
             ingredients = extractLines(listBlock)
 
             val produitRaw = if (produitMatch != null &&
@@ -55,7 +56,7 @@ object StreamingBilanParser {
                 produitMatch.range.first < analysisMatch.range.first
             ) {
                 val produitEnd = analysisMatch.range.first
-                partialText.substring(produitMatch.range.last + 1, produitEnd).trim().lines()
+                normalizedPartial.substring(produitMatch.range.last + 1, produitEnd).trim().lines()
                     .firstOrNull { it.isNotBlank() }?.trim()
             } else {
                 null
@@ -64,12 +65,12 @@ object StreamingBilanParser {
             product = parsed.first
             productConfidence = parsed.second
 
-            val analysisEnd = findNextSectionStart(partialText, analysisMatch.range.last + 1, additivesMatch, impactMatch)
-            val analysisBlock = partialText.substring(analysisMatch.range.last + 1, analysisEnd).trim()
+            val analysisEnd = findNextSectionStart(normalizedPartial, analysisMatch.range.last + 1, additivesMatch, impactMatch)
+            val analysisBlock = normalizedPartial.substring(analysisMatch.range.last + 1, analysisEnd).trim()
             analysis = analysisBlock.ifBlank { null }
 
             if (impactMatch != null && impactMatch.range.first > analysisMatch.range.last) {
-                val impactBlock = partialText.substring(impactMatch.range.last + 1).trim()
+                val impactBlock = normalizedPartial.substring(impactMatch.range.last + 1).trim()
                 healthImpacts = parseImpactLines(impactBlock)
                 section = StreamingSection.IMPACT_SANTE
             } else if (additivesMatch != null && additivesMatch.range.first > analysisMatch.range.last) {
@@ -80,9 +81,9 @@ object StreamingBilanParser {
                 section = StreamingSection.ANALYSE
             }
         } else if (produitMatch != null && produitMatch.range.first > listMatch.range.last) {
-            val listBlock = partialText.substring(listMatch.range.last + 1, produitMatch.range.first).trim()
+            val listBlock = normalizedPartial.substring(listMatch.range.last + 1, produitMatch.range.first).trim()
             ingredients = extractLines(listBlock)
-            val produitBlock = partialText.substring(produitMatch.range.last + 1).trim()
+            val produitBlock = normalizedPartial.substring(produitMatch.range.last + 1).trim()
             val produitRaw = produitBlock.lines().firstOrNull { it.isNotBlank() }?.trim()
             val parsed = GemmaBilanParser.parseProductLine(produitRaw)
             product = parsed.first
@@ -91,7 +92,7 @@ object StreamingBilanParser {
             healthImpacts = emptyList()
             section = StreamingSection.PRODUIT
         } else {
-            val listBlock = partialText.substring(listMatch.range.last + 1).trim()
+            val listBlock = normalizedPartial.substring(listMatch.range.last + 1).trim()
             ingredients = extractLines(listBlock)
             product = null
             productConfidence = null

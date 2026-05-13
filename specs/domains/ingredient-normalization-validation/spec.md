@@ -4,7 +4,7 @@
 **Domain Context**: `ingredient-normalization-validation`  
 **Target Domain Folder**: `specs/domains/ingredient-normalization-validation`  
 **Created**: 2026-05-06  
-**Status**: Draft — *Backfill P12 applied 2026-05-12*  
+**Status**: Draft — *Backfill P12 applied 2026-05-12* · *Doc sync Feature G 2026-05-13*  
 **Input**: User description: "Modifier la capture OCR pour prendre en compte le caractère '.' suivi d'un espace ou d'un retour à la ligne comme fin de capture de la liste d'ingrédients. Un point non suivi d'un espace ou retour à la ligne (ex. abréviations, codes additifs) ne constitue pas une fin de capture." — *Évolutions 2026-05-13* : (1) « Après un OCR réussi, l'analyse est déclenchée immédiatement si un texte a été capturé avec la balise ingrédients, sans passer par l'écran de validation du texte segmenté. » (2) « Supprimer la phase de segmentation de la liste des ingrédients avant l'envoi au modèle de langage ; transmettre l'intégralité du texte OCR pour l'analyse. »
 
 ## Clarifications
@@ -18,7 +18,7 @@
 
 - Évolution FR-003 : le caractère `.` n'est reconnu comme fin de capture de la liste d'ingrédients que lorsqu'il est **suivi d'un espace ou d'un retour à la ligne**. Un point non suivi d'un de ces deux caractères (ex. codes additifs « E.621 », abréviations « vit.B12 ») ne déclenche pas la fin de capture.
 
-### Session 2026-05-13 — Enchaînement analyse sans écran de validation (balise ingrédients)
+### Session 2026-05-13 — Enchaînement analyse sans écran de validation (historique : balise ingrédients)
 
 - *Comportement d'enchaînement et de contenu d'entrée mis à jour par la session **« OCR intégral en entrée du modèle de langage »** ci-dessous (FR-010, FR-012).*
 - Q: Le critère **SC-004** (compréhension en moins de 10 secondes) doit-il inclure le parcours FR-010 où l'écran de proposition / validation n'est pas affiché ? → A: Option **A** — SC-004 ne s'applique qu'aux parcours où l'écran de proposition ou de validation est affiché (**hors** périmètre FR-010).
@@ -27,7 +27,7 @@
 
 - Toute analyse aval exécutée via un **modèle de langage** reçoit comme entrée l'**intégralité du texte étiquette** issu de la reconnaissance réussie pour la session, **sans** phase préalable d'isolation, d'ancrage, de proposition ou de validation de segment pour constituer cette entrée (**FR-012**, **FR-014**).
 - Les règles historiques d'ancrage et de fin de segment (**FR-001** à **FR-006**) **ne filtrent pas** et **ne tronquent pas** le texte transmis au modèle ; elles ne s'appliquent qu'à d'éventuelles sorties **purement informatives** distinctes de l'entrée d'analyse LLM, si le produit les conserve.
-- **FR-010** est aligné : enchaînement immédiat post-OCR réussi (balise « ingrédients ») vers l'analyse **sans** écran de validation du texte segmenté **et** avec entrée modèle = texte OCR intégral (plus d'« acceptation implicite d'une proposition de segment » comme base d'analyse).
+- **FR-010** est aligné : enchaînement immédiat post-OCR réussi (**transcript admissible par le gate**, parcours nominal) vers l'analyse **sans** écran de validation du texte segmenté **et** avec entrée modèle = texte OCR intégral. L'ancienne UI « balise ingrédients » est **retirée** (**Ref.** `user-guidance-experience` Feature G) ; l'équivalent intentionnel est l'**orchestration capture** documentée dans `contracts/session-capture-intent-for-implicit-validation.md`.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -80,17 +80,17 @@ En tant qu'utilisatrice, **lorsque** le produit affiche encore une **proposition
 
 ---
 
-### User Story 2b - Parcours accéléré balise ingrédients (Priority: P1)
+### User Story 2b - Parcours accéléré post-OCR (ancien libellé : balise ingrédients) (Priority: P1)
 
-En tant qu'utilisatrice, lorsque j'ai choisi la capture avec la balise « ingrédients » et que la reconnaissance de texte réussit avec un **texte OCR non vide**, je veux que l'analyse par modèle de langage démarre **tout de suite**, sans étape intermédiaire de validation d'un texte segmenté, afin de gagner du temps lorsque ma cible de capture est l'étiquette.
+En tant qu'utilisatrice, lorsque la reconnaissance de texte réussit avec un **texte OCR non vide** admissible sur le **parcours nominal** (sans étape de relecture transcript), je veux que l'analyse par modèle de langage démarre **tout de suite**, sans étape intermédiaire de validation d'un texte segmenté, afin de gagner du temps lorsque ma cible de capture est l'étiquette.
 
-**Why this priority**: Réduit la friction sur le parcours le plus intentionnel ; la balise signale déjà l'intention « ingrédients ».
+**Why this priority**: Réduit la friction ; l'intention « analyse directe » est portée par la politique produit / orchestration (Feature G) plutôt que par un chip UI séparé.
 
-**Independent Test**: Simuler une session balise « ingrédients », OCR réussi, texte non vide ; vérifier absence d'écran de validation du texte segmenté **comme prérequis** à l'analyse LLM et envoi du texte OCR intégral au modèle.
+**Independent Test** : Parcours nominal : OCR réussi, transcript non vide et admissible par le gate ; vérifier absence d'écran de validation du texte segmenté **comme prérequis** à l'analyse LLM et envoi du texte OCR intégral au modèle.
 
 **Acceptance Scenarios**:
 
-1. **Given** une session de capture associée à la balise « ingrédients », **When** l'OCR se termine avec succès et le texte OCR disponible est non vide, **Then** le système enchaîne vers l'analyse par modèle de langage **sans** afficher l'écran de validation du texte segmenté comme condition d'entrée du modèle.
+1. **Given** une session de capture sur le parcours nominal (transcript non vide et admissible par le gate), **When** l'OCR se termine avec succès, **Then** le système enchaîne vers l'analyse par modèle de langage **sans** afficher l'écran de validation du texte segmenté comme condition d'entrée du modèle.
 2. **Given** le même contexte, **When** l'analyse par modèle de langage démarre, **Then** l'entrée du modèle est l'intégralité du texte OCR (FR-012), sans sous-chaîne issue seule des règles FR-002 à FR-006.
 
 ---
@@ -135,7 +135,7 @@ En tant qu'utilisatrice, si la reconnaissance ne fournit pas de texte exploitabl
 - **FR-007**: Le système MUST exiger une **confirmation explicite** de l'utilisatrice avant tout traitement aval **non couvert** par FR-012 **qui continuerait à imposer** une liste isolée comme entrée obligatoire ; **les analyses par modèle de langage sur le texte OCR intégral sont exemptées**. Lorsqu'une **proposition auxiliaire** est affichée avec intention de validation métier distincte de l'entrée LLM, les scénarios de confirmation restent couverts par **User Story 2**.
 - **FR-008**: Le système MUST refuser de lancer une analyse aval lorsque la reconnaissance a **échoué** ou que le **texte OCR disponible est vide ou non exploitable** (bruit sans contenu lisible), avec un message compréhensible et une voie de reprise. **L'absence d'ancre « ingrédients » ne constitue pas à elle seule** un motif de refus d'une analyse par modèle de langage lorsque le texte OCR est autrement non vide (cohérent avec FR-012).
 - **FR-009**: Le système MUST conserver, au minimum en mémoire pendant la session active, la traçabilité entre le texte brut fourni pour l'étiquette (`scanId`), toute **proposition auxiliaire** de segment et toute confirmation utilisateur associée **lorsque le produit les utilise**. La persistance au-delà de la session est une évolution souhaitable mais non bloquante pour le MVP. *(Backfill P12 — 2026-05-12 : traçabilité mémoire via scanId suffisante pour le MVP ; persistance Room reportée.)*
-- **FR-010**: Lorsque la session de capture est associée à la **balise (ou mode produit) « ingrédients »** telle que publiée par le parcours amont et que l'OCR se termine par un **succès** avec un **texte OCR non vide**, le système MUST **enchaîner immédiatement** vers l'analyse par modèle de langage **sans** afficher l'écran de validation du texte segmenté comme prérequis, et MUST transmettre au modèle l'**intégralité** du texte OCR (FR-012).
+- **FR-010**: Lorsque l'OCR se termine par un **succès** avec un **texte OCR non vide** admissible par le gate de soumission (transcript non vide, non limité au libellé « ingrédients » seul, etc.), le système MUST **enchaîner immédiatement** vers l'analyse par modèle de langage **sans** afficher l'écran de validation du texte segmenté comme prérequis, et MUST transmettre au modèle l'**intégralité** du texte OCR (FR-012). *(Depuis Feature G / UGE-G, il n'existe plus de chip UI « balise ingrédients » : l'équivalent de l'ancienne condition « session avec balise » est la **décision produit d'orchestration** publiée par le module capture — voir `contracts/session-capture-intent-for-implicit-validation.md`.)*
 - **FR-011**: Lorsque la session **n'est pas** couverte par FR-010, le système MUST appliquer FR-007 pour tout traitement aval **hors** FR-012 qui imposerait encore une liste isolée confirmée.
 - **FR-012**: Toute analyse aval exécutée par **modèle de langage** MUST utiliser comme entrée l'**intégralité du texte étiquette** issu de la reconnaissance **réussie** pour la session, **sans** étape préalable d'isolation, d'ancrage, de proposition ni de validation de segment pour constituer cette entrée.
 - **FR-014**: Les règles **FR-001** à **FR-006** ne MUST NOT **filtrer, tronquer ni substituer** le texte transmis au modèle de langage ; elles s'appliquent au plus à des **propositions auxiliaires** ou vues distinctes (US1b).
@@ -155,12 +155,12 @@ En tant qu'utilisatrice, si la reconnaissance ne fournit pas de texte exploitabl
 - **SC-002**: **100 %** des textes sans ancre exploitable selon FR-002 conduisent, pour la **vue auxiliaire**, à un comportement explicite (message, absence de liste auxiliaire factice) **sans** interdire à tort une analyse LLM sur texte intégral non vide lorsque FR-012 s'applique.
 - **SC-003**: **100 %** des tentatives de traitement aval **hors** FR-012 et FR-010 qui imposeraient encore une liste isolée non confirmée sont refusées conformément à FR-007 et FR-011.
 - **SC-004**: Dans au moins **95 %** des sessions **hors périmètre FR-010** où un écran de proposition ou de validation **de la vue auxiliaire** est affiché, l'utilisatrice peut identifier l'état « prêt à confirmer » ou « bloqué avec message » en moins de **10 secondes** après l'affichage de la proposition ou du message d'échec. *(Périmètre clarifié session 2026-05-13 : le parcours FR-010, sans cet écran, est exclu de ce critère.)*
-- **SC-005**: **100 %** des sessions satisfaisant FR-010 enchaînent vers l'analyse par modèle de langage **sans** affichage de l'écran de validation du texte segmenté comme prérequis, avec entrée modèle conforme à FR-012.
+- **SC-005**: **100 %** des sessions satisfaisant FR-010 (OCR réussi, transcript admissible, parcours nominal) enchaînent vers l'analyse par modèle de langage **sans** affichage de l'écran de validation du texte segmenté comme prérequis, avec entrée modèle conforme à FR-012.
 - **SC-006**: **100 %** des analyses par modèle de langage documentées dans le périmètre de cette spécification utilisent une entrée **identique au texte OCR sessionnel complet** après succès de reconnaissance (hors corrections utilisateur explicitement enregistrées comme « texte à analyser » si le produit les prévoit), sans troncature issue des seules règles FR-001 à FR-006.
 
 ## Assumptions
 
-- Le parcours « photo prise → texte étiquette disponible » reste assuré par le domaine **capture-recognition** ; ce document ne redéfinit pas la reconnaissance elle-même. La présence de la **balise « ingrédients »** sur la session est supposée être signalée de façon non ambiguë par ce parcours amont lorsque FR-010 s'applique.
+- Le parcours « photo prise → texte étiquette disponible » reste assuré par le domaine **capture-recognition** ; ce document ne redéfinit pas la reconnaissance elle-même. L'hypothèse « balise UI sur la session » pour FR-010 est **remplacée** par : le parcours nominal applique FR-010 pour tout OCR réussi admissible, conformément au contrat session-capture et à **Feature G** (`user-guidance-experience`).
 - Les analyses par **modèle de langage** (composition, interprétation d'étiquette, ou équivalent aval) consomment le **texte OCR intégral** de la session (FR-012), et non une zone préalablement isolée par ancrage.
 - **Ref.** : le domaine **ingredient-health-intelligence** reste en aval « Customer/Supplier » pour le **contenu métier** des rapports, mais l'**entrée** des analyses LLM est désormais le texte OCR intégral défini ici ; toute divergence documentaire dans ce domaine aval doit être alignée lors d'une revue transverse.
 - Les règles FR-001 à FR-006 restent utiles **uniquement** pour des **vues auxiliaires** ou traçabilités non bloquantes pour l'entrée LLM ; si le produit supprime entièrement ces vues, ces exigences deviennent inactives sans remettre en cause FR-012.

@@ -8,14 +8,62 @@ object GemmaBilanParser {
 
     private val LISTE_PATTERN = Regex("""#{1,4}\s*LISTE\s*:?""", RegexOption.IGNORE_CASE)
     private val PRODUIT_PATTERN = Regex("""#{1,4}\s*PRODUIT\s*:?""", RegexOption.IGNORE_CASE)
-    private val ANALYSE_PATTERN = Regex("""#{1,4}\s*ANALYSE\s*:?""", RegexOption.IGNORE_CASE)
+    /** Tolère « ANALYSIS » (mélange EN) et fautes de frappe courantes sur le marqueur. */
+    private val ANALYSE_PATTERN = Regex("""#{1,4}\s*(?:ANALYSE|ANALYSIS)\s*:?""", RegexOption.IGNORE_CASE)
     private val ADDITIFS_PATTERN = Regex("""#{1,4}\s*ADDITIFS[_\s]*RISQUE\s*:?""", RegexOption.IGNORE_CASE)
     private val IMPACT_SANTE_PATTERN = Regex("""#{1,4}\s*IMPACT[_\s]*SANT[EÉ]\s*:?""", RegexOption.IGNORE_CASE)
 
     private val VALID_LEVELS = setOf("VERT", "ORANGE", "ROUGE", "INCERTAIN")
 
+    /**
+     * Nettoie / répare une sortie modèle tronquée ou mal fermée avant [parse]
+     * (ex. `##]` en fin de flux, section analyse vide avant additifs).
+     */
+    internal fun prepareCompositionRawOutput(raw: String): String {
+        var t = raw.trim()
+        if (t.isEmpty()) return t
+        t = patchEmptyAnalysisBeforeAdditifs(t)
+        t = stripTrailingGenerationArtifacts(t)
+        return t.trim()
+    }
+
+    private fun stripTrailingGenerationArtifacts(text: String): String {
+        var t = text.trimEnd()
+        while (true) {
+            val next = t.replace(Regex("""(?s)\s*##\]\s*$"""), "")
+                .replace(Regex("""(?s)\s*##\s*$"""), "")
+                .trimEnd()
+            if (next == t) break
+            t = next
+        }
+        return t
+    }
+
+    /**
+     * Si le modèle enchaîne `###ANALYSE` → `###ADDITIFS_RISQUE` sans texte, [parse] échouait
+     * ([compositionAnalysis] vide). On insère une phrase de repli minimaliste.
+     */
+    private fun patchEmptyAnalysisBeforeAdditifs(text: String): String {
+        val analyseMatch = ANALYSE_PATTERN.find(text) ?: return text
+        val headEnd = analyseMatch.range.last + 1
+        if (headEnd >= text.length) return text
+        val tail = text.substring(headEnd)
+        val addMatch = ADDITIFS_PATTERN.find(tail) ?: return text
+        val between = tail.substring(0, addMatch.range.first).trim()
+        if (between.isNotEmpty()) return text
+        val placeholder =
+            "Synthèse indisponible (réponse du modèle incomplète après la section analyse)."
+        return text.take(headEnd) + "\n" + placeholder + "\n" + text.substring(headEnd)
+    }
+
+    private fun stripAnalysisNoise(text: String): String =
+        text.trim()
+            .replace(Regex("""(?s)\s*##\]\s*$"""), "")
+            .replace(Regex("""(?s)\s*##\s*$"""), "")
+            .trim()
+
     fun parse(modelOutput: String, disclaimer: String = CompositionMessages.DISCLAIMER_DEFAULT): CompositionBilan? {
-        val trimmed = modelOutput.trim()
+        val trimmed = prepareCompositionRawOutput(modelOutput)
         if (trimmed.isEmpty()) return null
 
         val listMatch = LISTE_PATTERN.find(trimmed)
@@ -47,11 +95,12 @@ object GemmaBilanParser {
 
         val afterAnalysisStart = trimmed.substring(analysisMatch.range.last + 1)
         val additivesMatch = ADDITIFS_PATTERN.find(afterAnalysisStart)
-        val analysisBlock = if (additivesMatch == null) {
+        val analysisBlockRaw = if (additivesMatch == null) {
             afterAnalysisStart.trim()
         } else {
             afterAnalysisStart.substring(0, additivesMatch.range.first).trim()
         }
+        val analysisBlock = stripAnalysisNoise(analysisBlockRaw)
 
         val rawLines = listBlock.lines()
             .map { it.trim().removePrefix("-").removePrefix("*").removePrefix("•").trim() }

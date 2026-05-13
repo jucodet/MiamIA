@@ -2,7 +2,10 @@ package com.miamia.composition
 
 /**
  * Post-valide le bilan par rapport au texte source (US2 — pas d’ingrédients manifestement hors texte).
- * Feature C : ancrage **strict** v1 via [SegmentAnchoringV1] (tout ou rien sur les lignes checkables).
+ * Feature C : ancrage v1 via [SegmentAnchoringV1] (tout ou rien sur les lignes checkables),
+ * incluant reformulations « probables » lorsqu’un fragment OCR s’y retrouve encore.
+ * Le segment est d’abord passé par [IngredientOcrLexicon.expandForAnchoring] (corrections OCR mot entier
+ * pour l’ancrage uniquement).
  * Le libellé [CompositionBilan.identifiedProduct] est souvent une catégorie (prompt ###PRODUIT) :
  * s’il n’est pas ancré dans le segment, il est retiré plutôt que de faire échouer liste + analyse.
  */
@@ -21,18 +24,19 @@ object CompositionResultValidator {
         segmentText: String,
         rawModelOutput: String = "",
     ): AnalyzeCompositionResult {
-        if (!SegmentAnchoringV1.allCheckableIngredientLinesAnchored(bilan.ingredientLines, segmentText)) {
+        val segmentForChecks = IngredientOcrLexicon.expandForAnchoring(segmentText)
+        if (!SegmentAnchoringV1.allCheckableIngredientLinesAnchored(bilan.ingredientLines, segmentForChecks)) {
             return AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
         }
         for (impact in bilan.healthImpacts) {
             val ing = impact.ingredient.trim()
-            if (ing.length >= 2 && !SegmentAnchoringV1.isAnchoredInSegment(ing, segmentText)) {
+            if (ing.length >= 2 && !SegmentAnchoringV1.isGroundedIngredientLine(ing, segmentForChecks)) {
                 return AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
             }
         }
         val productClaim = bilan.identifiedProduct?.trim()?.takeIf { it.length >= 3 }
         val bilanForSuccess =
-            if (productClaim != null && !SegmentAnchoringV1.isSubstringAnchored(productClaim, segmentText)) {
+            if (productClaim != null && !SegmentAnchoringV1.isSubstringAnchored(productClaim, segmentForChecks)) {
                 bilan.copy(identifiedProduct = null, productConfidence = null)
             } else {
                 bilan

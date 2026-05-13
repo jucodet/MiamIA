@@ -13,13 +13,15 @@ import com.miamia.analysis.Gemma4LocalUiMessageResolver
 import androidx.lifecycle.viewModelScope
 import com.miamia.analysis.ingredientsegment.AnalysisSubmissionGate
 import com.miamia.analysis.ingredientsegment.IngredientSegmentPreparationService
-import com.miamia.analysis.ingredientsegment.SubmissionBlockedReason
 import com.miamia.additives.AnalysisDisplayResult
 import com.miamia.additives.BuildAdditiveKpiDisplay
 import com.miamia.composition.AnalyzeCompositionResult
 import com.miamia.composition.CompositionAnalysisEngine
 import com.miamia.composition.CompositionMessages
+import com.miamia.composition.CompositionImpactCompleter
 import com.miamia.composition.CompositionResultValidator
+import com.miamia.composition.IngredientLabelNormalizer
+import com.miamia.composition.IngredientOcrLexicon
 import com.miamia.composition.GemmaErrorCode
 import com.miamia.core.FeatureConfig
 import com.miamia.ingredients.ExtractedIngredientMapper
@@ -103,15 +105,6 @@ class CameraViewModel(
 
     private val _captureRouteActive = MutableStateFlow(false)
 
-    /** Balise / mode « ingrédients » (FR-010) : intention explicite utilisateur, distincte du texte OCR. */
-    private val _ingredientsFramingTagActive = MutableStateFlow(false)
-    val ingredientsFramingTagActive: StateFlow<Boolean> =
-        _ingredientsFramingTagActive.asStateFlow()
-
-    fun setIngredientsFramingTagActive(active: Boolean) {
-        _ingredientsFramingTagActive.value = active
-    }
-
     private val _streamingBilan = MutableStateFlow<StreamingBilanState>(StreamingBilanState.Idle)
     val streamingBilan: StateFlow<StreamingBilanState> = _streamingBilan.asStateFlow()
 
@@ -174,7 +167,6 @@ class CameraViewModel(
         lastItemsPreview = null
         pendingAnalysisSegment = null
         pendingScanId = null
-        _ingredientsFramingTagActive.value = false
         _lastValidatedSegmentForHealth.value = null
         _previewSession.value += 1
         clearAdditiveKpiDisplay()
@@ -329,34 +321,18 @@ class CameraViewModel(
                         scanId = result.scanId,
                         extraction = extraction,
                         userConfirmed = false,
-                        implicitValidationFromIngredientsFraming = _ingredientsFramingTagActive.value,
+                        implicitValidationFromIngredientsFraming = true,
                         fullOcrTranscript = transcriptText,
                     )
                     if (!previewDecision.submissionAllowed) {
-                        if (previewDecision.blockedReason == SubmissionBlockedReason.USER_REJECTED) {
-                            pendingAnalysisSegment = previewDecision.segmentPreview
-                            pendingScanId = result.scanId
-                            _scanState.value = ScanState.SegmentConfirmationRequired(
-                                segmentPreview = previewDecision.segmentPreview,
-                                itemsPreview = itemLabels,
-                            )
-                        } else {
-                            _scanState.value = ScanState.Error(
-                                "Texte non exploitable pour l'analyse. Reprenez la photo ou editez le texte.",
-                            )
-                        }
+                        _scanState.value = ScanState.Error(
+                            "Texte non exploitable pour l'analyse. Reprenez la photo ou editez le texte.",
+                        )
                         return@launch
                     }
                     pendingAnalysisSegment = previewDecision.segmentPreview
                     pendingScanId = result.scanId
-                    if (previewDecision.implicitValidationFromIngredientsFraming) {
-                        confirmSegmentAndAnalyze()
-                    } else {
-                        _scanState.value = ScanState.SegmentConfirmationRequired(
-                            segmentPreview = previewDecision.segmentPreview,
-                            itemsPreview = itemLabels,
-                        )
-                    }
+                    confirmSegmentAndAnalyze()
                 } else if (result.outcome == "empty") {
                     _scanState.value = ScanState.Empty(result.userMessage.ifBlank { "Aucun texte détecté" })
                 } else {
@@ -406,11 +382,6 @@ class CameraViewModel(
         }
     }
 
-    fun rejectSegmentConfirmation() {
-        _lastValidatedSegmentForHealth.value = null
-        _scanState.value = ScanState.Error("Analyse annulee. Vous pouvez reprendre une photo.")
-    }
-
     private suspend fun runCompositionStage(
         engine: CompositionAnalysisEngine,
         rawText: String,
@@ -451,9 +422,14 @@ class CameraViewModel(
                         )
                     }
                 } else {
+                    val bilanPrepared = CompositionImpactCompleter.completeMissingHealthImpacts(
+                        IngredientLabelNormalizer.normalizeBilanIngredientLabels(
+                            IngredientOcrLexicon.applyToBilan(outcome.bilan),
+                        ),
+                    )
                     when (
                         val v = CompositionResultValidator.validateAgainstSource(
-                            outcome.bilan,
+                            bilanPrepared,
                             rawText,
                             outcome.rawModelOutput,
                         )

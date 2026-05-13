@@ -7,6 +7,8 @@
 
 **Organization**: Phases par priorité métier : fondations → **US1 (P1)** → **US2b (P1)** → **US2 (P2)** → **US3 (P3)** → polish.
 
+> **Note sync 2026-05-13 (`speckit-sync-apply` interactif)** : **Feature G** (`user-guidance-experience`) a retiré le chip `ingredients_framing_tag_chip`, l'état `SegmentConfirmationRequired` et les méthodes UI associées. Les tâches **T014–T020** ci-dessous restent cochées comme historique de livraison mais **ne décrivent plus** l'état courant du code ; se reporter au drift-report et au contrat `session-capture-intent-for-implicit-validation.md` mis à jour.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: parallélisable (fichiers distincts, pas de dépendance sur une tâche incomplète du même lot)

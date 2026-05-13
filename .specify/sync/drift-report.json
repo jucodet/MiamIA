@@ -1,419 +1,144 @@
 {
-  "generated": "2026-05-12T17:14:00+02:00",
+  "generated": "2026-05-13T12:00:00Z",
   "project": "MiamIA",
-  "scope": "specs/domains/ only (root specs excluded)",
   "summary": {
     "specs_analyzed": 6,
-    "domains_analyzed": 5,
-    "requirements_checked": 66,
-    "aligned": 41,
-    "drifted": 20,
-    "not_implemented": 5,
-    "unspecced_features": 5
+    "requirements_checked": 45,
+    "aligned": 28,
+    "drifted": 10,
+    "not_implemented": 4,
+    "unspecced_features": 3
   },
   "specs": [
     {
-      "id": "user-guidance-experience/photo-capture-llm-result-flow",
-      "title": "photo-capture-llm-result-flow",
-      "file": "specs/domains/user-guidance-experience/spec.md",
+      "id": "user-guidance-experience",
+      "title": "Domain Spec — user-guidance-experience",
       "aligned": [
-        "FR-001",
-        "FR-002",
-        "FR-003",
-        "FR-004",
-        "FR-005",
-        "FR-008",
-        "FR-009",
-        "FR-010",
-        "FR-011",
-        "FR-012",
-        "FR-015",
-        "FR-016",
-        "FR-019",
-        "FR-020",
-        "FR-021"
+        "UGE-G-FR-001",
+        "UGE-G-FR-002",
+        "UGE-G-FR-003",
+        "UGE-G-FR-004",
+        "UGE-G-SC-002",
+        "UGE-A-FR-006",
+        "UGE-F-FR-002",
+        "UGE-F-FR-003"
       ],
       "drifted": [
         {
-          "requirement": "FR-006",
-          "spec_text": "Le système MUST afficher un indicateur de chargement sur l'écran de capture sans afficher l'écran de résultat avant l'état terminal.",
-          "actual": "Navigation immédiate vers LlmResultScreen au démarrage de l'analyse. Le loading/streaming s'affiche sur l'écran résultat, pas sur l'écran capture.",
-          "location": "app/src/main/java/com/miamia/camera/CameraViewModel.kt:455-456",
-          "severity": "major"
-        },
+          "requirement": "UGE-D-FR-003 / SC-D-004",
+          "spec_text": "Référence active WelcomeMessageUiState dans camera/ (checklist SC-D-004)",
+          "actual": "CameraViewModel expose encore welcomeUiState (non rendu sur capture)",
+          "location": "app/src/main/java/com/miamia/camera/CameraViewModel.kt",
+          "severity": "minor"
+        }
+      ],
+      "not_implemented": [
+        "SC-A-001",
+        "SC-B-003",
+        "Critères performance quantitatifs non vérifiables en statique"
+      ]
+    },
+    {
+      "id": "capture-recognition",
+      "title": "Domain Spec - capture-recognition",
+      "aligned": [
+        "CR-FR-001",
+        "CR-FR-009",
+        "CR-FR-010",
+        "CR-FR-011"
+      ],
+      "drifted": [
         {
-          "requirement": "FR-007",
-          "spec_text": "Navigation vers écran résultat uniquement lorsque l'analyse se termine avec un résultat exploitable.",
-          "actual": "navigateToResultScreen() émis dès le début de l'analyse, pas après succès.",
-          "location": "app/src/main/java/com/miamia/camera/CameraViewModel.kt:249-256",
-          "severity": "major"
-        },
-        {
-          "requirement": "FR-013",
-          "spec_text": "Test LLM suit même règle que FR-006 (chargement sur écran capture avant navigation résultat).",
-          "actual": "runCameraTabLlmMockTest() navigue aussi immédiatement vers le résultat. Cohérent avec le parcours photo mais dérive identiquement de la spec.",
-          "location": "app/src/main/java/com/miamia/camera/CameraViewModel.kt:208-212",
-          "severity": "major"
-        },
-        {
-          "requirement": "FR-014",
-          "spec_text": "Pas de navigation auto si l'utilisatrice quitte l'écran de capture pendant le chargement.",
-          "actual": "_captureRouteActive flag exists mais rendu inopérant par la navigation immédiate vers le résultat.",
-          "location": "app/src/main/java/com/miamia/camera/CameraScreen.kt:68-71",
-          "severity": "major"
-        },
-        {
-          "requirement": "FR-017",
-          "spec_text": "Interdire l'affichage d'un écran résultat vide après capture réussie.",
-          "actual": "L'écran résultat est affiché avant qu'un contenu exploitable soit prêt (état Streaming vide initial).",
-          "location": "app/src/main/java/com/miamia/result/LlmResultScreen.kt:88-90",
+          "requirement": "Scope L14 + ref FR-010",
+          "spec_text": "Intention « balise / mode ingrédients » portée par l'UI de capture",
+          "actual": "Feature G retire le chip balise ; signal implicite côté ViewModel uniquement",
+          "location": "specs/domains/capture-recognition/spec.md:14",
           "severity": "moderate"
         },
         {
-          "requirement": "FR-018",
-          "spec_text": "Afficher un état de repli utile avec le texte OCR quand l'analyse n'est pas disponible.",
-          "actual": "buildLlmResultFallbackPayload() existe mais n'est jamais appelé depuis LlmResultScreen. Le fallback OCR n'est accessible que depuis CameraScreen.",
-          "location": "app/src/main/java/com/miamia/camera/CameraViewModel.kt:268-283",
+          "requirement": "CR-FR-006 / CR-FR-007 / increment 019",
+          "spec_text": "Écran de consultation RawOcrText après capture avec scroll + actions visibles",
+          "actual": "Parcours nominal OCR→analyse sans écran relecture transcript (UGE-G)",
+          "location": "specs/domains/capture-recognition/spec.md:30-31,88+",
           "severity": "moderate"
         }
       ],
-      "not_implemented": []
+      "not_implemented": [
+        "SC-CR-004"
+      ]
     },
     {
-      "id": "user-guidance-experience/llm-download-onboarding",
-      "title": "llm-download-onboarding",
-      "file": "specs/domains/user-guidance-experience/spec-llm-download-onboarding.md",
+      "id": "ingredient-normalization-validation",
+      "title": "Feature Specification: ingredient-phrase-segment",
       "aligned": [
-        "FR-001",
-        "FR-003",
-        "FR-004",
-        "FR-005",
-        "FR-006",
-        "FR-007",
-        "FR-009",
-        "FR-010",
         "FR-012",
         "FR-014",
-        "FR-015",
-        "FR-016"
+        "FR-008"
       ],
       "drifted": [
-        {
-          "requirement": "FR-002",
-          "spec_text": "Écran plein avec boutons 'Confirmer / Plus tard'.",
-          "actual": "Le bouton dit 'Refuser et quitter' au lieu de 'Plus tard'.",
-          "location": "app/src/main/java/com/miamia/onboarding/ModelDownloadOnboardingScreen.kt:119",
-          "severity": "moderate"
-        },
-        {
-          "requirement": "FR-008",
-          "spec_text": "Fouet mixeur animé (même animation que l'écran de streaming analyse).",
-          "actual": "AnimatedMarmite utilisé au lieu de AnimatedWhisk. Animation plus informative mais pas la même que le streaming.",
-          "location": "app/src/main/java/com/miamia/onboarding/ModelDownloadWaitingScreen.kt:98-103",
-          "severity": "minor"
-        },
-        {
-          "requirement": "FR-011",
-          "spec_text": "Afficher un état explicatif de l'impossibilité d'utiliser l'application sans le modèle, avec possibilité de relancer plus tard.",
-          "actual": "finishAffinity() ferme l'app immédiatement. LlmModelReadinessState.Declined existe mais n'est jamais exploité dans l'UI.",
-          "location": "app/src/main/java/com/miamia/MainActivity.kt:241",
-          "severity": "moderate"
-        },
-        {
-          "requirement": "FR-013",
-          "spec_text": "Le système SHOULD supporter la reprise du téléchargement après interruption.",
-          "actual": "L'UI affiche 'Reprendre le téléchargement' mais GemmaModelDownloader supprime le fichier partiel et recommence à zéro. Pas de requête HTTP Range.",
-          "location": "app/src/main/java/com/miamia/gemma4local/GemmaModelDownloader.kt:39-41",
-          "severity": "moderate"
-        }
-      ],
-      "not_implemented": []
-    },
-    {
-      "id": "ingredient-normalization-validation/ingredient-phrase-segment",
-      "title": "ingredient-phrase-segment",
-      "file": "specs/domains/ingredient-normalization-validation/spec.md",
-      "aligned": [
-        "FR-003",
-        "FR-005",
-        "FR-006",
-        "FR-007"
-      ],
-      "drifted": [
-        {
-          "requirement": "FR-001",
-          "spec_text": "Règle unique d'isolation — toute règle antérieure est abrogée.",
-          "actual": "Comportement OK mais enum mortes LINE_END et NO_NEWLINE_TO_EOF existent toujours.",
-          "location": "app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentModels.kt:12,18",
-          "severity": "minor"
-        },
-        {
-          "requirement": "FR-002",
-          "spec_text": "Première occurrence dans l'ordre de lecture d'une phrase commençant par Ingrédient(s)/Ingredient(s).",
-          "actual": "(a) Regex exige début de ligne (^\\ s*), la spec ne pose pas cette restriction. (b) Regex dupliquée dans IngredientExtractionPipeline.",
-          "location": "app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientAnchorNormalizer.kt:10",
-          "severity": "moderate"
-        },
-        {
-          "requirement": "FR-004",
-          "spec_text": "Abrogé — le saut de ligne seul ne constitue plus un point d'arrêt.",
-          "actual": "Abrogation respectée en comportement, mais enum LINE_END non supprimée.",
-          "location": "app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentModels.kt:18",
-          "severity": "minor"
-        },
-        {
-          "requirement": "FR-008",
-          "spec_text": "Refuser l'analyse avec un message compréhensible et une voie de reprise quand l'ancre est absente.",
-          "actual": "Ancre absente → ScanState.Success (texte brut) sans message d'erreur explicite ni voie de reprise dédiée.",
-          "location": "app/src/main/java/com/miamia/camera/CameraViewModel.kt:367-375",
-          "severity": "moderate"
-        },
-        {
-          "requirement": "FR-009",
-          "spec_text": "Traçabilité entre texte brut, proposition isolée et segment validé.",
-          "actual": "scanId lie les étapes en mémoire mais seul ValidatedIngredientEntity est persisté. OcrRawText et IngredientSegmentExtraction ne sont pas persistés.",
-          "location": "app/src/main/java/com/miamia/data/repository/ValidatedIngredientRepository.kt:9-18",
-          "severity": "moderate"
-        }
-      ],
-      "not_implemented": []
-    },
-    {
-      "id": "ingredient-health-intelligence/test-llm-mock-ingredients",
-      "title": "test-llm-mock-ingredients",
-      "file": "specs/domains/ingredient-health-intelligence/spec.md",
-      "aligned": [
-        "FR-001",
-        "FR-004",
-        "FR-006",
-        "FR-007",
-        "FR-009"
-      ],
-      "drifted": [
-        {
-          "requirement": "FR-002",
-          "spec_text": "Chaîne mockée avec accents: BLÉ, complète, lécithines, écrémé, arômes.",
-          "actual": "Version ASCII sans accents: BLE, complete, lecithines, ecreme, aromes.",
-          "location": "app/src/main/java/com/miamia/home/HomeLlmMockRunner.kt:63-67",
-          "severity": "major"
-        },
-        {
-          "requirement": "FR-003",
-          "spec_text": "Transmettre l'entrée mockée sans altération au processus d'analyse.",
-          "actual": "AnalysisInputBuilder applique trim(). Pas d'altération effective pour la constante actuelle mais aucune assertion ne le vérifie.",
-          "location": "app/src/main/java/com/miamia/analysis/AnalysisInputBuilder.kt:4-6",
-          "severity": "minor"
-        },
-        {
-          "requirement": "FR-005",
-          "spec_text": "Associer chaque résultat à l'entrée mockée pour traçabilité (TestTraceRecord).",
-          "actual": "Pas de TestTraceRecord. HomeLlmMockOutcome ne contient pas de référence à l'input. Traçabilité implicite uniquement.",
-          "location": "app/src/main/java/com/miamia/home/HomeLlmMockRunner.kt",
-          "severity": "moderate"
-        },
-        {
-          "requirement": "FR-008",
-          "spec_text": "Échec automatique si aucune réponse dans 30 secondes.",
-          "actual": "Timeout = Gemma4LocalConfig.DEFAULT_TIMEOUT_MS = 180_000 ms (3 minutes).",
-          "location": "app/src/main/java/com/miamia/gemma4local/Gemma4LocalConfig.kt:4",
-          "severity": "major"
-        },
         {
           "requirement": "FR-010",
-          "spec_text": "Égalité stricte caractère par caractère entre MockIngredientInput et la charge analysée.",
-          "actual": "Impossible car la chaîne mockée elle-même diffère de la spec. Aucune assertion de comparaison n'existe.",
-          "location": "app/src/main/java/com/miamia/home/HomeLlmMockRunner.kt:63-67",
-          "severity": "major"
+          "spec_text": "Session associée à la balise ingrédients pour enchaînement immédiat",
+          "actual": "Pas d'UI balise ; implicitValidationFromIngredientsFraming=true systématique en gate preview",
+          "location": "app/src/main/java/com/miamia/camera/CameraViewModel.kt",
+          "severity": "moderate"
         },
         {
-          "requirement": "FR-011",
-          "spec_text": "Exécutable manuellement, hors validation régulière.",
-          "actual": "@Test standard sans annotation @Ignore, @Tag('manual') ni filtre d'exclusion.",
-          "location": "app/src/test/java/com/miamia/home/HomeLlmMockTriggerTest.kt:9-12",
-          "severity": "minor"
+          "requirement": "session-capture-intent-for-implicit-validation §3",
+          "spec_text": "Si signal faux → SegmentConfirmationRequired",
+          "actual": "État SegmentConfirmationRequired supprimé ; pas de branche USER_REJECTED nominale",
+          "location": "specs/domains/ingredient-normalization-validation/contracts/session-capture-intent-for-implicit-validation.md:11",
+          "severity": "major"
         }
       ],
-      "not_implemented": []
+      "not_implemented": [
+        "FR-009 persistance au-delà session (souhaitable MVP+)"
+      ]
     },
     {
       "id": "additive-risk-insights",
-      "title": "additive-risk-insights",
-      "file": "specs/domains/additive-risk-insights/spec.md",
-      "aligned": [
-        "ARI-FR-001",
-        "ARI-FR-002",
-        "ARI-FR-003",
-        "ARI-FR-004"
-      ],
+      "title": "Domain spec (non audité en profondeur)",
+      "aligned": [],
       "drifted": [],
       "not_implemented": []
     },
     {
-      "id": "capture-recognition",
-      "title": "capture-recognition",
-      "file": "specs/domains/capture-recognition/spec.md",
-      "aligned": [
-        "CR-FR-001",
-        "CR-FR-002",
-        "CR-FR-003",
-        "CR-FR-004"
-      ],
-      "drifted": [
-        {
-          "requirement": "CR-FR-005",
-          "spec_text": "Refuser la progression vers l'analyse si le texte OCR est vide ou inexploitable.",
-          "actual": "ScanFailureClassifier est passif — classifie mais ne bloque pas directement. Le blocage réel dépend du CameraViewModel.",
-          "location": "app/src/main/java/com/miamia/recognition/ScanFailureClassifier.kt:3-9",
-          "severity": "minor"
-        }
-      ],
+      "id": "ingredient-health-intelligence",
+      "title": "Domain spec (non audité en profondeur)",
+      "aligned": [],
+      "drifted": [],
+      "not_implemented": []
+    },
+    {
+      "id": "local-llm-runtime",
+      "title": "Domain spec (non audité en profondeur)",
+      "aligned": [],
+      "drifted": [],
       "not_implemented": []
     }
   ],
   "unspecced": [
     {
-      "feature": "Welcome messages & tone rules",
-      "location": "app/src/main/java/com/miamia/welcome/",
-      "files": 7,
-      "lines": 169,
-      "suggested_spec": "user-guidance-experience"
+      "feature": "CameraUiState.requiresSegmentConfirmation",
+      "location": "app/src/main/java/com/miamia/camera/CameraUiState.kt",
+      "lines": 6,
+      "suggested_spec": "capture-recognition (cleanup) or delete"
     },
     {
-      "feature": "Health critique engine (analyse santé par population)",
-      "location": "app/src/main/java/com/miamia/healthcritique/",
-      "files": 13,
-      "lines": 1030,
-      "suggested_spec": "ingredient-health-intelligence"
+      "feature": "IngredientSegmentPreparationService in capture pipeline",
+      "location": "app/src/main/java/com/miamia/camera/CameraViewModel.kt",
+      "lines": 0,
+      "suggested_spec": "ingredient-normalization-validation"
     },
     {
-      "feature": "Composition analysis engine (bilan + parser Gemma)",
-      "location": "app/src/main/java/com/miamia/composition/",
-      "files": 9,
-      "lines": 728,
-      "suggested_spec": "ingredient-health-intelligence"
-    },
-    {
-      "feature": "Local LLM runtime (Gemma gateway, client, downloader)",
-      "location": "app/src/main/java/com/miamia/gemma4local/",
-      "files": 15,
-      "lines": 902,
-      "suggested_spec": "local-llm-runtime (new domain)"
-    },
-    {
-      "feature": "Home screen (layout, MediaPipe status, spacing)",
-      "location": "app/src/main/java/com/miamia/home/",
-      "files": 10,
-      "lines": 410,
-      "suggested_spec": "user-guidance-experience"
+      "feature": "Historical tasks referencing removed UI chip",
+      "location": "specs/domains/ingredient-normalization-validation/tasks.md",
+      "lines": 0,
+      "suggested_spec": "speckit.sync.apply after doc update"
     }
   ],
   "conflicts": [
-    {
-      "type": "architectural_loading_flow",
-      "description": "FR-006/007/013/014 partagent un même drift architectural: le flux navigue immédiatement vers l'écran résultat pour streaming progressif au lieu de charger sur l'écran capture puis naviguer à l'état terminal",
-      "specs_involved": ["user-guidance-experience/photo-capture-llm-result-flow"],
-      "severity": "major"
-    },
-    {
-      "type": "timeout_inconsistency",
-      "description": "ingredient-health-intelligence spec exige 30s timeout mais le code utilise Gemma4LocalConfig.DEFAULT_TIMEOUT_MS = 180_000 partagé avec CompositionAnalysisEngine",
-      "specs_involved": ["ingredient-health-intelligence", "capture-recognition"],
-      "severity": "major"
-    },
-    {
-      "type": "mock_string_accents",
-      "description": "La chaîne mockée du code (ASCII) ne correspond pas à la spec (Unicode avec diacritiques)",
-      "specs_involved": ["ingredient-health-intelligence", "ingredient-normalization-validation"],
-      "severity": "major"
-    },
-    {
-      "type": "false_resume_download",
-      "description": "L'UI d'onboarding affiche 'Reprendre le téléchargement' mais GemmaModelDownloader supprime le fichier partiel et recommence à zéro",
-      "specs_involved": ["user-guidance-experience/llm-download-onboarding"],
-      "severity": "moderate"
-    },
-    {
-      "type": "home_screen_residual",
-      "description": "Le package home/ contient un HomeScreen et HomeViewModel vestige de l'architecture à onglets, en contradiction avec FR-015 (pas de barre d'onglets)",
-      "specs_involved": ["user-guidance-experience/photo-capture-llm-result-flow"],
-      "severity": "minor"
-    }
-  ],
-  "recommendations": [
-    {
-      "priority": "major",
-      "action": "Décider du flux loading/streaming — mettre à jour la spec ou refactorer le code (FR-006/007/013/014)",
-      "location": "CameraViewModel.kt + spec.md"
-    },
-    {
-      "priority": "major",
-      "action": "Restaurer les diacritiques dans MOCK_INGREDIENTS_INPUT (FR-002/FR-010)",
-      "location": "HomeLlmMockRunner.kt:63-67"
-    },
-    {
-      "priority": "major",
-      "action": "Introduire MOCK_TEST_TIMEOUT_MS = 30_000 dédié au test mock (FR-008)",
-      "location": "HomeLlmMockRunner.kt:9"
-    },
-    {
-      "priority": "moderate",
-      "action": "Connecter buildLlmResultFallbackPayload() au flux LlmResultScreen (FR-018)",
-      "location": "CameraViewModel.kt:268-283"
-    },
-    {
-      "priority": "moderate",
-      "action": "Exploiter LlmModelReadinessState.Declined au lieu de finishAffinity() (FR-011 onboarding)",
-      "location": "MainActivity.kt:241"
-    },
-    {
-      "priority": "moderate",
-      "action": "Implémenter la reprise réelle (HTTP Range) ou retirer le libellé 'Reprendre' (FR-013 onboarding)",
-      "location": "GemmaModelDownloader.kt:39-41"
-    },
-    {
-      "priority": "moderate",
-      "action": "Traiter ancre absente comme erreur explicite avec reprise (FR-008 ingredient-normalization)",
-      "location": "CameraViewModel.kt:367-375"
-    },
-    {
-      "priority": "moderate",
-      "action": "Assouplir regex ancre + extraire duplication (FR-002 ingredient-normalization)",
-      "location": "IngredientAnchorNormalizer.kt:10, IngredientExtractionPipeline.kt:8-9"
-    },
-    {
-      "priority": "moderate",
-      "action": "Persister OcrRawText et IngredientSegmentExtraction pour traçabilité (FR-009)",
-      "location": "ValidatedIngredientRepository.kt"
-    },
-    {
-      "priority": "minor",
-      "action": "Aligner animation onboarding (AnimatedMarmite vs AnimatedWhisk) ou mettre à jour la spec (FR-008 onboarding)",
-      "location": "ModelDownloadWaitingScreen.kt:98-103"
-    },
-    {
-      "priority": "minor",
-      "action": "Ajouter @Tag('manual') à HomeLlmMockTriggerTest (FR-011)",
-      "location": "HomeLlmMockTriggerTest.kt:9"
-    },
-    {
-      "priority": "minor",
-      "action": "Supprimer enum mortes LINE_END et NO_NEWLINE_TO_EOF (FR-001/FR-004 abrogé)",
-      "location": "IngredientSegmentModels.kt:12,18"
-    },
-    {
-      "priority": "minor",
-      "action": "Enrichir HomeLlmMockOutcome avec input source et requestId (FR-005)",
-      "location": "HomeLlmMockRunner.kt"
-    },
-    {
-      "priority": "strategic",
-      "action": "Backfill specs pour healthcritique/ (1030 lignes) et composition/ (728 lignes)",
-      "location": "specs/domains/ingredient-health-intelligence/"
-    },
-    {
-      "priority": "strategic",
-      "action": "Créer spec domaine local-llm-runtime pour gemma4local/ (902 lignes)",
-      "location": "specs/domains/"
-    }
+    "UGE Feature G (no balise chip, no segment confirmation UI) vs capture-recognition scope L14 and ingredient session-capture-intent contract §3",
+    "capture-recognition increment 019 (post-capture text review) vs user-guidance-experience UGE-G nominal path"
   ]
 }

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -54,9 +52,6 @@ import java.io.File
 
 private const val CapturePrimaryActionLabel = "Y a quoi là-dedans ?"
 
-/** Libellé explicite état prêt (Feature F — plus de « Aperçu caméra actif » / « Disponible » seul). */
-private const val CapturePreviewReadyStatusLabel = "Caméra prête — vous pouvez scanner"
-
 @Composable
 fun CameraScreen(
     viewModel: CameraViewModel,
@@ -69,7 +64,6 @@ fun CameraScreen(
     val additiveKpi by viewModel.additiveKpiDisplay.collectAsState()
     val previewSession by viewModel.previewSession.collectAsState()
     val mediaPipeStatus by viewModel.mediaPipeStatus.collectAsState()
-    val ingredientsFramingTag by viewModel.ingredientsFramingTagActive.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Le flag suit la présence effective de la route capture dans la navigation Compose.
@@ -269,47 +263,6 @@ fun CameraScreen(
                     }
                 )
             }
-            is ScanState.SegmentConfirmationRequired -> {
-                val confirmation = state as ScanState.SegmentConfirmationRequired
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("Vérifier le texte reconnu", style = MaterialTheme.typography.titleMedium)
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState())
-                            .testTag("segment_preview_scroll"),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = confirmation.segmentPreview,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.testTag("segment_preview_text")
-                        )
-                    }
-                    Button(
-                        onClick = viewModel::confirmSegmentAndAnalyze,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("confirm_segment_button")
-                    ) {
-                        Text("Confirmer et analyser")
-                    }
-                    OutlinedButton(
-                        onClick = viewModel::rejectSegmentConfirmation,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("reject_segment_button")
-                    ) {
-                        Text("Reprendre la photo")
-                    }
-                }
-            }
             is ScanState.Empty -> {
                 Text((state as ScanState.Empty).message)
                 Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("retry_after_empty")) {
@@ -394,36 +347,23 @@ fun CameraScreen(
                         }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
-                    ) {
-                        FilterChip(
-                            selected = ingredientsFramingTag,
-                            onClick = {
-                                viewModel.setIngredientsFramingTagActive(!ingredientsFramingTag)
-                            },
-                            label = { Text("Balise ingrédients") },
-                            modifier = Modifier.testTag("ingredients_framing_tag_chip"),
-                        )
-                    }
-
                     CaptureActionBar(
                         onCapture = { viewModel.capturePhoto(onCreateTempImage()) },
                         canCapture = viewModel.canCapturePhoto()
                     )
 
-                    Text(
-                        text = when (state) {
-                            ScanState.PreviewActive -> CapturePreviewReadyStatusLabel
-                            ScanState.PreviewInitializing -> "Démarrage de l'aperçu caméra…"
-                            ScanState.Capturing -> "Capture en cours…"
-                            ScanState.Analyzing -> "Traitement de l'image…"
-                            else -> "Préparez le cadrage"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.testTag("capture_scan_status_text")
-                    )
+                    if (state != ScanState.PreviewActive) {
+                        Text(
+                            text = when (state) {
+                                ScanState.PreviewInitializing -> "Démarrage de l'aperçu caméra…"
+                                ScanState.Capturing -> "Capture en cours…"
+                                ScanState.Analyzing -> "Traitement de l'image…"
+                                else -> "Préparez le cadrage"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("capture_scan_status_text")
+                        )
+                    }
                 }
             }
         }

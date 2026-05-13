@@ -12,12 +12,18 @@ import kotlin.math.min
  * (fautes de génération proches du texte source), une fenêtre glissante avec distance
  * d’édition bornée peut valider l’ancrage — sans remplacer la contrainte « tout ou rien »
  * sur les lignes checkables.
+ *
+ * Repli **reformulation** (2026-05) : une ligne « corrigée » (orthographe / libellé le plus
+ * probable) reste valide si un **fragment** OCR (découpe grossière par virgules / sauts de ligne)
+ * s’y retrouve encore par le même fuzzy — sans autoriser d’ingrédient absent du segment.
  */
 object SegmentAnchoringV1 {
 
     const val MIN_INGREDIENT_LINE_LENGTH: Int = 4
 
     private val percentOnlyParen = Regex("""\(\s*[0-9]+(?:[.,][0-9]+)?\s*%\s*\)""")
+
+    private val fragmentSplitPattern = Regex("""[,;•\n\r]+""")
 
     /** borne perf / faux positifs sur l’entrée fuzzy */
     private const val FUZZY_MAX_NEEDLE = 96
@@ -49,10 +55,34 @@ object SegmentAnchoringV1 {
         val stripped = stripPercentOnlyParentheticals(needleRaw)
         if (stripped.isNotBlank() && isSubstringAnchored(stripped, segmentRaw)) return true
         val needle = normalizeMechanical(stripped).take(FUZZY_MAX_NEEDLE)
-        if (needle.length < 5) return false
+        if (needle.length < 4) return false
         val haystack = normalizeMechanical(stripPercentOnlyParentheticals(segmentRaw))
         if (haystack.length < 4) return false
         return fuzzyWordAnchored(needle, haystack) || fuzzyWindowAnchored(needle, haystack)
+    }
+
+    /**
+     * Fragments OCR grossiers (virgules, `;`, puces, sauts de ligne) pour vérifier qu’une
+     * reformulation « probable » recouvre encore au moins un morceau du texte source.
+     */
+    internal fun ingredientGroundingFragments(segmentRaw: String): List<String> {
+        val base = stripPercentOnlyParentheticals(segmentRaw)
+        return base.split(fragmentSplitPattern)
+            .map { it.trim() }
+            .filter { it.length >= 4 }
+    }
+
+    /**
+     * Ligne d’ingrédient (liste ou verdict) : soit elle matche encore le segment (OCR / fuzzy),
+     * soit un fragment OCR significatif matche la ligne reformulée (fuzzy dans l’autre sens).
+     */
+    fun isGroundedIngredientLine(lineRaw: String, segmentRaw: String): Boolean {
+        if (isAnchoredInSegment(lineRaw, segmentRaw)) return true
+        val line = lineRaw.trim()
+        if (line.isEmpty()) return false
+        return ingredientGroundingFragments(segmentRaw).any { frag ->
+            isAnchoredInSegment(frag, line)
+        }
     }
 
     /**
@@ -65,7 +95,7 @@ object SegmentAnchoringV1 {
     ): Boolean {
         val checkable = ingredientLines.map { it.trim() }.filter { it.length >= MIN_INGREDIENT_LINE_LENGTH }
         if (checkable.isEmpty()) return true
-        return checkable.all { line -> isAnchoredInSegment(line, segmentRaw) }
+        return checkable.all { line -> isGroundedIngredientLine(line, segmentRaw) }
     }
 
     private fun fuzzyMaxDist(needleLen: Int): Int =

@@ -3,6 +3,7 @@ package com.miamia.composition
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GemmaBilanParserTest {
@@ -235,5 +236,52 @@ class GemmaBilanParserTest {
         assertNotNull(bilan)
         assertEquals(1, bilan!!.healthImpacts.size)
         assertEquals("lait", bilan.healthImpacts[0].ingredient)
+    }
+
+    @Test
+    fun parse_stripsTruncatedMarkdownGarbageAfterAnalyse() {
+        val raw = """
+            ###LISTE
+            - eau
+            ###ANALYSE
+            Texte d'analyse valide.
+
+            ##]
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertEquals("Texte d'analyse valide.", bilan!!.compositionAnalysis)
+    }
+
+    @Test
+    fun parse_insertsPlaceholderWhenAdditifsFollowsAnalyseWithNoText() {
+        val raw = """
+            ###LISTE
+            - eau
+            ###ANALYSE
+            ###ADDITIFS_RISQUE
+            VERT|E300|ok
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertTrue(
+            bilan!!.compositionAnalysis.contains("Synthèse indisponible", ignoreCase = true),
+        )
+    }
+
+    @Test
+    fun parse_acceptsAnalysisSectionMarkerInEnglish() {
+        val raw = """
+            ###LISTE
+            - eau
+            ###ANALYSIS
+            Short analysis.
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertEquals("Short analysis.", bilan!!.compositionAnalysis)
     }
 }

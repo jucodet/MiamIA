@@ -1,8 +1,8 @@
-# Tasks : Feature F — libellés capture, fin test LLM, retrait « Aperçu caméra actif »
+# Tasks : Feature G — OCR direct, accueil sans chip ni ligne « prêt à scanner »
 
-**Input** : `specs/domains/user-guidance-experience/` (plan.md, spec.md Feature F, research.md, data-model.md, contracts/, quickstart.md)  
+**Input** : `specs/domains/user-guidance-experience/` (plan.md, spec.md Feature G, research.md, data-model.md, contracts/, quickstart.md)  
 **Prerequisites** : plan.md, spec.md  
-**Tests** : ATDD obligatoire (constitution) — tests AndroidTest / JVM mis à jour ou ajoutés avant/après implémentation selon le flux.
+**Tests** : Constitution ATDD — tests instrumentés / assertions UI mises à jour pour UGE-G-SC-002.
 
 ## Format
 
@@ -12,53 +12,45 @@
 
 ## Phase 1 : Setup
 
-**Purpose** : cadrage périmètre code existant (aucune infra nouvelle).
+**Purpose** : cartographier le code à retirer ou à simplifier.
 
-- [X] T001 Inventorier les références à `camera_tab_llm_test_button`, `runCameraTabLlmMockTest`, `canRunCameraTabLlmTest`, `homeLlmRunner` dans `app/src/main/java/com/miamia/camera/`, `app/src/main/java/com/miamia/MainActivity.kt`, `app/src/test/java/com/miamia/camera/`, `app/src/androidTest/java/com/miamia/camera/`
-
----
-
-## Phase 2 : Fondations (tests ATDD — à faire échouer puis passer)
-
-**Purpose** : garde-fous Compose / JVM avant retouches production.
-
-- [X] T002 [US1] Étendre `app/src/androidTest/java/com/miamia/camera/CameraCaptureLayoutUiTest.kt` : supprimer toute dépendance à `camera_tab_llm_test_button` ; conserver assertions non-recouvrement `photo_preview_box` vs `capture_photo_button` (≥ 16 dp)
-- [X] T003 [US2] Réécrire `app/src/androidTest/java/com/miamia/camera/CameraUnavailableLlmButtonUiTest.kt` : retirer assertions sur le bouton LLM ; conserver message indisponible + non-recouvrement placeholder vs `capture_photo_button` + libellé « Y a quoi là-dedans ? »
-- [X] T004 [P] [US1] Ajouter `app/src/androidTest/java/com/miamia/camera/CaptureScreenFeatureFUiTest.kt` : forcer `ScanState.PreviewActive` via `CameraViewModel.debugOverrideScanStateForTests`, assert `onAllNodesWithTag("camera_tab_llm_test_button").assertCountEquals(0)`, assert aucun texte « Aperçu caméra actif », assert présence d’un libellé explicite (contient « Caméra » et « scanner »)
-- [X] T005 [US2] Supprimer ou remplacer `app/src/test/java/com/miamia/camera/CameraLlmTestButtonTest.kt` (tests obsolètes `canRunCameraTabLlmTest` / runner injecté)
-
-**Checkpoint** : `./gradlew :app:testDebugUnitTest` et cible AndroidTest capture passent après implémentation.
+- [X] T001 Inventorier `SegmentConfirmationRequired`, `ingredients_framing_tag_chip`, `ingredientsFramingTagActive`, `CapturePreviewReadyStatusLabel`, `confirm_segment_button` dans `app/src/main/java/com/miamia/camera/` et `app/src/androidTest/java/com/miamia/camera/`
 
 ---
 
-## Phase 3 : User Story 1 (US-F1 + US-F3) — Libellés explicites, fin « Aperçu caméra actif » (P1)
+## Phase 2 : Fondations (tests / contrats avant merge)
 
-**Goal** : UGE-F-FR-001, UGE-F-FR-003 ; statut `PreviewActive` + MediaPipe sans ambiguïté.
+**Purpose** : tests rouges → verts sur la chrome Feature G.
 
-**Independent Test** : `CaptureScreenFeatureFUiTest` + inspection manuelle quickstart F1.
-
-- [X] T006 [US1] Remplacer le libellé « Disponible » dans `app/src/main/java/com/miamia/home/MediaPipeStatusViewState.kt` (`MediaPipeStatusViewState.available()`) par une formulation explicite (≠ seul mot « Disponible »)
-- [X] T007 [US1] Dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`, remplacer la branche `ScanState.PreviewActive -> "Aperçu caméra actif"` par un libellé explicite aligné spec (ex. « Caméra prête — vous pouvez scanner ») ; ajouter `Modifier.testTag("capture_scan_status_text")` sur le `Text` de statut si utile aux tests
+- [X] T002 [US2] Mettre à jour `app/src/androidTest/java/com/miamia/camera/CaptureScreenFeatureFUiTest.kt` : conserver assertions absence `camera_tab_llm_test_button` / « Aperçu caméra actif » ; remplacer l’exigence de texte « Caméra »+« scanner » par assertions UGE-G-SC-002 (`ingredients_framing_tag_chip` count 0 ; chaîne exacte « Caméra prête — vous pouvez scanner » count 0 ; `capture_scan_status_text` absent ou non affiché en `PreviewActive`)
 
 ---
 
-## Phase 4 : User Story 2 (US-F2) — Suppression Test LLM (P1)
+## Phase 3 : User Story 1 (US-G1) — Enchaînement direct OCR → analyse (P1)
 
-**Goal** : UGE-F-FR-002 ; plus de bouton, plus de méthode ViewModel, factory sans runner côté capture.
+**Goal** : UGE-G-FR-001, UGE-G-FR-004, UGE-G-SC-001.
 
-**Independent Test** : AndroidTest sans nœud `camera_tab_llm_test_button` ; capture photo inchangée.
+**Independent Test** : parcours manuel quickstart G2 ; absence `confirm_segment_button` après capture nominale.
 
-- [X] T008 [US2] Simplifier `CaptureActionBar` dans `app/src/main/java/com/miamia/camera/CameraScreen.kt` : retirer `OutlinedButton` « Test LLM », paramètres `onRunLlmTest` / `canRunLlmTest` ; mettre à jour les deux appels (`CameraUnavailable` + branche preview)
-- [X] T009 [US2] Retirer `homeLlmRunner`, `cameraTabLlmTestInFlight`, `canRunCameraTabLlmTest()`, `runCameraTabLlmMockTest()` et imports associés dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt` ; ajuster `canCapturePhoto()` (ne plus bloquer sur l’état mock LLM)
-- [X] T010 [US2] Retirer la création de `CompositionEngineHomeLlmMockRunner` et l’argument `homeLlmRunner` dans `app/src/main/java/com/miamia/MainActivity.kt` ; appeler `CameraViewModel.factory(application, coordinator, compositionEngine)` sans 4e paramètre
-- [X] T011 [US2] Mettre à jour `CameraViewModel.factory` dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt` (signature sans `HomeLlmMockRunner`)
+- [X] T003 [US1] Dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`, après OCR `success`/`partial`, appeler le gate avec `implicitValidationFromIngredientsFraming = true` ; supprimer toute émission de `ScanState.SegmentConfirmationRequired` ; enchaîner `confirmSegmentAndAnalyze()` lorsque `submissionAllowed` ; retirer `rejectSegmentConfirmation()` et les champs `ingredientsFramingTagActive` / `setIngredientsFramingTagActive` / reset associé dans `onRetry`
+- [X] T004 [US1] Retirer `data class SegmentConfirmationRequired` de `app/src/main/java/com/miamia/camera/ScanState.kt` et adapter les `when` exhaustifs si nécessaire
 
 ---
 
-## Phase 5 : Polish & domaine voisin
+## Phase 4 : User Story 2 (US-G2) — Accueil épuré (P1)
 
-- [X] T012 [P] Vérifier qu’aucune occurrence résiduelle de `camera_tab_llm_test_button` ou « Aperçu caméra actif » dans `app/src/main/` et `app/src/androidTest/` (grep)
-- [X] T013 Valider manuellement les scénarios F1 du `specs/domains/user-guidance-experience/quickstart.md`
+**Goal** : UGE-G-FR-002, UGE-G-FR-003, UGE-G-SC-002.
+
+**Independent Test** : `CaptureScreenFeatureFUiTest` + quickstart G1.
+
+- [X] T005 [US2] Dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`, supprimer le `FilterChip` « Balise ingrédients », retirer la collecte `ingredientsFramingTagActive`, supprimer la branche UI `SegmentConfirmationRequired`, ne pas afficher de ligne de statut sous l’aperçu pour `PreviewActive` (conserver libellés utiles pour états transitoires hors chaîne interdite) ; retirer imports inutilisés (`FilterChip`, `Row` si orphelin)
+
+---
+
+## Phase 5 : Polish & traçabilité
+
+- [X] T006 [P] Vérifier `rg "SegmentConfirmationRequired|ingredients_framing_tag_chip|Balise ingrédients|Caméra prête — vous pouvez scanner" app/src/main/java/com/miamia/camera/` → 0 occurrence résiduelle hors commentaires de migration si autorisés
+- [X] T007 Confirmer cohérence avec `specs/domains/user-guidance-experience/contracts/capture-screen-feature-g-direct-scan.md` et scénarios G1–G2 du `specs/domains/user-guidance-experience/quickstart.md`
 
 ---
 
@@ -66,41 +58,32 @@
 
 | Phase | Dépend de | Bloque |
 |-------|-----------|--------|
-| 1 Setup | — | — |
-| 2 Tests | T001 (recommandé) | Phases 3–4 jusqu’à mise à jour code |
-| 3 US-F1/US-F3 | Phase 2 tests rédigés (T002–T004) | — |
-| 4 US-F2 | T008–T011 (même fichiers que partie UI) | exécuter après ou avec T006–T007 pour limiter conflits : **ordre conseillé T006→T007→T008→T009→T010→T011** |
-| 5 Polish | 3 + 4 | — |
+| 1 | — | — |
+| 2 | T001 (recommandé) | validation CI tests |
+| 3 US-G1 | T002 rédigé (ATDD strict) ou parallèle après T001 | T004 ordre avec T003 |
+| 4 US-G2 | T003–T004 (ViewModel + ScanState) | T005 peut suivre T003–T004 |
+| 5 | 3 + 4 | — |
 
-**Parallèle** : T004 [P] peut être rédigé en parallèle de T002–T003 si fichiers distincts ; T006 et imports `MainActivity` séquentiels après refactoring ViewModel.
-
-### Ordre d’implémentation conseillé (fichiers partagés)
-
-1. T006, T007 (libellés)  
-2. T008–T011 (retrait LLM + factory)  
-3. T002–T005 (tests)  
-4. T012–T013  
-
-*(Les tests T002–T005 peuvent être écrits en premier en ATDD strict : rouges jusqu’à T008–T011 faits.)*
+**Ordre conseillé** : T001 → T002 → T003 → T004 → T005 → T006 → T007.
 
 ---
 
-## Parallel Example (US-F2)
+## Parallel Example
 
 ```bash
-# Après impl, une seule cible pour valider la suite capture :
+# Après impl (wrapper Gradle fonctionnel) :
 ./gradlew :app:connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.camera.CameraCaptureLayoutUiTest,com.miamia.camera.CameraUnavailableLlmButtonUiTest,com.miamia.camera.CaptureScreenFeatureFUiTest
+  -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.camera.CaptureScreenFeatureFUiTest
 ```
 
 ---
 
 ## Implementation Strategy
 
-**MVP** : Phases 1–4 (US-F1 + US-F3 + US-F2) — livrable utilisateur complet Feature F.  
+**MVP** : Phases 3–4 (US-G1 + US-G2).  
 **Polish** : Phase 5.
 
 ## Notes
 
-- Le package `app/src/main/java/com/miamia/home/HomeLlmMockRunner.kt` reste utilisé par `HomeViewModel` ; ne pas supprimer le fichier tant que `HomeScreen` / tests `home/` en dépendent.
-- Contrat domaine voisin déjà révisé : `specs/domains/capture-recognition/contracts/capture-action-bar.md`.
+- `AnalysisSubmissionGate` reste inchangé : les tests JVM `AnalysisSubmissionGateContractTest` / `AnalysisSubmissionDecisionAcceptanceTest` valident toujours les combinaisons `userConfirmed` / `implicit`.
+- Le domaine `ingredient-normalization-validation` peut aligner specs secondaires (segmentation retirée) dans un lot ultérieur.

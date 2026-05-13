@@ -99,7 +99,12 @@ class AndroidGemma4LocalGateway(
         return try {
             engine.initialize()
             val systemInstruction = Contents.of(
-                "Tu analyses des listes d'ingredients alimentaires. " +
+                "Reponds entierement en francais. Tu analyses des listes d'ingredients alimentaires (contexte UE). " +
+                    "Ne pas inventer d'ingredients absents du texte source. " +
+                    "Pour ###LISTE : un ingredient par ligne avec - ; reformule chaque libelle OCR vers la graphie la plus probable sans changer le sens ni l'ordre des entrees lues. " +
+                    "Pas de pourcentages entre parentheses dans les libelles ni dans le champ nom des verdicts (ex. farine de ble sans (50 %)). " +
+                    "Pour ###ADDITIFS_RISQUE et ###IMPACT_SANTE : le nom entre les barres = meme intitule normalise que dans ###LISTE pour le meme compose. " +
+                    "###IMPACT_SANTE : une ligne par entree ###LISTE meme ordre sans omission. Exemple OCR : omidon -> amidon. " +
                     "Reponds uniquement avec 4 sections dans cet ordre : ###LISTE, ###ANALYSE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
                     "Exemple : ###LISTE\n- eau\n- sucre\n- E300\n###ANALYSE\nProduit simple. Peu d'additifs.\n" +
                     "###ADDITIFS_RISQUE\nVERT|E300|Vitamine C naturelle\n" +
