@@ -285,7 +285,7 @@ fun CameraScreen(
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Vérifier la liste d'ingrédients", style = MaterialTheme.typography.titleMedium)
+                    Text("Vérifier le texte reconnu", style = MaterialTheme.typography.titleMedium)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()

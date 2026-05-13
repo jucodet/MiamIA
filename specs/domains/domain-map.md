@@ -7,7 +7,7 @@
 ## Supporting Domains
 
 - `capture-recognition`: capture image, OCR, gestion des sessions de scan.
-- `ingredient-normalization-validation`: isolation de segment, ancre ingredients, validation utilisateur.
+- `ingredient-normalization-validation`: isolation de segment (vue auxiliaire), ancre ingredients, validation utilisateur ; entree des analyses par modele de langage = texte OCR integral (spec domaine, mise a jour 2026-05-13).
 - `additive-risk-insights`: projection des faits d'analyse en KPI additifs/risques.
 - `user-guidance-experience`: orchestration UX transversale (accueil, readiness, transitions).
 

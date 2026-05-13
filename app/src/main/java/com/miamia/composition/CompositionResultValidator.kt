@@ -26,7 +26,7 @@ object CompositionResultValidator {
         }
         for (impact in bilan.healthImpacts) {
             val ing = impact.ingredient.trim()
-            if (ing.length >= 2 && !SegmentAnchoringV1.isSubstringAnchored(ing, segmentText)) {
+            if (ing.length >= 2 && !SegmentAnchoringV1.isAnchoredInSegment(ing, segmentText)) {
                 return AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
             }
         }

@@ -73,3 +73,28 @@
 - **Rationale**: SC-005 exige 100 % d’enchaînement sans écran ; SC-003 exige que les autres parcours restent bloqués sans confirmation.
 - **Alternatives considered**:
   - Seuls tests unitaires gate sans UI → insuffisant pour garantir absence d’écran ; combiner les deux niveaux.
+
+---
+
+## Évolution 2026-05-13 — OCR intégral → LLM (FR-012, FR-014)
+
+### Decision 10: Garde-fou sur le transcript OCR complet
+
+- **Decision**: Étendre `AnalysisSubmissionGate.evaluate(..., fullOcrTranscript: String)` pour que la vacuité et le cas « label ingrédients seul » soient évalués sur `fullOcrTranscript.trim()`, et **retirer** le refus systématique lorsque `!extraction.anchorFound`. Le champ `segmentPreview` de `AnalysisSubmissionDecision` transporte le texte montré avant confirmation ; il est aligné sur le transcript complet (trim) pour cohérence avec l’entrée LLM.
+- **Rationale**: La spec (FR-008, FR-012) distingue absence d’ancre (autorisée pour LLM si le transcript est non vide) et transcript vide / non exploitable.
+- **Alternatives considered**:
+  - Deuxième gate dédié « LlmInputGate » → rejeté (duplication des règles USER_REJECTED / implicite).
+
+### Decision 11: Orchestration caméra
+
+- **Decision**: Dans `CameraViewModel.capturePhoto`, supprimer le court-circuit `Success` sur `!anchorFound` ; toujours appeler le gate avec le transcript ; en cas `USER_REJECTED`, afficher `SegmentConfirmationRequired` avec `segmentPreview = decision.segmentPreview` (transcript intégral). `confirmSegmentAndAnalyze` appelle `prepare(scanId, lastRawTranscript!!)` et `runCompositionStage(engine, texteComplet, …)`.
+- **Rationale**: Un seul SSOT (`lastRawTranscript`) pour OCR sessionnel ; alignement SC-006.
+- **Alternatives considered**:
+  - Conserver deux payloads (segment + brut) dans l’état Compose → rejeté (risque de dérive entre ce qui est affiché et ce qui est inféré).
+
+### Decision 12: Post-validation composition
+
+- **Decision**: Conserver `CompositionResultValidator.validateAgainstSource(bilan, segmentText, …)` en passant le **même** texte que celui envoyé au LLM (transcript complet). L’ancrage v1 des lignes ingrédients reste valide sur une chaîne plus large.
+- **Rationale**: Pas de nouvelle variante de validateur ; les ingrédients extraits doivent rester ancrés dans le texte effectivement analysé.
+- **Alternatives considered**:
+  - Désactiver l’ancrage quand le texte dépasse N caractères → rejeté (affaiblissement qualité).

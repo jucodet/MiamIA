@@ -6,35 +6,38 @@ class AnalysisSubmissionGate {
     private val ingredientsLabelOnlyRegex =
         Regex("""^\s*(ingr[ée]dients|ingr[ée]dient|ingredients|ingredient)\s*:?\s*$""", RegexOption.IGNORE_CASE)
 
+    /**
+     * @param fullOcrTranscript Transcript OCR complet de la session (FR-012). Les garde-fous de vacuité /
+     *   label seul s'appliquent à cette chaîne ; [extraction.anchorFound] ne bloque plus à lui seul la soumission.
+     */
     fun evaluate(
         scanId: String,
         extraction: IngredientSegmentExtraction,
         userConfirmed: Boolean,
-        implicitValidationFromIngredientsFraming: Boolean = false
+        implicitValidationFromIngredientsFraming: Boolean = false,
+        fullOcrTranscript: String,
     ): AnalysisSubmissionDecision {
-        if (!extraction.anchorFound) {
-            logBlocked(scanId, SubmissionBlockedReason.ANCHOR_MISSING)
+        val ocrTrimmed = fullOcrTranscript.trim()
+        if (ocrTrimmed.isEmpty()) {
+            logBlocked(scanId, SubmissionBlockedReason.EMPTY_SEGMENT)
             return AnalysisSubmissionDecision(
                 scanId = scanId,
                 segmentPreview = "",
                 userConfirmed = userConfirmed,
                 submissionAllowed = false,
-                blockedReason = SubmissionBlockedReason.ANCHOR_MISSING,
-                implicitValidationFromIngredientsFraming = false
+                blockedReason = SubmissionBlockedReason.EMPTY_SEGMENT,
+                implicitValidationFromIngredientsFraming = false,
             )
         }
-
-        val segment = extraction.segmentText.orEmpty().trim()
-        val normalizedSegment = segment.lowercase()
-        if (normalizedSegment.isBlank() || ingredientsLabelOnlyRegex.matches(normalizedSegment)) {
+        if (ingredientsLabelOnlyRegex.matches(ocrTrimmed)) {
             logBlocked(scanId, SubmissionBlockedReason.EMPTY_SEGMENT)
             return AnalysisSubmissionDecision(
                 scanId = scanId,
-                segmentPreview = segment,
+                segmentPreview = ocrTrimmed,
                 userConfirmed = userConfirmed,
                 submissionAllowed = false,
                 blockedReason = SubmissionBlockedReason.EMPTY_SEGMENT,
-                implicitValidationFromIngredientsFraming = false
+                implicitValidationFromIngredientsFraming = false,
             )
         }
 
@@ -42,26 +45,26 @@ class AnalysisSubmissionGate {
         if (!userConfirmed && !allowImplicit) {
             return AnalysisSubmissionDecision(
                 scanId = scanId,
-                segmentPreview = segment,
+                segmentPreview = ocrTrimmed,
                 userConfirmed = false,
                 submissionAllowed = false,
                 blockedReason = SubmissionBlockedReason.USER_REJECTED,
-                implicitValidationFromIngredientsFraming = false
+                implicitValidationFromIngredientsFraming = false,
             )
         }
 
         val implicitApplied = allowImplicit
         Log.d(
             TAG,
-            "segment_submission_allowed scanId=$scanId mode=${extraction.fallbackMode} implicitFraming=$implicitApplied"
+            "segment_submission_allowed scanId=$scanId mode=${extraction.fallbackMode} implicitFraming=$implicitApplied anchorFound=${extraction.anchorFound}",
         )
         return AnalysisSubmissionDecision(
             scanId = scanId,
-            segmentPreview = segment,
+            segmentPreview = ocrTrimmed,
             userConfirmed = true,
             submissionAllowed = true,
             blockedReason = SubmissionBlockedReason.NONE,
-            implicitValidationFromIngredientsFraming = implicitApplied
+            implicitValidationFromIngredientsFraming = implicitApplied,
         )
     }
 

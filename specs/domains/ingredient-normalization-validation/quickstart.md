@@ -65,15 +65,23 @@
 1. Balise active + transcript ne permettant qu'un label seul (`Ingrédients:` sans liste) ou segment bloqué par `AnalysisSubmissionGate`.
 2. Vérifier **aucune** analyse silencieuse ; message ou état d'erreur aligné FR-008.
 
+### I. OCR intégral vers LLM (FR-012 / SC-006) — 2026-05-13
+
+1. Préparer un transcript multi-paragraphes (ex. nutrition + liste ingrédients) **sans** ancre « Ingrédients » sur la première partie.
+2. Vérifier que l’écran de confirmation (si affiché) montre **l’intégralité** du transcript, et qu’après confirmation l’inférence reçoit exactement ce transcript (logs debug ou point d’arrêt sur `CompositionAnalysisEngine.analyze`).
+3. Avec balise ingrédients + implicite FR-010 : vérifier enchaînement sans écran et même propriété d’intégralité.
+
 ## Suggested Automated Checks
 
 - Tests unitaires JVM : `IngredientSegmentBoundaryResolverTest` (cas BC-01 à BC-07 du contrat).
 - Tests d'acceptation : `IngredientSegmentPhraseBoundaryAcceptanceTest` (scénarios US1 §1 et §2 de la spec).
 - Test de non-régression : `IngredientSegmentPerformanceTest` (pas de régression latence).
 - **021** : `AnalysisSubmissionGateContractTest` + test UI / instrumenté ciblant SC-005 (absence d'écran confirmation quand signal actif).
+- **2026-05-13** : `AnalysisSubmissionGateContractTest` (transcript complet, `!anchorFound` + contenu non vide) ; contrat `contracts/llm-input-full-ocr-contract.md`.
 
 ## Expected Outcomes
 
 - Conformité à **SC-001** (100 % des propositions respectent FR-002 à FR-006, y compris au moins un cas de point interne).
 - Aucune régression sur les tests existants (ancre, fin de ligne, fin de texte, multiples ancres).
 - **021** : **SC-005** (100 % enchaînement sans écran sur chemin FR-010) et **SC-003** (parcours sans balise inchangé).
+- **2026-05-13** : **SC-006** — entrée LLM = transcript OCR sessionnel complet (hors trim documenté).

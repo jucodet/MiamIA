@@ -10,7 +10,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.miamia.analysis.Gemma4LocalUiMessageResolver
-import com.miamia.analysis.AnalysisInputBuilder
 import androidx.lifecycle.viewModelScope
 import com.miamia.analysis.ingredientsegment.AnalysisSubmissionGate
 import com.miamia.analysis.ingredientsegment.IngredientSegmentPreparationService
@@ -371,42 +370,38 @@ class CameraViewModel(
                     val itemLabels = uiItems.map { it.text }
                     val transcriptText = result.items.joinToString("\n") { it.normalizedText }
                     val extraction = segmentPreparationService.prepare(result.scanId, transcriptText)
-                    if (!extraction.anchorFound) {
-                        lastRawTranscript = transcriptText
-                        lastItemsPreview = itemLabels
-                        _scanState.value = ScanState.Success(
-                            transcriptText = transcriptText,
-                            items = itemLabels
-                        )
-                        return@launch
-                    }
+                    lastRawTranscript = transcriptText
+                    lastItemsPreview = itemLabels
                     val previewDecision = submissionGate.evaluate(
                         scanId = result.scanId,
                         extraction = extraction,
                         userConfirmed = false,
-                        implicitValidationFromIngredientsFraming = _ingredientsFramingTagActive.value
+                        implicitValidationFromIngredientsFraming = _ingredientsFramingTagActive.value,
+                        fullOcrTranscript = transcriptText,
                     )
-                    if (!extraction.anchorFound || previewDecision.blockedReason == SubmissionBlockedReason.EMPTY_SEGMENT) {
-                        _scanState.value = ScanState.Error(
-                            "Section ingredients introuvable ou vide. Reprenez la photo ou editez le texte."
-                        )
+                    if (!previewDecision.submissionAllowed) {
+                        if (previewDecision.blockedReason == SubmissionBlockedReason.USER_REJECTED) {
+                            pendingAnalysisSegment = previewDecision.segmentPreview
+                            pendingScanId = result.scanId
+                            _scanState.value = ScanState.SegmentConfirmationRequired(
+                                segmentPreview = previewDecision.segmentPreview,
+                                itemsPreview = itemLabels,
+                            )
+                        } else {
+                            _scanState.value = ScanState.Error(
+                                "Texte non exploitable pour l'analyse. Reprenez la photo ou editez le texte.",
+                            )
+                        }
                         return@launch
                     }
-                    val segmentForAnalysis = AnalysisInputBuilder.buildSegmentPayload(
-                        extraction.segmentText.orEmpty()
-                    )
-                    pendingAnalysisSegment = segmentForAnalysis
+                    pendingAnalysisSegment = previewDecision.segmentPreview
                     pendingScanId = result.scanId
-                    lastRawTranscript = transcriptText
-                    lastItemsPreview = itemLabels
-                    if (previewDecision.submissionAllowed &&
-                        previewDecision.implicitValidationFromIngredientsFraming
-                    ) {
+                    if (previewDecision.implicitValidationFromIngredientsFraming) {
                         confirmSegmentAndAnalyze()
                     } else {
                         _scanState.value = ScanState.SegmentConfirmationRequired(
-                            segmentPreview = segmentForAnalysis,
-                            itemsPreview = itemLabels
+                            segmentPreview = previewDecision.segmentPreview,
+                            itemsPreview = itemLabels,
                         )
                     }
                 } else if (result.outcome == "empty") {
@@ -428,14 +423,16 @@ class CameraViewModel(
     }
 
     fun confirmSegmentAndAnalyze() {
-        val segment = pendingAnalysisSegment ?: return
         val scanId = pendingScanId ?: return
+        val sourceOcr = lastRawTranscript ?: pendingAnalysisSegment ?: return
         val items = lastItemsPreview.orEmpty()
-        val extraction = segmentPreparationService.prepare(scanId, segment)
+        val extraction = segmentPreparationService.prepare(scanId, sourceOcr)
         val decision = submissionGate.evaluate(
             scanId = scanId,
             extraction = extraction,
-            userConfirmed = true
+            userConfirmed = true,
+            implicitValidationFromIngredientsFraming = false,
+            fullOcrTranscript = sourceOcr,
         )
         if (!decision.submissionAllowed) {
             _scanState.value = ScanState.Error("Analyse bloquee: confirmation ou segment invalide.")

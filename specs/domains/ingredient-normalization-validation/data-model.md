@@ -48,20 +48,24 @@ Les `!` et `?` restent des terminateurs inconditionnels (pas de condition contex
 
 Le flux `prepare()` → `resolveEnd()` → `AnalysisSubmissionGate.evaluate()` pour la **géométrie** du segment reste identique (`IngredientSegmentFallbackMode`, `SubmissionBlockedReason` pour ancre / segment vide inchangés).
 
-### Orchestration capture → analyse (021, FR-010)
+### Orchestration capture → analyse (021 FR-010 + 2026-05-13 FR-012)
 
-Nouvelle dimension : **intention de capture** (signal balise « ingrédients », booléen ou enum minimal) portée avec la session de scan.
+Nouvelle dimension : **intention de capture** (signal balise « ingrédients ») + **transcript OCR complet** comme entrée unique du LLM (plus de dépendance à `anchorFound` pour autoriser la soumission).
 
 ```text
-OCR success/partial + anchorFound
+OCR success/partial → transcriptText (SSOT)
        │
-       ├─► [FR-010] ingredientsTagActive == true
-       │         AND gate autorise validation implicite
-       │              └─► CompositionAnalyzing (pas SegmentConfirmationRequired)
+       ├─► AnalysisSubmissionGate.evaluate(..., fullOcrTranscript = transcriptText)
+       │         ├─ transcript vide / label seul → Error (FR-008)
+       │         ├─ USER_REJECTED → SegmentConfirmationRequired (aperçu = transcript intégral)
+       │         └─ submissionAllowed
+       │                 ├─► [FR-010] implicitValidation → confirmSegmentAndAnalyze() → CompositionAnalyzing
+       │                 └─► (sinon implicite) confirmation utilisateur → CompositionAnalyzing
        │
-       └─► [FR-007 / FR-011] sinon
-                    └─► SegmentConfirmationRequired → confirmSegmentAndAnalyze() → CompositionAnalyzing
+       └─► runCompositionStage(rawText = transcript OCR intégral)
 ```
+
+**Note** : `IngredientSegmentExtraction` reste produit pour traçabilité / vues auxiliaires ; il **ne bloque plus** seul le chemin LLM lorsque le transcript complet est exploitable.
 
 ### Objet décisionnel (extension logique)
 

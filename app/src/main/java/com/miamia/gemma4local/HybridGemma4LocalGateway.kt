@@ -104,6 +104,7 @@ class HybridGemma4LocalGateway(
             val systemInstruction = Contents.of(
                 "Tu analyses des listes d'ingredients alimentaires (contexte UE, francais). " +
                     "Ne pas inventer d'ingredients absents du texte source. " +
+                    "Pour ###LISTE, reprend chaque libelle exactement comme dans l'OCR (memes mots), sans corriger l'orthographe ; seules tolerances : casse et espaces. " +
                     "Reponds uniquement avec 5 sections dans cet ordre : ###LISTE, ###PRODUIT, ###ANALYSE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
                     "Exemple : ###LISTE\n- eau\n- sucre\n- E300\n###PRODUIT\nLimonade ou soda sucre|80\n###ANALYSE\nProduit simple. Peu d'additifs.\n" +
                     "###ADDITIFS_RISQUE\nVERT|E300|Vitamine C naturelle\n" +

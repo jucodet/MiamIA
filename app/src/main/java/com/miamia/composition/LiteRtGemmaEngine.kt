@@ -252,7 +252,11 @@ class LiteRtGemmaEngine(
             appendLine("VERT|E300|Vitamine C sans risque aux doses alimentaires")
             appendLine()
             appendLine("Règles :")
-            appendLine("- ###LISTE : un ingrédient par ligne, préfixé par -")
+            appendLine(
+                "- ###LISTE : un ingrédient par ligne, préfixé par - ; **reprends chaque libellé tel qu’il " +
+                    "figure dans le texte OCR** (mêmes mots et ordre raisonnable), sans « corriger » " +
+                    "l’orthographe ni réécrire les termes : seules tolérances = casse et espaces."
+            )
             appendLine("- ###PRODUIT : une seule ligne, format nom_du_produit|pourcentage_certitude (0–100). Le produit alimentaire le plus probable auquel ces ingrédients appartiennent (ex. « Yaourt aux fruits|85 », « Biscuit fourré chocolat|60 »).")
             appendLine("- ###ANALYSE : 3 phrases max, factuelles, prudentes")
             appendLine("- ###ADDITIFS_RISQUE : une ligne par additif, format VERT|nom|raison ou ORANGE|nom|raison ou ROUGE|nom|raison ou INCERTAIN|nom|raison")
