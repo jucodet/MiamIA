@@ -1,14 +1,15 @@
-# Quickstart - ocr-dot-end-capture (017)
+# Quickstart - ingredient-normalization-validation (017 + 021)
 
 ## Goal
 
-Valider manuellement que la logique de fin de capture du segment ingrédients traite correctement le `.` contextuel : un point suivi d'un espace ou d'un retour à la ligne termine la capture, un point interne (code additif, abréviation) ne la termine pas.
+- **017** : Valider manuellement que la logique de fin de capture du segment ingrédients traite correctement le `.` contextuel : un point suivi d'un espace ou d'un retour à la ligne termine la capture, un point interne (code additif, abréviation) ne la termine pas.
+- **021 (FR-010)** : Valider le parcours **balise ingrédients** — enchaînement vers l'analyse **sans** écran de validation du segment, et la non-régression des autres parcours (FR-011).
 
 ## Preconditions
 
 - Build Android fonctionnel (`app`).
 - Spec : `specs/domains/ingredient-normalization-validation/spec.md`.
-- Contrat : `contracts/boundary-resolver-contract.md`.
+- Contrats : `contracts/boundary-resolver-contract.md`, `contracts/session-capture-intent-for-implicit-validation.md` (021).
 - Tests JVM passent : `./gradlew :app:testDebugUnitTest`.
 
 ## Manual Validation Flow
@@ -52,13 +53,27 @@ Valider manuellement que la logique de fin de capture du segment ingrédients tr
    `Ingrédients: eau, sel!`
 2. Vérifier que la proposition se termine à `sel!`.
 
+### G. Parcours FR-010 — balise ingrédients, enchaînement sans écran de validation
+
+1. Activer en build de test (ou via mock coordinator) le signal **« balise / mode ingrédients »** sur la session.
+2. Fournir un OCR `success` ou `partial` avec transcript contenant une ancre valide et un segment **non vide** (ex. `Ingrédients: eau, sucre.`).
+3. Vérifier que l'application **n'affiche pas** l'écran de confirmation de segment et enchaîne vers l'analyse (état streaming / écran résultat selon build).
+4. Désactiver le signal : même transcript → l'écran de confirmation **doit** réapparaître (SC-003 / FR-011).
+
+### H. FR-010 + segment vide / label seul
+
+1. Balise active + transcript ne permettant qu'un label seul (`Ingrédients:` sans liste) ou segment bloqué par `AnalysisSubmissionGate`.
+2. Vérifier **aucune** analyse silencieuse ; message ou état d'erreur aligné FR-008.
+
 ## Suggested Automated Checks
 
 - Tests unitaires JVM : `IngredientSegmentBoundaryResolverTest` (cas BC-01 à BC-07 du contrat).
 - Tests d'acceptation : `IngredientSegmentPhraseBoundaryAcceptanceTest` (scénarios US1 §1 et §2 de la spec).
 - Test de non-régression : `IngredientSegmentPerformanceTest` (pas de régression latence).
+- **021** : `AnalysisSubmissionGateContractTest` + test UI / instrumenté ciblant SC-005 (absence d'écran confirmation quand signal actif).
 
 ## Expected Outcomes
 
 - Conformité à **SC-001** (100 % des propositions respectent FR-002 à FR-006, y compris au moins un cas de point interne).
 - Aucune régression sur les tests existants (ancre, fin de ligne, fin de texte, multiples ancres).
+- **021** : **SC-005** (100 % enchaînement sans écran sur chemin FR-010) et **SC-003** (parcours sans balise inchangé).

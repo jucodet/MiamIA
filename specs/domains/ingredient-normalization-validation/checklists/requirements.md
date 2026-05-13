@@ -1,7 +1,7 @@
-# Specification Quality Checklist: ocr-dot-end-capture
+# Specification Quality Checklist: auto-analyze-ingredients-tag
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-05-11
+**Purpose**: Validate specification completeness and quality before proceeding to planning  
+**Created**: 2026-05-13  
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,6 +31,7 @@
 
 ## Notes
 
-- FR-003 has been refined: the `.` character now requires a trailing space or newline to qualify as end-of-capture. This avoids false positives on common OCR patterns like additive codes and abbreviations.
-- SC-001 explicitly requires at least one test case with an internal dot (e.g. « E.621 ») that must NOT trigger end of capture.
-- `!` and `?` remain unconditional end-of-sentence markers (no ambiguity risk in food label context).
+- Évolution 2026-05-13 : FR-010 / FR-011 et US2b définissent l’exception « balise ingrédients + OCR réussi + proposition exploitable » (pas d’écran de validation intermédiaire) tout en conservant la confirmation explicite pour les autres parcours (SC-003, SC-005).
+- Clarification session 2026-05-13 : **SC-004** s’applique uniquement aux parcours où l’écran proposition/validation est affiché (hors FR-010).
+- Règles d’ancrage et de fin de segment (FR-001 à FR-006) inchangées ; SC-001 et SC-002 restent valides pour la partie isolation.
+- Jeu de test SC-005 : inclure au moins un scénario balise « ingrédients » succès (enchaînement direct) et un scénario balise « ingrédients » mais proposition vide (FR-008, pas d’analyse).

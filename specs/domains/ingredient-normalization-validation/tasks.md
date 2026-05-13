@@ -173,9 +173,21 @@ Task: "T012 [US1] PerformanceTest non-régression"
 
 ---
 
+## Phase 6: User Story 2b — FR-010 auto-analyse (balise ingrédients) — 021
+
+**Goal**: Après OCR réussi, si la balise « ingrédients » est active et le segment exploitable, enchaîner l’analyse sans `SegmentConfirmationRequired` (spec FR-010 / SC-005).
+
+- [x] T020 [US2b] Étendre `AnalysisSubmissionGate.evaluate` + `AnalysisSubmissionDecision` (`IngredientSegmentModels.kt`, `AnalysisSubmissionGate.kt`) — paramètre `implicitValidationFromIngredientsFraming`, traçabilité `implicitValidationFromIngredientsFraming` sur la décision.
+- [x] T021 [P] [US2b] Tests gate : `AnalysisSubmissionGateContractTest`, `AnalysisSubmissionDecisionAcceptanceTest`.
+- [x] T022 [US2b] Orchestration `CameraViewModel.capturePhoto` : branchement vers `confirmSegmentAndAnalyze()` lorsque la décision le permet ; état `ingredientsFramingTagActive` + setter.
+- [x] T023 [US2b] UI `CameraScreen.kt` : `FilterChip` « Balise ingrédients » (`testTag` `ingredients_framing_tag_chip`).
+
+**Checkpoint**: Parcours balise actif + segment valide → pas d’écran confirmation ; balise inactive → comportement inchangé.
+
+---
+
 ## Notes
 
-- Changement chirurgical : **1 fichier source modifié** (`IngredientSegmentBoundaryResolver.kt`)
-- **5 fixtures ajoutées**, **7 tests ajoutés/enrichis**, vérification non-régression sur **6 fichiers test existants**
-- US2 et US3 sont des vérifications de non-régression (code existant déjà implémenté)
-- Aucun changement UI, aucun changement de modèle de données, aucune migration
+- **017** : changement principal `IngredientSegmentBoundaryResolver.kt` ; fixtures `OcrFixtures` et tests boundary associés.
+- **021 (FR-010)** : `AnalysisSubmissionGate`, `CameraViewModel`, `CameraScreen`, `AnalysisSubmissionDecision` ; exécuter `./gradlew :app:testDebugUnitTest` avec SDK Android (`ANDROID_HOME` ou `local.properties`).
+- US2 / US3 (phases 3–4) : vérifications de non-régression autour du gate et du fallback.
