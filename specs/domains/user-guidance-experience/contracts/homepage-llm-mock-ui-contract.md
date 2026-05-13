@@ -1,5 +1,7 @@
 # UI Contract - Homepage LLM Mock Trigger
 
+> **Statut (2026-05-13)** : ce contrat documentait le déclenchement **UI** du test LLM depuis la homepage / écran capture. La **Feature F** (`user-guidance-experience`) **retire** ce parcours du produit. Le fichier est conservé comme trace historique ; toute nouvelle implémentation ne MUST pas réintroduire de bouton utilisateur conforme à ce schéma sans nouvelle spec.
+
 ## Purpose
 
 Definir le contrat d'interaction observable pour le declenchement du test bouchonne LLM depuis la homepage et l'affichage du resultat.

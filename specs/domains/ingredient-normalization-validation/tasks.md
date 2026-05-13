@@ -1,101 +1,132 @@
-# Tasks: ocr-dot-end-capture
+# Tasks: ingredient-phrase-segment + FR-010 (auto-analyze-ingredients-tag)
 
-**Input**: Design documents from `specs/domains/ingredient-normalization-validation/`
-**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
+**Input**: Design documents from `specs/domains/ingredient-normalization-validation/`  
+**Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [contracts/](./contracts/), [quickstart.md](./quickstart.md)
 
-**Tests**: Dans ce projet, les tests d'acceptation/parcours (ATDD) sont **OBLIGATOIRES**.
-Chaque user story inclut au minimum un test d'acceptation aligné sur les scénarios Given/When/Then du `spec.md`.
+**Tests**: ATDD **obligatoire** (constitution MiamIA) — au moins une tâche de test par user story, alignée sur les scénarios Given/When/Then du `spec.md`.
 
-**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+**Organization**: Phases par priorité métier : fondations → **US1 (P1)** → **US2b (P1)** → **US2 (P2)** → **US3 (P3)** → polish.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
-- Include exact file paths in descriptions
+- **[P]**: parallélisable (fichiers distincts, pas de dépendance sur une tâche incomplète du même lot)
+- **[Story]**: US1, US2, US2b, US3 — obligatoire sur les phases user story
+- Chemins fichiers explicites (module `app/`)
+
+---
 
 ## Phase 1: Setup
 
-**Purpose**: Enrichir les fixtures OCR partagées pour les nouvelles variantes de points internes et contextuels (research Decision 4)
+**Purpose**: Cadrage branche, lecture des artefacts domaine avant toucher au code.
 
-- [x] T001 [P] Ajouter les fixtures `DOT_INTERNAL_ADDITIVE`, `DOT_INTERNAL_ABBREVIATION`, `DOT_SPACE_END`, `DOT_NEWLINE_END`, `DOT_EOF_END` dans `app/src/test/java/com/miamia/analysis/ingredientsegment/fixtures/OcrFixtures.kt`
-
-**Checkpoint**: Fixtures disponibles, aucun test ne les consomme encore
+- [x] T001 Vérifier que la branche active correspond au périmètre spec (`021-auto-analyze-ingredients-tag` ou équivalent) et que [plan.md](./plan.md) référence bien [spec.md](./spec.md)
+- [x] T002 [P] Confirmer la présence des contrats `specs/domains/ingredient-normalization-validation/contracts/boundary-resolver-contract.md` et `specs/domains/ingredient-normalization-validation/contracts/session-capture-intent-for-implicit-validation.md`
+- [x] T003 [P] Relire [data-model.md](./data-model.md) (transitions capture → analyse, intention « balise ingrédients »)
 
 ---
 
-## Phase 2: User Story 1 - Proposer une liste d'ingrédients avec fin de capture contextuelle (Priority: P1) 🎯 MVP
+## Phase 2: Foundational (bloquant)
 
-**Goal**: Le `.` ne termine la capture que s'il est suivi d'un espace ou d'un retour à la ligne (ou en fin de texte). Les points internes (codes additifs, abréviations) ne coupent plus la liste. `!` et `?` restent inconditionnels.
+**Purpose**: Invariants partagés par toutes les user stories — isolation segment + gate soumission.
 
-**Independent Test**: Exécuter `IngredientSegmentBoundaryResolverTest` et `IngredientSegmentPhraseBoundaryAcceptanceTest` — tous les cas (existants + nouveaux) passent à 100 %.
+**Checkpoint**: aucune story ne démarre avant T006 vert (tests JVM fondations au vert).
+
+- [ ] T004 Exécuter `./gradlew :app:testDebugUnitTest` avec SDK Android configuré (`ANDROID_HOME` ou `sdk.dir` dans `local.properties`) et corriger tout échec bloquant sur `app/src/test/java/com/miamia/analysis/ingredientsegment/`
+- [x] T005 [P] Vérifier non-régression `IngredientSegmentPreparationContractTest.kt` et `IngredientSegmentFallbackAcceptanceTest.kt` sous `app/src/test/java/com/miamia/analysis/ingredientsegment/`
+- [x] T006 Vérifier que `AnalysisSubmissionGate.kt` et `IngredientSegmentModels.kt` exposent bien le contrat FR-007 / FR-010 / FR-011 (paramètre `implicitValidationFromIngredientsFraming`, champ `implicitValidationFromIngredientsFraming` sur `AnalysisSubmissionDecision`)
+
+---
+
+## Phase 3: User Story 1 — Proposer une liste d’ingrédients (Priority: P1) 🎯 MVP
+
+**Goal**: Délimitation déterministe du segment (FR-002 à FR-006, FR-003 : `.` + espace/newline ou fin de texte ; `!` / `?` inconditionnels ; première ancre ; FR/EN).
+
+**Independent Test**: `IngredientSegmentBoundaryResolverTest` + `IngredientSegmentPhraseBoundaryAcceptanceTest` + jeux `app/src/test/java/com/miamia/analysis/ingredientsegment/fixtures/OcrFixtures.kt` — 100 % verts pour les cas US1.
 
 ### Tests for User Story 1 (MANDATORY) ⚠️
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation (ATDD)**
-
-- [x] T002 [P] [US1] Ajouter le test contrat BC-01 (`DOT_SPACE_END` → SENTENCE_TERMINATOR au `. `) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T003 [P] [US1] Ajouter le test contrat BC-02 (`DOT_INTERNAL_ADDITIVE` → point interne ignoré, LINE_END ou TEXT_END) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T004 [P] [US1] Ajouter le test contrat BC-03 (`DOT_INTERNAL_ABBREVIATION` → point interne ignoré, TEXT_END) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T005 [P] [US1] Ajouter le test contrat BC-04 (`DOT_EOF_END` → `.` en fin de texte = SENTENCE_TERMINATOR) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T006 [P] [US1] Ajouter le test contrat BC-07 (`DOT_NEWLINE_END` → `.\n` = SENTENCE_TERMINATOR) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt`
-- [x] T007 [P] [US1] Ajouter le test d'acceptation US1§2 (point interne ne coupe pas la capture) via `IngredientSegmentPreparationService` dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPhraseBoundaryAcceptanceTest.kt`
-- [x] T008 [P] [US1] Ajouter le test d'acceptation US1§1 révisé (`. ` termine la capture) via `IngredientSegmentPreparationService` dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPhraseBoundaryAcceptanceTest.kt`
+- [x] T007 [P] [US1] Garantir la couverture BC (points internes, `. `, `.\n`, EOF) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolverTest.kt` alignée sur `contracts/boundary-resolver-contract.md`
+- [x] T008 [P] [US1] Vérifier les scénarios US1 §1–§2 via `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPhraseBoundaryAcceptanceTest.kt`
+- [x] T009 [P] [US1] Vérifier la perf de non-régression dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPerformanceTest.kt`
 
 ### Implementation for User Story 1
 
-- [x] T009 [US1] Modifier `resolveEnd()` dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolver.kt` : le `.` n'est terminateur que si suivi d'un espace, d'un `\n`, ou en dernière position du texte ; `!` et `?` restent inconditionnels (FR-003 révisé, research Decision 1 + Decision 3)
-- [x] T010 [US1] Vérifier que les tests existants dans `IngredientSegmentBoundaryResolverTest.kt` passent toujours (non-régression : `resolver ends at sentence terminator before newline` doit conserver son comportement car le `.` dans la fixture `FR_WITH_SENTENCE_END` est suivi d'un espace)
-- [x] T011 [US1] Vérifier que les tests existants dans `IngredientSegmentPhraseBoundaryAcceptanceTest.kt` passent toujours (4 tests existants inchangés)
-- [x] T012 [US1] Vérifier que `IngredientSegmentPerformanceTest` ne montre pas de régression de latence dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPerformanceTest.kt`
+- [x] T010 [US1] Maintenir `resolveEnd()` dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolver.kt` conforme FR-003 (voir [research.md](./research.md) décisions 017)
+- [x] T011 [US1] Maintenir `IngredientSegmentPreparationService.kt` et `IngredientAnchorNormalizer.kt` cohérents avec la sortie du resolver (`app/src/main/java/com/miamia/analysis/ingredientsegment/`)
 
-**Checkpoint**: US1 complet — tous les tests (nouveaux + existants) passent, le `.` contextuel fonctionne
+**Checkpoint**: US1 isolable — proposition automatique stable sans dépendre de la validation UI.
 
 ---
 
-## Phase 3: User Story 2 - Confirmer ou corriger avant analyse (Priority: P2)
+## Phase 4: User Story 2b — Parcours accéléré balise ingrédients (Priority: P1)
 
-**Goal**: Vérifier que le flux de confirmation/correction existant fonctionne correctement avec les segments plus longs produits par la nouvelle logique de fin de capture.
+**Goal**: FR-010 / SC-005 — OCR réussi + balise active + segment exploitable → enchaînement analyse **sans** `SegmentConfirmationRequired` ; traçabilité décision (FR-009).
 
-**Independent Test**: Exécuter `AnalysisSubmissionGateContractTest` et `AnalysisSubmissionDecisionAcceptanceTest` — tous passent.
+**Independent Test**: gate + orchestration : balise active → pas d’état confirmation ; balise inactive → flux inchangé (FR-011).
+
+### Tests for User Story 2b (MANDATORY) ⚠️
+
+- [x] T012 [P] [US2b] Compléter / maintenir les cas implicites dans `app/src/test/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionGateContractTest.kt` (segment valide + framing ; label seul bloqué)
+- [x] T013 [P] [US2b] Étendre `app/src/test/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionDecisionAcceptanceTest.kt` pour le chemin `implicitValidationFromIngredientsFraming = true`
+- [x] T014 [P] [US2b] Ajouter ou enrichir un test instrumenté / UI vérifiant l’absence d’écran `SegmentConfirmationRequired` lorsque le chip `ingredients_framing_tag_chip` est sélectionné — `app/src/androidTest/java/com/miamia/camera/ingredientsegment/IngredientSegmentConfirmationUiTest.kt` (ou nouveau fichier co-localisé)
+
+### Implementation for User Story 2b
+
+- [x] T015 [US2b] Orchestrer le saut de confirmation dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt` (`capturePhoto` → `confirmSegmentAndAnalyze()` lorsque `previewDecision.submissionAllowed && previewDecision.implicitValidationFromIngredientsFraming`)
+- [x] T016 [US2b] Exposer l’intention « balise ingrédients » via `ingredientsFramingTagActive` / `setIngredientsFramingTagActive` dans `app/src/main/java/com/miamia/camera/CameraViewModel.kt`
+- [x] T017 [US2b] Brancher le `FilterChip` « Balise ingrédients » (`testTag` `ingredients_framing_tag_chip`) dans `app/src/main/java/com/miamia/camera/CameraScreen.kt`
+
+**Checkpoint**: US2b livrable indépendamment une fois US1 + Foundational verts.
+
+---
+
+## Phase 5: User Story 2 — Confirmer ou corriger avant analyse (Priority: P2)
+
+**Goal**: FR-007 hors FR-010 — écran `SegmentConfirmationRequired`, confirmation explicite, pas d’analyse sans validation utilisateur (SC-003).
+
+**Independent Test**: `IngredientSegmentConfirmationUiTest` + flux manuel : sans balise → écran confirmation obligatoire.
 
 ### Tests for User Story 2 (MANDATORY) ⚠️
 
-- [x] T013 [P] [US2] Ajouter un test d'acceptation vérifiant que `AnalysisSubmissionGate.evaluate()` accepte un segment contenant un point interne (ex. `DOT_INTERNAL_ADDITIVE`) après confirmation utilisateur dans `app/src/test/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionDecisionAcceptanceTest.kt`
+- [x] T018 [P] [US2] Maintenir `app/src/androidTest/java/com/miamia/camera/ingredientsegment/IngredientSegmentConfirmationUiTest.kt` (bouton `confirm_segment_button`, parcours sans balise)
+- [x] T019 [P] [US2] Vérifier `app/src/test/java/com/miamia/camera/CameraLlmFlowViewModelTest.kt` pour les chemins composition après validation explicite
 
-### Vérification for User Story 2
+### Implementation for User Story 2
 
-- [x] T014 [US2] Vérifier que les tests existants `AnalysisSubmissionGateContractTest` et `AnalysisSubmissionDecisionAcceptanceTest` passent toujours (non-régression gate aval) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/`
+- [x] T020 [US2] Conserver l’UI confirmation dans `app/src/main/java/com/miamia/camera/CameraScreen.kt` (branche `ScanState.SegmentConfirmationRequired`) et `confirmSegmentAndAnalyze()` / `rejectSegmentConfirmation()` dans `CameraViewModel.kt`
+- [x] T021 [US2] S’assurer que `AnalysisSubmissionGate.evaluate(..., userConfirmed = true)` reste le seul chemin après tap « Confirmer et analyser » (`CameraViewModel.kt`)
 
-**Checkpoint**: US2 vérifié — le flux confirmation/gate accepte les segments avec points internes
+**Checkpoint**: US2 vérifiable sans activer la balise ingrédients.
 
 ---
 
-## Phase 4: User Story 3 - Comprendre l'absence de liste exploitable (Priority: P3)
+## Phase 6: User Story 3 — Absence de liste exploitable (Priority: P3)
 
-**Goal**: Vérifier que le comportement en l'absence d'ancre ou avec segment vide n'est pas affecté par le changement FR-003.
+**Goal**: FR-008 — pas d’analyse sur segment vide / sans ancre ; messages et reprise.
 
-**Independent Test**: Exécuter `IngredientSegmentFallbackAcceptanceTest` — tous passent.
+**Independent Test**: textes sans ancre ou proposition vide → erreur contrôlée, pas de liste fictive.
 
 ### Tests for User Story 3 (MANDATORY) ⚠️
 
-- [x] T015 [US3] Vérifier que `IngredientSegmentFallbackAcceptanceTest` passe toujours (ancre absente → `ANCHOR_MISSING_BLOCKED`) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentFallbackAcceptanceTest.kt`
+- [x] T022 [P] [US3] Maintenir `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentFallbackAcceptanceTest.kt` (ancre absente)
+- [x] T023 [P] [US3] Vérifier les messages d’échec OCR / segment dans `app/src/test/java/com/miamia/ingredients/` (ex. `ScanFailureMessageBuilder` si touché par le flux)
 
-### Vérification for User Story 3
+### Implementation for User Story 3
 
-- [x] T016 [US3] Vérifier que `IngredientSegmentPreparationContractTest` passe toujours (contrat de sortie préservé) dans `app/src/test/java/com/miamia/analysis/ingredientsegment/IngredientSegmentPreparationContractTest.kt`
+- [x] T024 [US3] Vérifier que `CameraViewModel.capturePhoto` mappe toujours les cas sans ancre / segment vide vers `ScanState.Error` ou états appropriés sans lancer la composition (`app/src/main/java/com/miamia/camera/CameraViewModel.kt`)
 
-**Checkpoint**: US3 vérifié — aucune régression sur le comportement fallback/blocage
+**Checkpoint**: US3 sans régression après changements US2b.
 
 ---
 
-## Phase 5: Polish & Cross-Cutting Concerns
+## Phase 7: Polish & cross-cutting
 
-**Purpose**: Validation finale, documentation, non-régression globale
+**Purpose**: Suite complète, doc domaine amont, quickstart.
 
-- [x] T017 Exécuter la suite complète `./gradlew :app:testDebugUnitTest` et confirmer 0 échec
-- [x] T018 [P] Mettre à jour le commentaire KDoc de `resolveEnd()` dans `app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentBoundaryResolver.kt` pour refléter FR-003 révisé
-- [x] T019 [P] Exécuter la validation manuelle quickstart (sections A–F) documentée dans `specs/domains/ingredient-normalization-validation/quickstart.md`
+- [ ] T025 Exécuter `./gradlew :app:testDebugUnitTest` puis `./gradlew :app:connectedDebugAndroidTest` si émulateur disponible (couverture US2 / US2b UI)
+- [ ] T026 [P] Valider manuellement les sections A–H de `specs/domains/ingredient-normalization-validation/quickstart.md`
+- [x] T027 [P] Si le signal « balise » est porté uniquement par l’UI locale, ajouter une phrase de référence croisée dans `specs/domains/capture-recognition/spec.md` (ACL / intention de session) sans dupliquer les FR métier
+- [x] T028 Mettre à jour `specs/domains/ingredient-normalization-validation/traceability.csv` (si présent) pour lier FR-010 / tâches T012–T017
 
 ---
 
@@ -103,86 +134,82 @@ Chaque user story inclut au minimum un test d'acceptation aligné sur les scéna
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: Pas de dépendance — fixtures seules
-- **US1 (Phase 2)**: Dépend de Phase 1 (fixtures) — tests ATDD d'abord (T002–T008), puis implémentation (T009), puis vérification non-régression (T010–T012)
-- **US2 (Phase 3)**: Dépend de Phase 2 (US1 terminé, resolver modifié)
-- **US3 (Phase 4)**: Dépend de Phase 2 (US1 terminé, resolver modifié)
-- **Polish (Phase 5)**: Dépend de toutes les phases précédentes
+- **Phase 1** → immédiate
+- **Phase 2** → après Phase 1 ; **bloque** US1–US3
+- **Phase 3 (US1)** → après Phase 2
+- **Phase 4 (US2b)** → après Phase 2 ; **recommandé** après Phase 3 (segment correct avant auto-analyse)
+- **Phase 5 (US2)** → après Phase 2 ; peut suivre Phase 4 (mêmes fichiers `CameraViewModel` / `CameraScreen` — séquence T015–T021 pour limiter les conflits)
+- **Phase 6 (US3)** → après Phase 2 ; peut être parallèle à US2 une fois US1 vert
+- **Phase 7** → après les stories cibles livrées
 
 ### User Story Dependencies
 
-- **User Story 1 (P1)**: Seule story avec du code de production modifié — bloque les vérifications US2/US3
-- **User Story 2 (P2)**: Peut démarrer après US1 — vérifie la compatibilité gate aval
-- **User Story 3 (P3)**: Peut démarrer après US1 — vérifie la compatibilité fallback ; **parallélisable avec US2**
+| Story | Dépend de |
+|-------|-----------|
+| US1 | Foundational |
+| US2b | Foundational, US1 (logique segment) |
+| US2 | Foundational, US1 ; cohérence avec US2b sur `CameraViewModel` / `CameraScreen` |
+| US3 | Foundational, US1 |
 
-### Within User Story 1
+### Within each story
 
-- T002–T008 (tests ATDD) MUST être écrits et échouer AVANT T009 (implémentation)
-- T009 (implémentation) fait passer les tests T002–T008
-- T010–T012 (non-régression) après T009
+- Tests (T007–T009, T012–T014, …) **avant** ou en lockstep avec les changements produits (ATDD).
+- Ne pas fusionner US2 et US2b dans une même PR sans tests T012–T014 + T018 verts.
 
 ### Parallel Opportunities
 
-- T002–T008 : tous [P], fichiers différents ou sections indépendantes du même fichier
-- T013 [P] et T015 peuvent être écrits en parallèle avec T002–T008
-- US2 (Phase 3) et US3 (Phase 4) peuvent être vérifiés en parallèle après US1
-- T017, T018, T019 : T018 et T019 sont [P] entre eux
+- T002, T003 en parallèle
+- T005 + préparation T007–T009 (lecture) en parallèle après T004 connu vert
+- T007, T008, T009 en parallèle
+- T012, T013, T014 en parallèle (attention : T014 instrumenté peut être long seul)
+- T022, T023 en parallèle
+- T026, T027 en parallèle
 
 ---
 
-## Parallel Example: User Story 1
+## Parallel Example: User Story 2b
 
 ```bash
-# Étape 1 — écrire tous les tests en parallèle (ATDD, doivent FAIL) :
-Task: "T002 [P] [US1] Test contrat BC-01 (dot+space → SENTENCE_TERMINATOR)"
-Task: "T003 [P] [US1] Test contrat BC-02 (dot interne additif → ignoré)"
-Task: "T004 [P] [US1] Test contrat BC-03 (dot interne abréviation → ignoré)"
-Task: "T005 [P] [US1] Test contrat BC-04 (dot EOF → SENTENCE_TERMINATOR)"
-Task: "T006 [P] [US1] Test contrat BC-07 (dot+newline → SENTENCE_TERMINATOR)"
-Task: "T007 [P] [US1] Acceptance US1§2 (point interne ne coupe pas)"
-Task: "T008 [P] [US1] Acceptance US1§1 révisé (dot+space termine)"
-
-# Étape 2 — implémenter (séquentiel, 1 fichier) :
-Task: "T009 [US1] Modifier resolveEnd() dans IngredientSegmentBoundaryResolver.kt"
-
-# Étape 3 — vérifier non-régression :
-Task: "T010 [US1] Tests existants BoundaryResolverTest"
-Task: "T011 [US1] Tests existants PhraseBoundaryAcceptanceTest"
-Task: "T012 [US1] PerformanceTest non-régression"
+# Tests ATDD FR-010 en parallèle (fichiers de test distincts) :
+Task: "T012 AnalysisSubmissionGateContractTest implicit framing"
+Task: "T013 AnalysisSubmissionDecisionAcceptanceTest implicit path"
+Task: "T014 IngredientSegmentConfirmationUiTest balise active"
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (User Story 1 Only)
+### MVP minimal (US1 seule)
 
-1. Complete Phase 1: Fixtures (T001)
-2. Complete Phase 2: Tests ATDD US1 (T002–T008) → FAIL
-3. Implémenter T009 → tests passent
-4. Vérifier non-régression (T010–T012)
-5. **STOP and VALIDATE**: `./gradlew :app:testDebugUnitTest`
+1. Phases 1–2 puis Phase 3 jusqu’au **Checkpoint** US1.  
+2. `./gradlew :app:testDebugUnitTest` — arrêt si échec.
 
-### Incremental Delivery
+### Livraison FR-010 (valeur produit balise)
 
-1. Phase 1 (fixtures) → Setup prêt
-2. Phase 2 (US1) → MVP livrable, `.` contextuel fonctionne
-3. Phase 3 (US2) → Gate aval vérifiée
-4. Phase 4 (US3) → Fallback vérifié
-5. Phase 5 (polish) → Suite complète, KDoc, quickstart validé
+1. US1 vert → Phase 4 (US2b) complète (T012–T017).  
+2. Valider SC-005 (pas d’écran intermédiaire) + SC-003 (sans balise inchangé).
+
+### Incrémental complet
+
+1. Setup + Foundational  
+2. US1 → US2b → US2 → US3  
+3. Polish (T025–T028)
 
 ---
 
-## Phase 6: User Story 2b — FR-010 auto-analyse (balise ingrédients) — 021
+## Task counts (aperçu)
 
-**Goal**: Après OCR réussi, si la balise « ingrédients » est active et le segment exploitable, enchaîner l’analyse sans `SegmentConfirmationRequired` (spec FR-010 / SC-005).
-
-- [x] T020 [US2b] Étendre `AnalysisSubmissionGate.evaluate` + `AnalysisSubmissionDecision` (`IngredientSegmentModels.kt`, `AnalysisSubmissionGate.kt`) — paramètre `implicitValidationFromIngredientsFraming`, traçabilité `implicitValidationFromIngredientsFraming` sur la décision.
-- [x] T021 [P] [US2b] Tests gate : `AnalysisSubmissionGateContractTest`, `AnalysisSubmissionDecisionAcceptanceTest`.
-- [x] T022 [US2b] Orchestration `CameraViewModel.capturePhoto` : branchement vers `confirmSegmentAndAnalyze()` lorsque la décision le permet ; état `ingredientsFramingTagActive` + setter.
-- [x] T023 [US2b] UI `CameraScreen.kt` : `FilterChip` « Balise ingrédients » (`testTag` `ingredients_framing_tag_chip`).
-
-**Checkpoint**: Parcours balise actif + segment valide → pas d’écran confirmation ; balise inactive → comportement inchangé.
+| Phase | Story | Tâches (ids) |
+|-------|-------|----------------|
+| 1 Setup | — | T001–T003 (3) |
+| 2 Foundational | — | T004–T006 (3) |
+| 3 US1 | US1 | T007–T011 (5) |
+| 4 US2b | US2b | T012–T017 (6) |
+| 5 US2 | US2 | T018–T021 (4) |
+| 6 US3 | US3 | T022–T024 (3) |
+| 7 Polish | — | T025–T028 (4) |
+| **Total** | | **28 tâches** |
 
 ---
 
@@ -204,7 +231,15 @@ Task: "T012 [US1] PerformanceTest non-régression"
 
 ## Notes
 
+<<<<<<< HEAD
 - **017** : changement principal `IngredientSegmentBoundaryResolver.kt` ; fixtures `OcrFixtures` et tests boundary associés.
 - **021 (FR-010)** : `AnalysisSubmissionGate`, `CameraViewModel`, `CameraScreen`, `AnalysisSubmissionDecision` ; exécuter `./gradlew :app:testDebugUnitTest` avec SDK Android (`ANDROID_HOME` ou `local.properties`).
 - **2026-05-13 (FR-012)** : paramètre `fullOcrTranscript` sur le gate ; wrapper Gradle requis (`gradle/wrapper/gradle-wrapper.jar` présent) pour lancer les tests en local.
 - US2 / US3 (phases 3–4) : vérifications de non-régression autour du gate et du fallback.
+=======
+- **T004 / T025** : restent **ouverts** tant que le SDK Android n’est pas configuré (`local.properties` / `ANDROID_HOME`) — exécuter Gradle localement pour clore.
+- **T026** : validation manuelle quickstart (A–H) — à faire côté équipe / device réel.
+- Les IDs **T001–T028** sont séquentiels pour éviter les collisions avec d’anciens plans ; marquer `[x]` au fur et à mesure dans ce fichier.
+- Frontière DDD : pas d’inférence « balise » depuis le seul texte OCR — voir [contracts/session-capture-intent-for-implicit-validation.md](./contracts/session-capture-intent-for-implicit-validation.md).
+- **SC-004** : ne s’applique pas au parcours FR-010 (clarification spec 2026-05-13).
+>>>>>>> f2d806ea7921ea48dd8d92efc6c8fa3783e1ba2c
