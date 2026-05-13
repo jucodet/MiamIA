@@ -16,6 +16,11 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty).
 
+## Specification scope (mandatory)
+
+- **Single source tree**: Planning draws specifications **only** from `specs/domains/` (e.g. `specs/domains/<domain>/spec.md`, sibling artifacts in that domain folder, and `specs/domains/domain-map.md` when boundaries matter).
+- **Ignore legacy root specs**: Do **not** read, merge, cite, or treat as authoritative any path under `specs/<anything>/` where `<anything>` is **not** the single segment `domains` (e.g. `specs/006-…`, `specs/014-…`). If FEATURE_SPEC or constitution mentions such paths, treat them as historical/traceability pointers only unless the user explicitly asks to consolidate them into the domain spec first.
+
 ## Pre-Execution Checks
 
 **Check for extension hooks (before planning)**:
@@ -57,7 +62,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - If resolved path is outside `specs/domains/`, stop with:
     - `Plan refused: planning must be domain-scoped. Run /speckit-design then /speckit.specify to target specs/domains/<domain>/spec.md.`
 
-2. **Load context**: Read FEATURE_SPEC and `.specify/memory/constitution.md`. Load IMPL_PLAN template (already copied).
+2. **Load context**: Read FEATURE_SPEC and `.specify/memory/constitution.md`. Load IMPL_PLAN template (already copied). Respect **Specification scope** above: no reads outside `specs/domains/` for spec inputs (except constitution and templates under `.specify/`).
 
 3. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
    - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
@@ -148,3 +153,4 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 - Use absolute paths for filesystem operations; use project-relative paths for references in documentation and agent context files
 - ERROR on gate failures or unresolved clarifications
+- Do not broaden context by scanning `specs/*` at repo root; domain-only scope is enforced by `setup-plan.ps1` and must be mirrored when loading files in steps 2–3
