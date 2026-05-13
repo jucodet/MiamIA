@@ -5,7 +5,7 @@
 - `HealthAnalysisReport` (agrégat existant)
   - `reportId`
   - `validatedSegment` : `ValidatedIngredientSegment`
-  - `compositionSummary` : bilan structuré post-parse LLM
+  - `compositionSummary` : bilan structuré post-parse LLM (inclut **Feature K** : `estimatedKcalPer100g` optionnel sur le bilan)
   - `populationCritiques` : sections critique par population
   - `additiveRiskFacts` : projection vers read-model additifs (référence, pas texte étiquette)
   - `generatedAt`
@@ -31,6 +31,14 @@
 - `AdditiveRiskFact` — déjà utilisé côté présentation ; ne doit pas être confondu avec libellé étiquette.
 - `PopulationCritique` — sections ; chaque assertion « ce produit » doit être ancrable (**IHI-C-FR-004** b).
 - `AnchoringOutcome` : `FULLY_GROUNDED` | `REJECTED_NON_ANALYSABLE` (mappe métier vers `non-analysable-response` ou équivalent).
+
+- `EstimatedEnergyPer100g` *(Feature K — valeur sur `CompositionBilan`)*  
+  - Représentation v1 : `Int?` sur `CompositionBilan` (`estimatedKcalPer100g`) ; `null` = indisponible ou non fiable après garde-fous.  
+  - Unité implicite : **kcal / 100 g**.  
+  - Source : section modèle `###ENERGIE_ESTIMEE` + **EnergyEstimateValidator** (bornes **1..1100**).
+
+- `EnergyEstimateSource` *(traçabilité minimale)*  
+  - v1 : présence dans `rawModelOutput` ; pas d’ID séparé tant que le texte brut est conservé sur `BilanSuccess`.
 
 ## Aggregates
 

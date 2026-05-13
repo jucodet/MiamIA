@@ -2,8 +2,9 @@ package com.miamia.composition
 
 /**
  * Harmonise les libellés d'ingrédients pour l'UI et le rapprochement liste ↔ verdict :
- * les pourcentages seuls entre parenthèses (issus de l'étiquette / OCR) ne doivent pas
- * empêcher de reconnaître la même matière première (ex. `farine de blé (50,2 %)` ≈ `farine de blé`).
+ * - pourcentages seuls entre parenthèses ;
+ * - parenthèses mal fermées / `)` orphelins en fin d'OCR ;
+ * - regroupements du type « farine de blé et de seigle » → deux entrées distinctes.
  */
 object IngredientLabelNormalizer {
 
@@ -13,29 +14,63 @@ object IngredientLabelNormalizer {
     /** Parenthèse ouverte en fin de chaîne sans fermeture (OCR / génération tronquée). */
     private val trailingIncompleteParen = Regex("""\([^)]*$""")
 
-    fun normalizeForMatching(s: String): String {
-        var t = IngredientOcrLexicon.apply(s).trim()
-        t = percentOnlyParen.replace(t, " ")
-        t = trailingIncompleteParen.replace(t, "")
-        return t.replace(Regex("\\s+"), " ").trim().lowercase()
-    }
-
     /**
-     * Libellé affiché : retire pourcentages entre parenthèses et restes `(…` non fermés,
-     * en conservant le reste du texte (ex. « huile (palme, colza) » reste tel quel si `)` présente).
+     * Étiquettes UE fréquentes : « farine(s) de blé et de seigle » → deux lignes
+     * « farine de blé », « farine de seigle ».
      */
-    fun stripPercentAndBrokenParentheticals(s: String): String {
-        var t = IngredientOcrLexicon.apply(s).trim()
+    private val farineDeEtDe = Regex(
+        """(?i)^farines?\s+de\s+(.+?)\s+et\s+de\s+(.+)$""",
+    )
+
+    fun normalizeForMatching(s: String): String =
+        preprocessOneLine(s).lowercase()
+
+    internal fun preprocessOneLine(line: String): String {
+        var t = IngredientOcrLexicon.apply(line).trim()
         t = percentOnlyParen.replace(t, " ")
         t = trailingIncompleteParen.replace(t, "")
+        t = stripSurplusClosingParens(t)
         return t.replace(Regex("\\s+"), " ").trim()
     }
 
-    fun normalizeBilanIngredientLabels(bilan: CompositionBilan): CompositionBilan =
-        bilan.copy(
-            ingredientLines = bilan.ingredientLines.map { stripPercentAndBrokenParentheticals(it) },
-            healthImpacts = bilan.healthImpacts.map { impact ->
-                impact.copy(ingredient = stripPercentAndBrokenParentheticals(impact.ingredient))
-            },
-        )
+    /**
+     * Retire des `)` en trop en fin de chaîne lorsque les parenthèses sont déséquilibrées
+     * (ex. `huile de colza)` sans `(` correspondant).
+     */
+    private fun stripSurplusClosingParens(s: String): String {
+        var t = s.trimEnd()
+        while (t.endsWith(')') && t.count { it == '(' } < t.count { it == ')' }) {
+            t = t.dropLast(1).trimEnd()
+        }
+        return t
+    }
+
+    /**
+     * Si la ligne correspond à « farine(s) de X et de Y », renvoie deux libellés ;
+     * sinon une seule entrée (déjà prétraitée).
+     */
+    internal fun expandCombinedFlourLines(preprocessedLine: String): List<String> {
+        val t = preprocessedLine.trim()
+        val m = farineDeEtDe.matchEntire(t) ?: return listOf(t)
+        val a = m.groupValues[1].trim().trimEnd(',', '.')
+        val b = m.groupValues[2].trim().trimEnd(',', '.')
+        if (a.isEmpty() || b.isEmpty()) return listOf(t)
+        return listOf("farine de $a", "farine de $b")
+    }
+
+    /**
+     * Prétraitement seul (sans éclatement farine) — pour libellés déjà atomiques.
+     */
+    fun stripPercentAndBrokenParentheticals(s: String): String = preprocessOneLine(s)
+
+    fun normalizeBilanIngredientLabels(bilan: CompositionBilan): CompositionBilan {
+        val newLines = bilan.ingredientLines.flatMap { line ->
+            expandCombinedFlourLines(preprocessOneLine(line))
+        }
+        val newImpacts = bilan.healthImpacts.flatMap { impact ->
+            val parts = expandCombinedFlourLines(preprocessOneLine(impact.ingredient))
+            parts.map { part -> impact.copy(ingredient = part) }
+        }
+        return bilan.copy(ingredientLines = newLines, healthImpacts = newImpacts)
+    }
 }

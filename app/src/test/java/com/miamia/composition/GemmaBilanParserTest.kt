@@ -284,4 +284,71 @@ class GemmaBilanParserTest {
         assertNotNull(bilan)
         assertEquals("Short analysis.", bilan!!.compositionAnalysis)
     }
+
+    @Test
+    fun parse_withEnergySection_extractsKcal() {
+        val raw = """
+            ###LISTE
+            - eau
+            ###ANALYSE
+            Boisson très diluée.
+            ###ENERGIE_ESTIMEE
+            38
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertEquals(38, bilan!!.estimatedKcalPer100g)
+        assertEquals("Boisson très diluée.", bilan.compositionAnalysis)
+    }
+
+    @Test
+    fun parse_energySectionNa_yieldsNullKcal() {
+        val raw = """
+            ###LISTE
+            - eau
+            ###ANALYSE
+            Eau seule.
+            ###ENERGIE_ESTIMEE
+            NA
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertNull(bilan!!.estimatedKcalPer100g)
+    }
+
+    @Test
+    fun parse_energyOutOfRange_yieldsNullKcal() {
+        val raw = """
+            ###LISTE
+            - huile
+            ###ANALYSE
+            Lipides concentrés.
+            ###ENERGIE_ESTIMEE
+            9999
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertNull(bilan!!.estimatedKcalPer100g)
+    }
+
+    @Test
+    fun parse_energyAfterAdditifs_ignored() {
+        val raw = """
+            ###LISTE
+            - eau
+            ###ANALYSE
+            Court.
+            ###ADDITIFS_RISQUE
+
+            ###ENERGIE_ESTIMEE
+            400
+        """.trimIndent()
+
+        val bilan = GemmaBilanParser.parse(raw)
+        assertNotNull(bilan)
+        assertNull(bilan!!.estimatedKcalPer100g)
+    }
 }

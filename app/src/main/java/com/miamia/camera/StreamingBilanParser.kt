@@ -13,6 +13,7 @@ object StreamingBilanParser {
     private val PRODUIT_PATTERN = Regex("""#{1,4}\s*PRODUIT\s*:?""", RegexOption.IGNORE_CASE)
     private val ANALYSE_PATTERN = Regex("""#{1,4}\s*(?:ANALYSE|ANALYSIS)\s*:?""", RegexOption.IGNORE_CASE)
     private val ADDITIFS_PATTERN = Regex("""#{1,4}\s*ADDITIFS[_\s]*RISQUE\s*:?""", RegexOption.IGNORE_CASE)
+    private val ENERGIE_PATTERN = Regex("""#{1,4}\s*ENERGIE(?:_ESTIMEE)?\s*:?""", RegexOption.IGNORE_CASE)
     private val IMPACT_PATTERN = Regex("""#{1,4}\s*IMPACT[_\s]*SANT[EÉ]\s*:?""", RegexOption.IGNORE_CASE)
 
     private val VALID_LEVELS = setOf("VERT", "ORANGE", "ROUGE", "INCERTAIN")
@@ -34,6 +35,7 @@ object StreamingBilanParser {
         val produitMatch = PRODUIT_PATTERN.find(normalizedPartial)
         val analysisMatch = ANALYSE_PATTERN.find(normalizedPartial)
         val additivesMatch = ADDITIFS_PATTERN.find(normalizedPartial)
+        val energyMatch = ENERGIE_PATTERN.find(normalizedPartial)
         val impactMatch = IMPACT_PATTERN.find(normalizedPartial)
 
         val ingredients: List<String>
@@ -65,7 +67,13 @@ object StreamingBilanParser {
             product = parsed.first
             productConfidence = parsed.second
 
-            val analysisEnd = findNextSectionStart(normalizedPartial, analysisMatch.range.last + 1, additivesMatch, impactMatch)
+            val analysisEnd = findNextSectionStart(
+                normalizedPartial,
+                analysisMatch.range.last + 1,
+                energyMatch,
+                additivesMatch,
+                impactMatch,
+            )
             val analysisBlock = normalizedPartial.substring(analysisMatch.range.last + 1, analysisEnd).trim()
             analysis = analysisBlock.ifBlank { null }
 
@@ -115,12 +123,18 @@ object StreamingBilanParser {
     private fun findNextSectionStart(
         text: String,
         afterIndex: Int,
+        energyMatch: MatchResult?,
         additivesMatch: MatchResult?,
-        impactMatch: MatchResult?
+        impactMatch: MatchResult?,
     ): Int {
+        val addFirst = additivesMatch?.range?.first ?: Int.MAX_VALUE
+        val orderedEnergy = energyMatch?.takeIf { m ->
+            m.range.first > afterIndex && m.range.first < addFirst
+        }
         val candidates = listOfNotNull(
+            orderedEnergy?.range?.first,
             additivesMatch?.range?.first,
-            impactMatch?.range?.first
+            impactMatch?.range?.first,
         ).filter { it > afterIndex }
         return candidates.minOrNull() ?: text.length
     }

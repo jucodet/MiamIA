@@ -2,17 +2,18 @@
 
 **Domain Context**: `user-guidance-experience`
 **Created**: 2026-05-06
-**Last Modified**: 2026-05-13 (Feature G — OCR direct, accueil epure ; revise Feature F statut caméra)
+**Last Modified**: 2026-05-13 (Feature H — splash lancement ; cohérence Feature A / B ; **UGE-A-FR-022** pastille kcal inchangée)
 **Status**: Draft
 
-**Dernière entrée utilisateur (intake)** : « L'analyse doit se déclencher directement à partir de l'OCR, sur la base de la totalité du texte capturé. Je ne veux plus voir l'écran intermédiaire qui affiche le texte capturé. Supprime toute la logique de segmentation de la liste des ingrédients. Supprime aussi de l'écran d'accueil, la pastille balise ingrédients et le texte caméra prête vous pouvez scanner. »
+**Dernière entrée utilisateur (intake)** : « Rajoute un splash screen qui s'affiche pendant quelques secondes avant d'afficher le 1er écran. Ce splash doit montrer un beau logo de marmite style dessin animé southpark, et le logo "MiamIA" en police southpark également. Les couleurs doivent être dans le thème de l'application, pastel. »
 
 ## Purpose
 
-Orchestrer l'expérience utilisatrice de bout en bout : onboarding (téléchargement du modèle), capture photo, analyse LLM avec streaming progressif, affichage du résultat, et messages de bienvenue. Ce domaine ne possède pas la logique d'analyse elle-même (déléguée à `ingredient-health-intelligence` et `ingredient-normalization-validation`) mais contrôle la navigation, le feedback visuel et les états utilisateur.
+Orchestrer l'expérience utilisatrice de bout en bout : moment de marque au lancement (splash), onboarding (téléchargement du modèle), capture photo, analyse LLM avec streaming progressif, affichage du résultat, et messages de bienvenue. Ce domaine ne possède pas la logique d'analyse elle-même (déléguée à `ingredient-health-intelligence` et `ingredient-normalization-validation`) mais contrôle la navigation, le feedback visuel et les états utilisateur.
 
 ## Scope
 
+- Écran splash de lancement (marque, courte durée) avant le premier écran applicatif
 - Onboarding téléchargement du modèle LLM (confirmation, attente, reprise, refus)
 - Écran de capture comme accueil (sans onglets)
 - Flux photo → analyse LLM (sans ecran intermediaire de relecture du transcript OCR) → streaming / ecran resultat
@@ -23,7 +24,8 @@ Orchestrer l'expérience utilisatrice de bout en bout : onboarding (télécharge
 
 ## Invariants
 
-- L'écran de capture est toujours le point d'entrée après onboarding.
+- Au lancement à froid, un splash de marque de courte durée précède le premier écran applicatif (sauf adaptation liée aux préférences utilisateur de réduction du mouvement — Feature H).
+- L'écran de capture est toujours le point d'entrée après onboarding (et après le splash lorsqu'il est affiché).
 - Aucune barre d'onglets multi-sections comme navigation principale.
 - L'utilisatrice n'est jamais bloquée sans issue (bouton retour, réessayer, ou information claire).
 - Aucune navigation automatique si l'utilisatrice a quitté l'écran actif pendant un traitement.
@@ -52,11 +54,11 @@ Orchestrer l'expérience utilisatrice de bout en bout : onboarding (télécharge
 
 #### US-A1 — Disposer de l'écran de capture comme accueil, sans onglets (P1)
 
-En tant qu'utilisatrice, je veux que le premier écran soit l'écran de prise de photo — prévisualisation, bouton photo — sans barre d'onglets ni action de test LLM.
+En tant qu'utilisatrice, je veux que le premier écran **fonctionnel** soit l'écran de prise de photo — prévisualisation, bouton photo — sans barre d'onglets ni action de test LLM, **une fois** tout splash de lancement (Feature H) et, le cas échéant, le parcours d'onboarding modèle (Feature B) terminés.
 
 **Acceptance Scenarios**:
 
-1. **Given** l'application ouverte, **When** l'interface principale apparaît, **Then** l'écran de prise de photo est affiché sans passage par un écran d'accueil à onglets.
+1. **Given** l'application ouverte jusqu'à la fin du splash et de l'onboarding modèle si requis, **When** l'interface principale applicative apparaît, **Then** l'écran de prise de photo est affiché sans passage par un écran d'accueil à onglets.
 2. **Given** l'application au premier plan, **When** l'utilisatrice observe la navigation, **Then** aucune barre d'onglets multi-sections n'est présentée.
 3. **Given** la caméra disponible, **When** l'écran s'affiche, **Then** la prévisualisation est visible et le bouton photo est placé sous cette zone.
 4. **Given** l'écran affiché, **When** l'utilisatrice parcourt les actions sous la prévisualisation, **Then** aucun bouton ni entrée « Test LLM » (ni équivalent de diagnostic) n'est proposé.
@@ -76,6 +78,7 @@ En tant qu'utilisatrice, après une photo, je veux voir le streaming progressif 
 5. **Given** le streaming en cours, **When** l'utilisatrice quitte l'écran résultat (retour arrière), **Then** aucune navigation automatique de retour à la fin du traitement. *(Backfill P1.)*
 6. **Given** texte OCR disponible mais analyse échouée, **When** l'écran résultat affiché, **Then** un état de repli utile (texte reconnu + action) est proposé.
 7. **Given** transcription très longue, **When** résultat affiché, **Then** le contenu reste lisible et les contrôles sous le texte restent atteignables.
+8. **Given** bilan de composition classé succès par `ingredient-health-intelligence` et une estimation d’énergie pour 100 g **disponible** selon les garde-fous de ce domaine (**Feature K**, **IHI-K-FR-001**), **When** l’écran de résultat affiche le bilan complet, **Then** une pastille en **tête** d’écran respecte **UGE-A-FR-022** (libellé d’analyse terminée, valeur ou absence sûre, caractère **estimé** visible — **Ref.** **IHI-K-FR-002**, **IHI-K-FR-003**).
 
 #### US-A3 — ~~Lancer le test LLM depuis le même écran (P2)~~ *(révoqué — Feature F, 2026-05-13)*
 
@@ -97,10 +100,11 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - OCR présent mais analyse absente : repli OCR exploitable, jamais écran vide bloquant.
 - Analyse très longue : le streaming reste visible ou indication claire que le traitement continue.
 - Retour arrière depuis résultat : pile de navigation simple, pas de réintroduction d'onglets.
+- Estimation kcal/100 g absente ou rejetée par garde-fous : pastille cohérente sans nombre trompeur (**Ref.** `ingredient-health-intelligence` **US-K2**).
 
 ### Functional Requirements (Feature A)
 
-- **UGE-A-FR-001**: Le système MUST présenter un écran de prise de photo comme premier écran affiché après lancement normal (écran d'accueil = écran de capture).
+- **UGE-A-FR-001**: Le système MUST présenter un écran de prise de photo comme premier écran **fonctionnel** affiché après lancement normal, **après** tout écran splash de lancement (Feature H) et **après** le parcours d'onboarding téléchargement du modèle lorsqu'il s'applique (Feature B) ; hors ces phases transitoires, l'écran d'accueil = écran de capture.
 - **UGE-A-FR-002**: Le système MUST afficher une prévisualisation caméra réelle lorsque la caméra est disponible.
 - **UGE-A-FR-003**: Le système MUST permettre un contrôle de mise au point sur la prévisualisation.
 - **UGE-A-FR-004**: Le système MUST afficher sous la prévisualisation un bouton de prise de photo qui lance le flux existant de capture.
@@ -121,10 +125,11 @@ En tant qu'utilisatrice, je veux un message clair si la caméra est indisponible
 - **UGE-A-FR-019**: Le système MUST, lorsqu'une erreur d'analyse survient, afficher un message explicite avec action de récupération (retenter, revenir à la capture, ou équivalent).
 - **UGE-A-FR-020**: Le système MUST contenir une transcription longue dans une zone de lecture adaptée sans débordement.
 - **UGE-A-FR-021**: Le système MUST permettre l'accès aux contrôles sous la transcription même lorsque le texte occupe plusieurs écrans de hauteur.
+- **UGE-A-FR-022**: Lorsque le bilan de composition fourni par `ingredient-health-intelligence` est classé **succès**, le système MUST afficher en **tête** de l’écran de résultat / synthèse une **pastille** (ou bandeau équivalent visuellement prioritaire) conforme aux exigences **IHI-K-FR-001** à **IHI-K-FR-003** : état d’analyse terminée, estimation d’énergie en **kcal pour 100 g** lorsqu’elle est **disponible** côté domaine d’analyse, qualification **estimée / indicative**, et **aucune** présentation comme donnée nutritionnelle réglementaire ou certifiée. Lorsque l’estimation n’est pas disponible ou n’est pas fiable, le système MUST respecter **IHI-K-FR-004** / **US-K2** (pas de chiffre inventé ; libellé d’indisponibilité ou pastille sans valeur numérique trompeuse, selon design validé). La pastille MUST respecter **contraste** et **taille de texte** au moins équivalents aux autres bandeaux d’état du haut de l’écran résultat (détails de conformité accessibilité documentés en plan d’implémentation).
 
 ### Key Entities (Feature A)
 
-- **AppNavigationShell**: Navigation sans onglets ; premier écran = capture ; empilement simple.
+- **AppNavigationShell**: Navigation sans onglets ; après splash (Feature H) et onboarding modèle si requis (Feature B), premier écran fonctionnel = capture ; empilement simple.
 - **CaptureScreenState**: État prévisualisation (`disponible`, `indisponible`) et visibilité des boutons.
 - **PhotoCaptureIntent**: Action de prise de photo vers le flux existant.
 - **LlmTestIntent** *(hors produit depuis Feature F)*: conservé uniquement en documentation historique ; aucune entrée UI ne l'expose.
@@ -517,10 +522,67 @@ Les formulations suivantes satisfont UGE-E-FR-002 à UGE-E-FR-005 et sont distin
 
 ---
 
+## Feature H — Splash de lancement (marque MiamIA, marmite, pastel)
+
+> Input (intake 2026-05-13) : écran splash de quelques secondes avant le premier écran applicatif ; illustration marmite au style visuel volontairement simplifié et cartoonesque (référence produit : esthétique proche du dessin animé *South Park*) ; libellé « MiamIA » avec une typographie du même esprit ; couleurs pastels alignées sur le thème visuel de l'application.
+
+### User Scenarios (Feature H)
+
+#### US-H1 — Voir la marque au démarrage (P1)
+
+En tant qu'utilisatrice, au lancement à froid de l'application, je veux voir un écran plein dédié à la marque pendant une courte durée avant d'accéder au reste du parcours (onboarding modèle ou écran de capture selon les règles existantes).
+
+**Acceptance Scenarios**:
+
+1. **Given** un lancement à froid de l'application, **When** l'interface apparaît, **Then** un écran splash plein écran s'affiche en premier, avant tout écran de capture ou d'onboarding modèle.
+2. **Given** le splash affiché, **When** la durée prévue s'écoule, **Then** l'application enchaîne automatiquement vers le prochain écran du parcours nominal (Feature B si le modèle n'est pas prêt, sinon écran de capture — cohérent avec Feature A).
+3. **Given** le splash affiché, **When** l'utilisatrice l'observe, **Then** elle y distingue clairement une illustration centrale de marmite et le texte de marque « MiamIA ».
+4. **Given** le splash affiché, **When** l'utilisatrice compare les couleurs au reste de l'application, **Then** la palette est cohérente avec le thème pastel existant (pas de rupture chromatique brutale avec l'accueil capture).
+
+#### US-H2 — Lire une identité visuelle décalée et lisible (P2)
+
+En tant qu'utilisatrice, je veux que le splash soit visuellement marquant et lisible : traits simples, aplats, contours nets pour la marmite, et un titre « MiamIA » au caractère informel et robuste évoquant l'esthétique des génériques du dessin animé de référence, sans nuire à la lisibilité du nom de l'app.
+
+**Acceptance Scenarios**:
+
+1. **Given** le splash affiché, **When** l'utilisatrice lit le nom « MiamIA », **Then** les lettres restent identifiables sur téléphone en portrait à distance de lecture normale.
+2. **Given** le splash affiché, **When** l'utilisatrice regarde l'illustration marmite, **Then** celle-ci est reconnaissable comme marmite (couvercle, corps, anses ou équivalent stylisé) et adopte une esthétique volontairement « cut-out » / cartoonesque plutôt que photoréaliste.
+
+### Edge Cases (Feature H)
+
+- Relance de l'app depuis le multitâche (app déjà en mémoire) : le splash ne s'impose pas à chaque retour au premier plan ; il s'applique au lancement à froid (définition : session applicative démarrée depuis zéro après fermeture ou eviction mémoire — formulation vérifiable par parcours « tuer l'app puis rouvrir »).
+- Préférence utilisateur de réduction des animations / mouvement : le splash MUST éviter les effets de mouvement agressifs ; la durée d'exposition MAY être réduite ou l'écran simplifié tant que la marque reste identifiable (détail exact laissé au design d'accessibilité, borne : pas plus long que le parcours nominal sans préférence).
+- Écran très petit ou grand facteur d'échelle : le logo texte et la marmite restent entièrement visibles sans recadrage tronquant le nom « MiamIA ».
+- Thème clair / sombre si l'application en propose : le splash reste harmonisé pastel dans chaque variante sans perdre le contraste minimal pour la lisibilité.
+
+### Functional Requirements (Feature H)
+
+- **UGE-H-FR-001** : Le système MUST, sur lancement à froid, afficher un écran splash plein écran avant le premier écran fonctionnel (capture ou onboarding modèle).
+- **UGE-H-FR-002** : Le splash MUST rester affiché pendant une durée brève et bornée (cible produit : entre **2 s** et **4 s** inclusivement sur parcours nominal sans préférence de réduction du mouvement), puis céder la place automatiquement sans action utilisateur obligatoire.
+- **UGE-H-FR-003** : Le splash MUST inclure une illustration principale représentant une marmite, stylisée selon une esthétique simple, plate ou quasi plate, à contours marqués, évoquant l'animation américaine *South Park* (cut-out, humour visuel léger).
+- **UGE-H-FR-004** : Le splash MUST afficher le nom de marque « MiamIA » avec une typographie assortie à la même esthétique (lettres pleines, informelles, lisibles).
+- **UGE-H-FR-005** : Le splash MUST utiliser une palette de couleurs pastels cohérente avec le thème visuel global de l'application.
+- **UGE-H-FR-006** : Le système MUST NOT exiger d'interaction (bouton « Continuer ») pour quitter le splash sur le parcours nominal ; la transition est automatique à l'issue du temporisage.
+- **UGE-H-FR-007** : Le système MUST, lorsque l'application revient simplement au premier plan sans redémarrage de session, ne pas réinsérer le splash comme s'il s'agissait d'un nouveau lancement à froid.
+
+### Success Criteria (Feature H)
+
+- **UGE-H-SC-001** : Sur trois lancements à froid consécutifs observés, le splash apparaît systématiquement avant capture ou onboarding modèle, puis disparaît sans action utilisateur dans la fenêtre 2–4 s (sauf parcours avec préférence de réduction du mouvement documenté).
+- **UGE-H-SC-002** : En test d'utilisabilité informel (≥ 3 personnes) ou revue produit interne, 100 % des participantes identifient le mot « MiamIA » et la marmite sur le splash en moins de 5 s d'exposition.
+- **UGE-H-SC-003** : Aucune régression documentée sur l'ordre du parcours post-splash : Feature B et Feature A conservent leurs enchaînements relatifs (onboarding si requis, sinon capture).
+
+### Hypothèses (Feature H)
+
+- L'acquisition ou la création des actifs graphiques et typographiques respecte les contraintes légales sur les polices et les marques tierces ; l'inspiration stylistique reste une direction produit, pas une reproduction de fichiers protégés.
+- « Quelques secondes » est interprété comme 2–4 s pour rester testable ; ajustement mineur acceptable si la revue accessibilité impose une borne inférieure.
+- Le splash est purement présentationnel : aucune donnée métier ni OCR n'y est saisie.
+
+---
+
 ## Cross-domain Notes
 
 - Le segment ingrédients n'est pas déterminé ici : délégation à `ingredient-normalization-validation`.
-- L'analyse de composition et la critique santé sont du ressort de `ingredient-health-intelligence`.
+- L'analyse de composition et la critique santé sont du ressort de `ingredient-health-intelligence` ; la pastille d’énergie estimée (kcal/100 g) en tête d’écran résultat est **orchestrée** ici (**UGE-A-FR-022**) et **spécifiée** côté analyse (**Feature K**, **IHI-K-FR-***).
 - Le runtime LLM local (chargement modèle, inférence) est du ressort de `local-llm-runtime`.
 - La capture OCR est du ressort de `capture-recognition`.
 - Les KPI additifs sont du ressort de `additive-risk-insights`.
@@ -530,10 +592,11 @@ Les formulations suivantes satisfont UGE-E-FR-002 à UGE-E-FR-005 et sont distin
 - `specs/017-photo-analyse-ecran-resultat/` (Feature A)
 - `specs/018-llm-download-onboarding/` (Feature B)
 - `specs/012-home-layout-mediapipe-status/` (Feature C — home)
+- Intake `/speckit-design` + `/speckit-specify` 2026-05-13 (pastille kcal — **UGE-A-FR-022** ; ref. `specs/domains/ingredient-health-intelligence/spec.md` Feature K)
 
 ## Assumptions
 
-- L'écran de capture est l'écran d'accueil ; pas de page d'accueil distincte à onglets.
+- L'écran de capture est l'écran d'accueil fonctionnel après splash et onboarding modèle ; pas de page d'accueil distincte à onglets.
 - Le flux de capture photo reste la référence fonctionnelle pour l'entrée utilisateur vers l'analyse (le test LLM UI est retiré — Feature F).
 - La nature du résultat exploitable relève des domaines d'analyse ; cet écran se contente d'une présentation lisible.
 - Le parcours reste local (pas de dépendance réseau pour le flux de base, sauf téléchargement modèle).

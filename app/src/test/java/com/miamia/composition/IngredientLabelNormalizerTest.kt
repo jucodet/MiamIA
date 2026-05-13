@@ -22,6 +22,46 @@ class IngredientLabelNormalizerTest {
     }
 
     @Test
+    fun preprocess_removesSurplusClosingParen() {
+        assertEquals("huile de colza", IngredientLabelNormalizer.stripPercentAndBrokenParentheticals("huile de colza)"))
+    }
+
+    @Test
+    fun normalizeBilan_splitsFarineDeBleEtSeigle() {
+        val bilan = CompositionBilan(
+            ingredientLines = listOf("Farines de blé et de seigle"),
+            compositionAnalysis = "x",
+            disclaimer = "d",
+            healthImpacts = listOf(
+                IngredientHealthImpact("ORANGE", "Farines de blé et de seigle", "gluten"),
+            ),
+        )
+        val n = IngredientLabelNormalizer.normalizeBilanIngredientLabels(bilan)
+        assertEquals(listOf("farine de blé", "farine de seigle"), n.ingredientLines)
+        assertEquals(2, n.healthImpacts.size)
+        assertEquals("ORANGE", n.healthImpacts[0].level)
+        assertEquals("ORANGE", n.healthImpacts[1].level)
+        assertEquals("gluten", n.healthImpacts[0].note)
+        assertEquals("gluten", n.healthImpacts[1].note)
+    }
+
+    @Test
+    fun validator_acceptsSplitFarineLinesAgainstCombinedOcrSegment() {
+        val bilan = CompositionBilan(
+            ingredientLines = listOf("farine de blé", "farine de seigle"),
+            compositionAnalysis = "Analyse.",
+            disclaimer = "d",
+            healthImpacts = listOf(
+                IngredientHealthImpact("VERT", "farine de blé", "a"),
+                IngredientHealthImpact("VERT", "farine de seigle", "b"),
+            ),
+        )
+        val segment = "farines de blé et de seigle, sucre"
+        val out = CompositionResultValidator.validateAgainstSource(bilan, segment)
+        assertTrue(out is AnalyzeCompositionResult.BilanSuccess)
+    }
+
+    @Test
     fun normalizeBilan_alignsListAndImpactKeys() {
         val bilan = CompositionBilan(
             ingredientLines = listOf("Farine de seigle (49 %)"),

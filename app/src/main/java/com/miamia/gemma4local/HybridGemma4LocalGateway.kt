@@ -107,16 +107,20 @@ class HybridGemma4LocalGateway(
                     "Ne pas inventer d'ingredients absents du texte source. " +
                     "Pour ###LISTE : un ingredient par ligne avec - ; reformule chaque libelle OCR vers la graphie la plus probable (orthographe, accents, formulation UE) sans changer le sens ni l'ordre des entrees reellement lues. " +
                     "Sans pourcentages entre parentheses dans les libelles (ex. farine de ble sans (50 %) ; meme regle pour le champ nom des verdicts). " +
+                    "Corriger polmiste -> palmiste. Si farine(s) de X et de Y sur une ligne, deux lignes - farine de X et - farine de Y. " +
+                    "Enlever une parenthese fermante en trop en fin de libelle si elle n'a pas de ( ouvrante (ex. huile de colza) devient huile de colza sans le dernier ). " +
                     "Pour ###ADDITIFS_RISQUE et ###IMPACT_SANTE : le champ nom entre les barres doit reprendre le meme intitule normalise que dans ###LISTE pour le meme compose. " +
                     "###IMPACT_SANTE : exactement une ligne par entree de ###LISTE, meme ordre, aucune omission. " +
                     "Exemple correction OCR : omidon -> amidon. " +
-                    "Reponds uniquement avec 5 sections dans cet ordre : ###LISTE, ###PRODUIT, ###ANALYSE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
+                    "Reponds uniquement avec 6 sections dans cet ordre : ###LISTE, ###PRODUIT, ###ANALYSE, ###ENERGIE_ESTIMEE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
                     "Exemple : ###LISTE\n- eau\n- sucre\n- E300\n###PRODUIT\nLimonade ou soda sucre|80\n###ANALYSE\nProduit simple. Peu d'additifs.\n" +
+                    "###ENERGIE_ESTIMEE\n38\n" +
                     "###ADDITIFS_RISQUE\nVERT|E300|Vitamine C naturelle\n" +
                     "###IMPACT_SANTE\nVERT|eau|Hydratation essentielle\nORANGE|sucre|Exces lie au surpoids\nVERT|E300|Sans risque aux doses alimentaires\n" +
                     "Regles : ###LISTE un ingredient par ligne avec -. " +
                     "###PRODUIT une seule ligne, format nom_du_produit|pourcentage_certitude (0-100). Le produit alimentaire le plus probable auquel ces ingredients appartiennent. " +
                     "###ANALYSE 3 phrases max, factuelles, prudentes. " +
+                    "###ENERGIE_ESTIMEE une seule ligne : entier kcal pour 100 g (estimation indicative depuis la liste) ou NA si non fiable. " +
                     "###ADDITIFS_RISQUE et ###IMPACT_SANTE : chaque ligne commence par VERT ou ORANGE ou ROUGE ou INCERTAIN puis | puis nom puis | puis note courte. " +
                     "Si aucun additif, laisser ###ADDITIFS_RISQUE vide."
             )

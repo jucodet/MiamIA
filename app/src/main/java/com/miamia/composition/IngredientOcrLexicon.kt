@@ -11,6 +11,7 @@ object IngredientOcrLexicon {
     private val FIXES: List<WholeWordFix> = listOf(
         WholeWordFix(Regex("\\bomidon\\b", RegexOption.IGNORE_CASE), "amidon"),
         WholeWordFix(Regex("\\b0midon\\b", RegexOption.IGNORE_CASE), "amidon"),
+        WholeWordFix(Regex("\\bpolmiste\\b", RegexOption.IGNORE_CASE), "palmiste"),
     )
 
     fun apply(text: String): String {

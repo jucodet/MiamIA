@@ -7,6 +7,12 @@ import org.junit.Test
 class IngredientOcrLexiconTest {
 
     @Test
+    fun replacesPolmisteWithPalmiste() {
+        assertEquals("palmiste", IngredientOcrLexicon.apply("polmiste"))
+        assertEquals("huile de palmiste", IngredientOcrLexicon.apply("huile de polmiste"))
+    }
+
+    @Test
     fun replacesOmidonWithAmidon() {
         assertEquals("amidon", IngredientOcrLexicon.apply("omidon"))
         assertEquals("Eau, amidon, sucre", IngredientOcrLexicon.apply("Eau, omidon, sucre"))

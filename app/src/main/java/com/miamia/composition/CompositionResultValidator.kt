@@ -41,6 +41,7 @@ object CompositionResultValidator {
             } else {
                 bilan
             }
-        return AnalyzeCompositionResult.BilanSuccess(bilan = bilanForSuccess, rawModelOutput = rawModelOutput)
+        val withSanitizedEnergy = EnergyEstimateValidator.sanitizeBilan(bilanForSuccess)
+        return AnalyzeCompositionResult.BilanSuccess(bilan = withSanitizedEnergy, rawModelOutput = rawModelOutput)
     }
 }

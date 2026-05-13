@@ -19,10 +19,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.ViewModelProvider
+import com.miamia.BuildConfig
 import com.miamia.camera.CameraScreen
 import com.miamia.camera.CameraViewModel
 import com.miamia.camera.ScanState
@@ -55,10 +57,15 @@ import com.miamia.onboarding.ModelDownloadWaitingScreen
 import com.miamia.onboarding.NetworkOfflineScreen
 import com.miamia.result.LlmResultScreen
 import com.miamia.scan.TemporaryImageManager
+import com.miamia.splash.LaunchSplashScreen
+import com.miamia.splash.isMotionReduced
 import com.miamia.ui.theme.MiamIATheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 class MainActivity : ComponentActivity() {
 
@@ -109,62 +116,44 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val app = application as MiamIAApplication
+        val coldStart = savedInstanceState == null
 
         setContent {
+            val context = LocalContext.current
             // La spec 012 definit la reference d'ordre UI pour l'accueil.
             HomeSpecPriorityResolver.resolveHomeUiOrderSpec()
             val imageManager = remember { TemporaryImageManager(applicationContext) }
             var uiReady by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                modelDownloadViewModel = ViewModelProvider(
-                    this@MainActivity
-                )[ModelDownloadViewModel::class.java]
+            var splashFinished by remember(coldStart) { mutableStateOf(!coldStart) }
 
-                val coordinator = withContext(Dispatchers.IO) {
-                    val db = app.database
-                    val repository = ScanSessionRepository(db.scanSessionDao())
-                    val capabilityDetector = DeviceAiCapabilityDetector(applicationContext)
-                    IngredientRecognitionCoordinator(
-                        engineSelector = RecognitionEngineSelector(
-                            capabilityDetector = capabilityDetector,
-                            aiEdgeGalleryRecognizer = AiEdgeGalleryRecognizer(),
-                            localOcrFallbackRecognizer = LocalOcrFallbackRecognizer(applicationContext)
-                        ),
-                        extractionPipeline = IngredientExtractionPipeline(),
-                        repository = repository
-                    )
+            LaunchedEffect(coldStart) {
+                if (!coldStart) {
+                    prepareApplicationUi(app)
+                    uiReady = true
+                    splashFinished = true
+                    return@LaunchedEffect
                 }
-                val localGateway = HybridGemma4LocalGateway(applicationContext)
-                val localClient = Gemma4LocalClient(
-                    availabilityChecker = Gemma4LocalAvailabilityChecker(localGateway),
-                    requestMapper = Gemma4LocalRequestMapper(),
-                    errorMapper = Gemma4LocalErrorMapper(),
-                    metricsLogger = Gemma4LocalMetricsLogger(),
-                    deviceClassResolver = DeviceClassResolver(applicationContext),
-                    gateway = localGateway
-                )
-                val compositionEngine = Gemma4LocalCompositionEngine(localClient)
-                cameraViewModel = ViewModelProvider(
-                    this@MainActivity,
-                    CameraViewModel.factory(
-                        application,
-                        coordinator,
-                        compositionEngine
-                    )
-                )[CameraViewModel::class.java]
-                healthCritiqueViewModel = ViewModelProvider(
-                    this@MainActivity,
-                    HealthCritiqueViewModel.factory(applicationContext)
-                )[HealthCritiqueViewModel::class.java]
-                cameraViewModel.onLoginSucceeded()
-                if (permissionHandler.hasCameraPermission(this@MainActivity)) {
-                    cameraViewModel.onPermissionGranted()
-                } else {
-                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                val reduceMotion = context.isMotionReduced()
+                val minSplashMs = if (reduceMotion) 350L else 2_000L
+                val maxExtraAfterMinMs = if (reduceMotion) 450L else 2_000L
+                val initJob = async {
+                    prepareApplicationUi(app)
+                    uiReady = true
                 }
-                uiReady = true
+                delay(minSplashMs)
+                withTimeoutOrNull(maxExtraAfterMinMs) { initJob.await() }
+                splashFinished = true
+                initJob.join()
             }
-            if (!uiReady) {
+
+            if (!splashFinished) {
+                MiamIATheme {
+                    LaunchSplashScreen(
+                        versionName = BuildConfig.VERSION_NAME,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            } else if (!uiReady) {
                 MiamIATheme {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -287,6 +276,55 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun prepareApplicationUi(app: MiamIAApplication) {
+        modelDownloadViewModel = ViewModelProvider(
+            this@MainActivity
+        )[ModelDownloadViewModel::class.java]
+
+        val coordinator = withContext(Dispatchers.IO) {
+            val db = app.database
+            val repository = ScanSessionRepository(db.scanSessionDao())
+            val capabilityDetector = DeviceAiCapabilityDetector(applicationContext)
+            IngredientRecognitionCoordinator(
+                engineSelector = RecognitionEngineSelector(
+                    capabilityDetector = capabilityDetector,
+                    aiEdgeGalleryRecognizer = AiEdgeGalleryRecognizer(),
+                    localOcrFallbackRecognizer = LocalOcrFallbackRecognizer(applicationContext)
+                ),
+                extractionPipeline = IngredientExtractionPipeline(),
+                repository = repository
+            )
+        }
+        val localGateway = HybridGemma4LocalGateway(applicationContext)
+        val localClient = Gemma4LocalClient(
+            availabilityChecker = Gemma4LocalAvailabilityChecker(localGateway),
+            requestMapper = Gemma4LocalRequestMapper(),
+            errorMapper = Gemma4LocalErrorMapper(),
+            metricsLogger = Gemma4LocalMetricsLogger(),
+            deviceClassResolver = DeviceClassResolver(applicationContext),
+            gateway = localGateway
+        )
+        val compositionEngine = Gemma4LocalCompositionEngine(localClient)
+        cameraViewModel = ViewModelProvider(
+            this@MainActivity,
+            CameraViewModel.factory(
+                application,
+                coordinator,
+                compositionEngine
+            )
+        )[CameraViewModel::class.java]
+        healthCritiqueViewModel = ViewModelProvider(
+            this@MainActivity,
+            HealthCritiqueViewModel.factory(applicationContext)
+        )[HealthCritiqueViewModel::class.java]
+        cameraViewModel.onLoginSucceeded()
+        if (permissionHandler.hasCameraPermission(this@MainActivity)) {
+            cameraViewModel.onPermissionGranted()
+        } else {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
