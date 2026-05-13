@@ -3,3 +3,12 @@ source_feature,source_artifact,target_file,target_section,status
 005,spec.md,spec.md,Scope,mapped
 007,spec.md,plan.md,Objectives,mapped
 008,spec.md,data-model.md,Value Objects,mapped
+020,spec.md,spec.md,Functional Requirements (CR-FR-009..011),mapped
+020,spec.md,spec.md,Feature increment 020 - User Stories,mapped
+020,spec.md,plan.md,Constitution Check,mapped
+020,spec.md,contracts/capture-action-bar.md,Obligations,mapped
+020,spec.md,research.md,R-001..R-005,mapped
+020,spec.md,tasks.md,Phases 1-5,mapped
+020,SC-CR-003,quickstart.md,Scenario D,planned
+020,SC-CR-004,quickstart.md,Scenario E,planned
+020,SC-CR-005,quickstart.md,Scenario F,planned

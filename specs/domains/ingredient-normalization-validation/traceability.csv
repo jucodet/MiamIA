@@ -5,4 +5,4 @@ source_feature,source_artifact,target_file,target_section,status
 021,spec.md,spec.md,"FR-010 FR-011 US2b",mapped
 021,plan.md,app/src/main/java/com/miamia/camera/CameraViewModel.kt,capturePhoto implicit branch,mapped
 021,plan.md,app/src/main/java/com/miamia/analysis/ingredientsegment/AnalysisSubmissionGate.kt,implicitValidationFromIngredientsFraming,mapped
-021,tasks.md,app/src/androidTest/java/com/miamia/camera/ingredientsegment/IngredientFramingTagChipAndroidTest.kt,SC-005 UI chip,mapped
+021,plan.md,app/src/main/java/com/miamia/camera/CameraViewModel.kt,capturePhoto direct LLM when segment valid,mapped

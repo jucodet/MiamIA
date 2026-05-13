@@ -1,42 +1,69 @@
-# Research — Zone défilante texte capturé (019)
+# Research — Bouton capture sous l’aperçu et libellé « Y a quoi là-dedans ? »
 
-## 1. Identification des écrans concernés (code actuel)
+Date: 2026-05-13  
+Domaine: `capture-recognition`  
+Statut: Phase 0 complète.
 
-**Decision** : L’incrément cible en priorité `CameraScreen.kt` pour les branches `when (state)` où un texte long et des boutons coexistent sans séparation scroll / pied fixe.
+## R-001 — Placement du bouton de capture vis-à-vis de l’aperçu vidéo
 
-**Rationale** :
+- **Decision**: Conserver la structure `Column` parente actuelle (aperçu en `Box(...height(360.dp))` puis actions), mais introduire une **bande d’action explicite (`CaptureActionBar`)** placée sous l’aperçu, séparée par un espacement vertical non ambigu (`Arrangement.spacedBy(HomeSpacingRules.standardFixedSpacing)` déjà en place, à renforcer si nécessaire). La bande d’action est un `Column` interne hors de la `Box` de prévisualisation.
+- **Rationale**:
+  - Garantit CR-FR-009 (aucun recouvrement) par construction : aucun composable d’action n’est enfant de la `Box` qui contient `CameraPreviewBox`.
+  - Garantit CR-FR-010 (bande d’action dédiée sous l’aperçu).
+  - Préserve CR-FR-007 (bande d’action visible sans scroll global).
+  - Compatible avec les états `CameraUnavailable` (placeholder 360.dp) ET les états live preview (preview 360.dp) sans branche supplémentaire si extraction du sous-composable.
+- **Alternatives considérées**:
+  - **Empiler le bouton dans la `Box` d’aperçu (overlay)** : rejeté — viole CR-FR-009 (recouvrement) et CR-FR-010, motif central de la demande.
+  - **Réduire la hauteur de l’aperçu (`height(300.dp)` ou ratio)** : non nécessaire ; le problème vient d’un empilement perçu, pas d’une hauteur excessive. À reconsidérer uniquement si des cas paysage / petits écrans révèlent une friction post-implémentation (cas limite déjà couvert dans la spec).
+  - **`Scaffold` avec `bottomBar`** : sur-architecture pour 1 écran ; ne s’intègre pas naturellement avec le `Column` actuel qui contient déjà MediaPipeStatusIndicator + welcome message.
 
-- `ScanState.Success` affiche `transcriptText` et la liste `items` en `Text` successifs sans `verticalScroll` ni `weight` : un texte OCR très long pousse les boutons hors écran.
-- `ScanState.BilanReady` enveloppe `BilanResultCard` + bouton « Nouveau scan » dans un `Column` **entièrement** `verticalScroll` : le bouton défile avec le contenu, ce qui contrevient à CR-FR-007.
-- `ScanState.SegmentConfirmationRequired` utilise déjà `heightIn(max = 280.dp)` + `verticalScroll` sur la zone texte, mais le `Column` parent n’occupe pas forcément toute la hauteur utile ; à valider avec `fillMaxSize()` + `weight(1f)` sur la zone scroll pour remplir l’espace sous les en-têtes (MediaPipe, welcome) tout en gardant les boutons en bas.
+## R-002 — Renommage du libellé « Prendre la photo » → « Y a quoi là-dedans ? »
 
-**Alternatives considered** :
+- **Decision**: Remplacer les deux occurrences hard-codées du libellé `"Prendre la photo"` dans `CameraScreen.kt` (états `CameraUnavailable` et états live preview) par `"Y a quoi là-dedans ?"` exactement, en conservant les test tags (`capture_photo_button`) et les semantics existants. Pas d’extraction immédiate en `strings.xml` (suivi possible).
+- **Rationale**:
+  - Diff minimal, traçable, sans risque sur le module i18n actuel (pas de string resources françaises dédiées à ce libellé aujourd’hui ; cohérent avec le reste de l’écran qui utilise des littéraux français).
+  - Conserve les tests existants ciblant `capture_photo_button` (ils peuvent assert le libellé visible sans dépendre d’un id de resource).
+- **Alternatives considérées**:
+  - **Introduire `R.string.capture_action_primary`** : plus propre à long terme, mais hors scope minimal — proposé comme tâche de suivi (post-merge) pour ne pas mélanger refactor i18n et fix UI.
+  - **Renommer aussi `capturePhoto()` / test tag** : non — le nom interne décrit l’action technique (prendre une photo), pas le libellé utilisateur. Le découplage est sain.
 
-- **Dialog plein écran** pour le texte brut — rejeté : hors scope spec (même parcours, géométrie seulement).
-- **`LazyColumn`** pour le texte — possible mais plus lourd qu’un `verticalScroll` pour un seul bloc `Text` ; garder `verticalScroll` sauf mesure de perf contraire.
+## R-003 — Espacement visuel garantissant « clairement dessous »
 
-## 2. Pattern de mise en page Compose
+- **Decision**: Réutiliser `HomeSpacingRules.standardFixedSpacing` (déjà utilisé dans le `Column` interne des états live). Vérifier visuellement que l’espacement est ≥ 12 dp et donne une rupture nette entre la fin de la zone vidéo et le haut du bouton. Si la perception reste insuffisante après implémentation, ajouter un `Spacer(Modifier.height(8.dp))` dans la bande d’action plutôt que d’augmenter globalement l’espacement de la `Column` parente.
+- **Rationale**:
+  - Respecte la simplicité (V) : réutilisation de l’existant.
+  - Évite une régression de densité sur d’autres écrans utilisant `HomeSpacingRules`.
+- **Alternatives considérées**:
+  - **`Divider`/`HorizontalDivider`** : ajoute un élément visuel non demandé. À envisager seulement si une revue UX explicite le requiert.
 
-**Decision** : `Column(Modifier.fillMaxSize())` avec zone centrale `Modifier.weight(1f, fill = true).verticalScroll(...)` et actions **hors** du scroll, comme `LlmResultScreen.kt` (lignes ~73–127).
+## R-004 — Tests d’acceptation Compose UI
 
-**Rationale** : pattern déjà validé dans le dépôt ; satisfait CR-FR-006/007/008 avec peu de risque.
+- **Decision**: Étendre/ajouter trois tests UI Compose dans `app/src/androidTest/java/com/miamia/camera/` :
+  1. `CameraCaptureLayoutUiTest` (étendu) : assert que le composable porteur du test tag `capture_photo_button` est positionné **strictement sous** la bounding box du composable `photo_preview_box` (top du bouton ≥ bottom du preview).
+  2. `CaptureActionLabelUiTest` (nouveau) : assert que le test tag `capture_photo_button` affiche exactement le texte « Y a quoi là-dedans ? » dans l’état live preview.
+  3. `CameraUnavailableLlmButtonUiTest` (étendu) : assert que le même test tag affiche « Y a quoi là-dedans ? » dans l’état `CameraUnavailable`.
+- **Rationale**:
+  - Tests indépendants des deux user stories (US1 placement, US2 libellé).
+  - Réutilise les test tags existants — aucun renommage requis.
+- **Alternatives considérées**:
+  - **Screenshot tests** : utile, mais dépendant d’une infra non encore en place ; les assertions de bounding box Compose suffisent pour CR-FR-009.
 
-**Alternatives considered** :
+## R-005 — Impact sur les autres domaines
 
-- **`SubcomposeLayout` / `ConstraintLayout`** — rejeté sauf si `weight` insuffisant sur un appareil cible (YAGNI).
+- **Decision**: Aucun changement de contrat publié vers `ingredient-normalization-validation`, `user-guidance-experience`, ni `local-llm-runtime`. Le contrat de session (`session-capture-intent-for-implicit-validation.md`) reste inchangé : seule l’UI déclenchant `capturePhoto(...)` change visuellement.
+- **Rationale**:
+  - VI (DDD) — l’incrément reste interne à `capture-recognition`.
+- **Alternatives considérées**:
+  - Aucune — aucun signal inter-domaine n’est porté par le libellé ou le placement.
 
-## 3. Clavier logiciel et `windowInsets`
+## Décisions agrégées
 
-**Decision** : S’appuyer sur le `Column` racine `CameraScreen` déjà `fillMaxSize` + padding ; si lors des tests instrumentés le clavier masque les boutons sur un champ futur, appliquer `Modifier.imePadding()` ou équivalent sur la zone actions — **hors périmètre immédiat** tant qu’aucun champ éditable n’est focus sur ces états.
+| ID | Décision | Statut |
+|---|---|---|
+| R-001 | Bande d’action sous l’aperçu, hors `Box` preview | ✅ |
+| R-002 | Renommage libellé en littéral (suivi : string resource) | ✅ |
+| R-003 | Espacement via `HomeSpacingRules.standardFixedSpacing` | ✅ |
+| R-004 | 3 tests Compose UI (1 placement + 2 libellé) | ✅ |
+| R-005 | Pas de changement inter-domaines | ✅ |
 
-**Rationale** : la spec mentionne le clavier comme cas limite ; les états cibles sont aujourd’hui en lecture seule.
-
-**Alternatives considered** : `WindowInsets` systématiques sur tous les états — reporté pour éviter régression visuelle sur états caméra plein écran.
-
-## 4. Tests
-
-**Decision** : Étendre les tests UI existants (`IngredientSegmentConfirmationUiTest`) ou ajouter un test ciblant `ScanState.Success` avec `transcriptText` long + assertion que `new_scan_button` reste dans les bounds visibles (sémantique ou `performScrollTo` absent sur le bouton).
-
-**Rationale** : alignement constitution ATDD ; tags `testTag` déjà utilisés (`new_scan_button`, `segment_preview_scroll`, etc.).
-
-**Alternatives considered** : test manuel uniquement — insuffisant pour gate constitution.
+Aucune entrée NEEDS CLARIFICATION résiduelle.

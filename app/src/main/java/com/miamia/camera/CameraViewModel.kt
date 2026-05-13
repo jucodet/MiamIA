@@ -108,9 +108,6 @@ class CameraViewModel(
 
     private val _captureRouteActive = MutableStateFlow(false)
 
-    private val _ingredientsFramingTagActive = MutableStateFlow(false)
-    val ingredientsFramingTagActive: StateFlow<Boolean> = _ingredientsFramingTagActive.asStateFlow()
-
     private val _streamingBilan = MutableStateFlow<StreamingBilanState>(StreamingBilanState.Idle)
     val streamingBilan: StateFlow<StreamingBilanState> = _streamingBilan.asStateFlow()
 
@@ -121,10 +118,6 @@ class CameraViewModel(
 
     fun setCaptureRouteActive(active: Boolean) {
         _captureRouteActive.value = active
-    }
-
-    fun setIngredientsFramingTagActive(active: Boolean) {
-        _ingredientsFramingTagActive.value = active
     }
 
     @VisibleForTesting
@@ -384,11 +377,18 @@ class CameraViewModel(
                         scanId = result.scanId,
                         extraction = extraction,
                         userConfirmed = false,
-                        implicitValidationFromIngredientsFraming = _ingredientsFramingTagActive.value
+                        /** Validation implicite : enchaînement direct analyse LLM si le segment est exploitable (plus d’écran intermédiaire). */
+                        implicitValidationFromIngredientsFraming = true
                     )
                     if (!extraction.anchorFound || previewDecision.blockedReason == SubmissionBlockedReason.EMPTY_SEGMENT) {
                         _scanState.value = ScanState.Error(
                             "Section ingredients introuvable ou vide. Reprenez la photo ou editez le texte."
+                        )
+                        return@launch
+                    }
+                    if (!previewDecision.submissionAllowed) {
+                        _scanState.value = ScanState.Error(
+                            "Analyse bloquee: segment non exploitable pour l'instant."
                         )
                         return@launch
                     }
@@ -399,16 +399,7 @@ class CameraViewModel(
                     pendingScanId = result.scanId
                     lastRawTranscript = transcriptText
                     lastItemsPreview = itemLabels
-                    if (previewDecision.submissionAllowed &&
-                        previewDecision.implicitValidationFromIngredientsFraming
-                    ) {
-                        confirmSegmentAndAnalyze()
-                    } else {
-                        _scanState.value = ScanState.SegmentConfirmationRequired(
-                            segmentPreview = segmentForAnalysis,
-                            itemsPreview = itemLabels
-                        )
-                    }
+                    confirmSegmentAndAnalyze()
                 } else if (result.outcome == "empty") {
                     _scanState.value = ScanState.Empty(result.userMessage.ifBlank { "Aucun texte détecté" })
                 } else {
@@ -450,8 +441,8 @@ class CameraViewModel(
             )
             return
         }
+        _scanState.value = ScanState.CompositionAnalyzing()
         viewModelScope.launch {
-            _scanState.value = ScanState.CompositionAnalyzing()
             runCompositionStage(engine, decision.segmentPreview, items)
         }
     }

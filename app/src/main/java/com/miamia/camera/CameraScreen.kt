@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,6 +49,8 @@ import com.miamia.welcome.WelcomeMessageUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
+
+private const val CapturePrimaryActionLabel = "Y a quoi là-dedans ?"
 
 @Composable
 fun CameraScreen(
@@ -127,25 +130,12 @@ fun CameraScreen(
                         modifier = Modifier.padding(16.dp)
                     )
                 }
-                Button(
-                    onClick = { viewModel.capturePhoto(onCreateTempImage()) },
-                    enabled = viewModel.canCapturePhoto(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("capture_photo_button")
-                ) {
-                    Text("Prendre la photo")
-                }
-                OutlinedButton(
-                    onClick = viewModel::runCameraTabLlmMockTest,
-                    enabled = viewModel.canRunCameraTabLlmTest(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
-                        .testTag("camera_tab_llm_test_button")
-                ) {
-                    Text("Test LLM")
-                }
+                CaptureActionBar(
+                    onCapture = { viewModel.capturePhoto(onCreateTempImage()) },
+                    canCapture = viewModel.canCapturePhoto(),
+                    onRunLlmTest = viewModel::runCameraTabLlmMockTest,
+                    canRunLlmTest = viewModel.canRunCameraTabLlmTest()
+                )
                 Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("retry_camera")) {
                     Text("Réessayer")
                 }
@@ -394,25 +384,12 @@ fun CameraScreen(
                         }
                     }
 
-                    Button(
-                        onClick = { viewModel.capturePhoto(onCreateTempImage()) },
-                        enabled = viewModel.canCapturePhoto(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("capture_photo_button")
-                    ) {
-                        Text("Prendre la photo")
-                    }
-                    OutlinedButton(
-                        onClick = viewModel::runCameraTabLlmMockTest,
-                        enabled = viewModel.canRunCameraTabLlmTest(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
-                            .testTag("camera_tab_llm_test_button")
-                    ) {
-                        Text("Test LLM")
-                    }
+                    CaptureActionBar(
+                        onCapture = { viewModel.capturePhoto(onCreateTempImage()) },
+                        canCapture = viewModel.canCapturePhoto(),
+                        onRunLlmTest = viewModel::runCameraTabLlmMockTest,
+                        canRunLlmTest = viewModel.canRunCameraTabLlmTest()
+                    )
 
                     Text(
                         text = when (state) {
@@ -426,6 +403,48 @@ fun CameraScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Bande d'action de capture (incrément 020) — placée **sous** l'aperçu vidéo, en dehors de
+ * la `Box` portant le test tag `photo_preview_box` / `photo_preview_placeholder`, afin de
+ * garantir CR-FR-009 (aucun bouton ne recouvre l'aperçu) et CR-FR-010 (bande dédiée).
+ *
+ * Un `Spacer` interne assure une séparation visuelle non ambiguë (≥ 16 dp cumulés avec
+ * l'espacement de la `Column` parente) entre l'aperçu et le premier bouton.
+ */
+@Composable
+private fun CaptureActionBar(
+    onCapture: () -> Unit,
+    canCapture: Boolean,
+    onRunLlmTest: () -> Unit,
+    canRunLlmTest: Boolean
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = onCapture,
+            enabled = canCapture,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("capture_photo_button")
+        ) {
+            Text(CapturePrimaryActionLabel)
+        }
+        OutlinedButton(
+            onClick = onRunLlmTest,
+            enabled = canRunLlmTest,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
+                .testTag("camera_tab_llm_test_button")
+        ) {
+            Text("Test LLM")
         }
     }
 }
