@@ -1,0 +1,173 @@
+{
+  "applied_at": "2026-05-12T17:52:00+02:00",
+  "based_on": "proposals.json from 2026-05-12T17:29:00+02:00",
+  "summary": {
+    "specs_updated": 5,
+    "requirements_modified": 13,
+    "new_specs_created": 3,
+    "align_tasks_generated": 9,
+    "not_applied": 0,
+    "backups_created": 5
+  },
+  "spec_changes": [
+    {
+      "file": "specs/domains/user-guidance-experience/spec.md",
+      "requirements_modified": [
+        "FR-006",
+        "FR-007",
+        "FR-013",
+        "FR-014",
+        "FR-017"
+      ],
+      "proposals": [
+        "P1",
+        "P2a"
+      ],
+      "change_type": "backfill"
+    },
+    {
+      "file": "specs/domains/user-guidance-experience/spec-llm-download-onboarding.md",
+      "requirements_modified": [
+        "FR-002",
+        "FR-008",
+        "FR-011"
+      ],
+      "proposals": [
+        "P3",
+        "P4"
+      ],
+      "change_type": "backfill"
+    },
+    {
+      "file": "specs/domains/ingredient-health-intelligence/spec.md",
+      "requirements_modified": [
+        "FR-008",
+        "SC-002",
+        "SC-006"
+      ],
+      "proposals": [
+        "P7"
+      ],
+      "change_type": "backfill"
+    },
+    {
+      "file": "specs/domains/ingredient-normalization-validation/spec.md",
+      "requirements_modified": [
+        "FR-009"
+      ],
+      "proposals": [
+        "P12"
+      ],
+      "change_type": "backfill"
+    },
+    {
+      "file": "specs/domains/capture-recognition/spec.md",
+      "requirements_modified": [
+        "CR-FR-005"
+      ],
+      "proposals": [
+        "P13"
+      ],
+      "change_type": "annotation"
+    }
+  ],
+  "new_specs": [
+    {
+      "file": "specs/domains/ingredient-health-intelligence/spec-composition-health-critique.md",
+      "proposal": "P14",
+      "status": "placeholder",
+      "next_action": "/speckit-sync-backfill"
+    },
+    {
+      "file": "specs/domains/local-llm-runtime/spec.md",
+      "proposal": "P15",
+      "status": "placeholder",
+      "next_action": "/speckit-sync-backfill"
+    },
+    {
+      "file": "specs/domains/user-guidance-experience/spec-welcome-home.md",
+      "proposal": "P16",
+      "status": "placeholder",
+      "next_action": "/speckit-sync-backfill"
+    }
+  ],
+  "align_tasks": {
+    "file": ".specify/sync/align-tasks.md",
+    "tasks": [
+      {
+        "id": "P6",
+        "effort": "small",
+        "phase": 2,
+        "summary": "Restaurer diacritiques MOCK_INGREDIENTS_INPUT"
+      },
+      {
+        "id": "P8a",
+        "effort": "small",
+        "phase": 2,
+        "summary": "Assertion non-altération trim"
+      },
+      {
+        "id": "P8b",
+        "effort": "small",
+        "phase": 2,
+        "summary": "Enrichir HomeLlmMockOutcome avec inputUsed"
+      },
+      {
+        "id": "P8c",
+        "effort": "small",
+        "phase": 2,
+        "summary": "Ajouter @Tag(manual) au test mock"
+      },
+      {
+        "id": "P9",
+        "effort": "small",
+        "phase": 2,
+        "summary": "Supprimer enum mortes"
+      },
+      {
+        "id": "P11",
+        "effort": "small",
+        "phase": 2,
+        "summary": "Ancre absente → ScanState.Empty"
+      },
+      {
+        "id": "P2b",
+        "effort": "medium",
+        "phase": 3,
+        "summary": "Connecter fallback OCR à LlmResultScreen"
+      },
+      {
+        "id": "P5",
+        "effort": "medium",
+        "phase": 3,
+        "summary": "Implémenter reprise HTTP Range"
+      },
+      {
+        "id": "P10",
+        "effort": "medium",
+        "phase": 3,
+        "summary": "Refactorer regex ancre + supprimer duplication"
+      }
+    ]
+  },
+  "backups": {
+    "directory": ".specify/sync/backups/2026-05-12/",
+    "files": [
+      "user-guidance-experience_spec.md",
+      "user-guidance-experience_spec-llm-download-onboarding.md",
+      "ingredient-health-intelligence_spec.md",
+      "ingredient-normalization-validation_spec.md",
+      "capture-recognition_spec.md"
+    ]
+  },
+  "post_apply_consolidation": {
+    "applied": "2026-05-12",
+    "description": "Domain specs consolidated: one spec.md per domain",
+    "files_removed": [
+      "specs/domains/user-guidance-experience/spec-llm-download-onboarding.md",
+      "specs/domains/user-guidance-experience/spec-welcome-home.md",
+      "specs/domains/ingredient-health-intelligence/spec-composition-health-critique.md"
+    ],
+    "fr_renaming": "FR-xxx → UGE-A-FR-xxx / UGE-B-FR-xxx / IHI-A-FR-xxx"
+  }
+}

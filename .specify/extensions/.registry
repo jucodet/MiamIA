@@ -32,6 +32,22 @@
         "speckit-diagram-dependencies"
       ],
       "installed_at": "2026-05-11T09:01:41.518645+00:00"
+    },
+    "sync": {
+      "version": "0.1.0",
+      "source": "local",
+      "manifest_hash": "sha256:94eb5685bb305f9bb7a9ac921d7b03557999626df7de74bc643e03416e1bca06",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {},
+      "registered_skills": [
+        "speckit-sync-analyze",
+        "speckit-sync-propose",
+        "speckit-sync-apply",
+        "speckit-sync-conflicts",
+        "speckit-sync-backfill"
+      ],
+      "installed_at": "2026-05-12T14:55:37.404704+00:00"
     }
   }
 }
