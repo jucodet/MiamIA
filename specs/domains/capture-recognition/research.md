@@ -48,6 +48,17 @@ Statut: Phase 0 complète.
 - **Alternatives considérées**:
   - **Screenshot tests** : utile, mais dépendant d’une infra non encore en place ; les assertions de bounding box Compose suffisent pour CR-FR-009.
 
+## R-006 — Hauteur d’aperçu adaptative (corrige perception « à cheval »)
+
+- **Decision (révision post-implémentation)** : remplacer la hauteur fixe `Box(...height(360.dp))` de l’aperçu (live et placeholder `CameraUnavailable`) par `Box(...weight(1f).heightIn(min=220.dp, max=480.dp))` à l’intérieur d’une `Column` qui détient elle-même `weight(1f)` dans la `Column` racine `fillMaxSize`. La bande d’action `CaptureActionBar` (hauteur naturelle) reste ainsi **toujours visible sous l’aperçu**, quel que soit le format d’écran ou la présence simultanée du bandeau d’accueil et du statut MediaPipe.
+- **Rationale** :
+  - Sur écrans courts, une hauteur fixe `360.dp` poussait visuellement la bande d’action contre le bord inférieur du flux vidéo (couleur du bouton flush contre la zone sombre), produisant une perception « à cheval » alors que la stack Compose plaçait correctement les enfants en vertical.
+  - `weight(1f)` redistribue l’espace résiduel à l’aperçu (jamais à la bande d’action), donc la bande conserve sa hauteur naturelle et est précédée d’un gap explicite (`spacedBy(12 dp)` parent + `Spacer(8 dp)` interne ⇒ ≥ 20 dp de séparation visuelle).
+  - `heightIn(min, max)` garantit (i) un aperçu utilisable même sur écrans très courts et (ii) un aperçu non « gonflé » sur écrans très grands.
+- **Alternatives considérées** :
+  - **Conserver `height(360.dp)` + augmenter le `Spacer` à 24 dp** : laisse le bouton hors écran sur petits téléphones — non viable.
+  - **`Scaffold.bottomBar` pour la bande d’action** : viable mais plus invasif (modifie l’imbrication avec MediaPipe/welcome). Rejeté pour minimiser le diff.
+
 ## R-005 — Impact sur les autres domaines
 
 - **Decision**: Aucun changement de contrat publié vers `ingredient-normalization-validation`, `user-guidance-experience`, ni `local-llm-runtime`. Le contrat de session (`session-capture-intent-for-implicit-validation.md`) reste inchangé : seule l’UI déclenchant `capturePhoto(...)` change visuellement.
@@ -65,5 +76,6 @@ Statut: Phase 0 complète.
 | R-003 | Espacement via `HomeSpacingRules.standardFixedSpacing` | ✅ |
 | R-004 | 3 tests Compose UI (1 placement + 2 libellé) | ✅ |
 | R-005 | Pas de changement inter-domaines | ✅ |
+| R-006 | Hauteur d’aperçu adaptative (`weight(1f) + heightIn 200..480 dp`) | ✅ (révision post-implémentation) |
 
 Aucune entrée NEEDS CLARIFICATION résiduelle.

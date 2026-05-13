@@ -235,3 +235,183 @@ Task T026: "ViewModel startDownload + progression"  (sequential - depends on T02
 - Vérifier que les tests échouent AVANT l'implémentation (ATDD)
 - Committer après chaque tâche ou groupe logique
 - Stopper à chaque checkpoint pour valider la story isolément
+
+---
+
+# Tasks: Feature D — Suppression du message d'accueil sur l'écran capture
+
+**Input**: Design documents from `specs/domains/user-guidance-experience/` (Feature D)
+**Prerequisites**: `plan.md` (Feature D), `spec.md` (Feature D), `research.md` (addendum D-1..D-5), `data-model.md` (addendum Feature D), `contracts/capture-screen-no-welcome-banner.md`, `quickstart.md` (addendum Feature D)
+
+**Tests**: Les tests d'acceptation (ATDD) sont **OBLIGATOIRES** (Constitution v0.2.0, Principe II). Chaque user story embarque au moins un test Compose UI d'instrumentation aligné sur ses scénarios Given/When/Then avant toute suppression de code de rendu.
+
+**Organization**: Tâches regroupées par user story. US-D1 (P1) porte la suppression effective de la bannière + assertions d'absence ; US-D2 (P2) couvre la non-régression sur les flux capture/test LLM.
+
+## Phase 1: Setup (Shared Infrastructure) — Feature D
+
+**Purpose**: Vérifier l'écosystème de tests UI Compose et la cohérence des test tags amont (héritages de `capture-recognition`). Aucun nouveau module ni nouvelle dépendance.
+
+- [ ] T101 Vérifier que la suite existante d'instrumentation `com.miamia.camera.*` reste verte (sanity check à exécuter sur poste avec Android SDK configuré) : `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.package=com.miamia.camera` — note d'exécution : différé hors environnement sandbox.
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites) — Feature D
+
+**Purpose**: Garde-fous transverses aux user stories Feature D (audit code amont à supprimer / reconfigurer).
+
+**⚠️ CRITICAL**: Aucun travail US-D1/US-D2 ne démarre tant que Phase 2 n'est pas verte.
+
+- [ ] T102 [P] Confirmer dans `app/src/main/java/com/miamia/camera/CameraScreen.kt` la localisation exacte du bloc à retirer : import `com.miamia.welcome.WelcomeMessageUiState` (autour de la ligne 49), `val welcomeState by viewModel.welcomeUiState.collectAsState()` (autour de la ligne 67), `if (welcomeState is WelcomeMessageUiState.Displayed) { Text(...) }` (autour des lignes 87-93). Ne pas modifier ; uniquement consigner les lignes pour T106.
+- [ ] T103 [P] Confirmer la présence des tests AndroidTest à reconfigurer : `app/src/androidTest/java/com/miamia/welcome/US1WelcomeAfterLoginFlowTest.kt`, `app/src/androidTest/java/com/miamia/welcome/US2PositiveToneWelcomeTest.kt`. Lire leur structure actuelle (asserts attendus) pour planifier la reconfiguration en assertions d'absence (T108, T109).
+
+**Checkpoint**: Cible code + cibles tests confirmées ⇒ US-D1 et US-D2 peuvent démarrer.
+
+---
+
+## Phase 3: User Story US-D1 — Écran d'accueil sans bannière d'accueil (Priority: P1) 🎯 MVP
+
+**Goal**: Aucune bannière de message d'accueil rendue sur l'écran capture, dans tous les `ScanState` (UGE-D-FR-001, UGE-D-FR-002).
+
+**Independent Test**: lancer `NoWelcomeBannerOnCaptureUiTest` couvrant ≥ 3 `ScanState` représentatifs (`PreviewActive`, `CameraUnavailable`, `Error`) et vérifier `onAllNodesWithTag("welcome_message_banner").assertCountEquals(0)` dans chacun.
+
+### Tests for User Story US-D1 (MANDATORY) ⚠️
+
+> **NOTE**: ATDD — ces tests DOIVENT être écrits **et observés comme rouges** avant la suppression du bloc de rendu dans `CameraScreen.kt`.
+
+- [ ] T104 [P] [US1] Créer `app/src/androidTest/java/com/miamia/camera/NoWelcomeBannerOnCaptureUiTest.kt` avec un test `no_welcome_banner_in_live_preview` qui force `ScanState.PreviewActive` via `debugOverrideScanStateForTests`, puis assert `composeRule.onAllNodesWithTag("welcome_message_banner").assertCountEquals(0)`. Vérifier l'échec avant T106.
+- [ ] T105 [P] [US1] Étendre le même fichier `NoWelcomeBannerOnCaptureUiTest.kt` avec deux tests supplémentaires : `no_welcome_banner_in_camera_unavailable` (force `ScanState.CameraUnavailable("...")`) et `no_welcome_banner_in_error_state` (force `ScanState.Error("...")`). Chacun assert `assertCountEquals(0)` sur `welcome_message_banner`. Vérifier l'échec avant T106.
+
+### Implementation for User Story US-D1
+
+- [ ] T106 [US1] Dans `app/src/main/java/com/miamia/camera/CameraScreen.kt` : (a) retirer l'import `import com.miamia.welcome.WelcomeMessageUiState`, (b) retirer la ligne `val welcomeState by viewModel.welcomeUiState.collectAsState()`, (c) retirer le bloc `if (welcomeState is WelcomeMessageUiState.Displayed) { Text(...) }` (y compris le `testTag("welcome_message_banner")`). Aucun autre changement (préserver `MediaPipeStatusIndicator`, `when (state) { ... }`, et toute la structure capture-recognition).
+- [ ] T107 [US1] Faire passer T104 et T105 ; vérifier qu'aucune chaîne de référence à `welcome_message_banner` ne subsiste dans `app/src/main/java/com/miamia/camera/` (`rg "welcome_message_banner|WelcomeMessageUiState" app/src/main/java/com/miamia/camera/` ⇒ 0 occurrence). Re-exécuter `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.camera.NoWelcomeBannerOnCaptureUiTest`.
+- [ ] T108 [US1] Reconfigurer `app/src/androidTest/java/com/miamia/welcome/US1WelcomeAfterLoginFlowTest.kt` en test d'**absence** : après un login simulé (parcours existant), assert `composeRule.onAllNodesWithTag("welcome_message_banner").assertCountEquals(0)`. Le test conserve sa valeur de couverture mais asserte l'attendu actuel (UGE-D-FR-001/004).
+- [ ] T109 [US1] Reconfigurer `app/src/androidTest/java/com/miamia/welcome/US2PositiveToneWelcomeTest.kt` en test d'**absence** identique (assert que même si un message « ton positif » est sélectionné en interne par la policy, aucun nœud `welcome_message_banner` n'est rendu sur l'écran capture).
+
+**Checkpoint**: T104, T105 (nouveau test), T108, T109 (tests legacy reconfigurés) passent au vert sur émulateur. Le bloc de rendu welcome a disparu de `CameraScreen.kt`. La couverture de couverture « pas de message d'accueil » est préservée et alignée avec l'exigence.
+
+---
+
+## Phase 4: User Story US-D2 — Aucune régression sur les autres parcours (Priority: P2)
+
+**Goal**: Le retrait du message d'accueil ne MUST modifier ni le comportement de la caméra, ni les boutons de capture/test LLM, ni l'indicateur MediaPipe, ni la navigation vers le résultat (UGE-D-FR-003).
+
+**Independent Test**: relancer la suite d'instrumentation `com.miamia.camera.*` (capture-recognition) et vérifier que `CameraCaptureLayoutUiTest`, `CameraUnavailableLlmButtonUiTest`, `CaptureActionLabelUiTest` passent à l'identique (SC-D-003).
+
+### Tests for User Story US-D2 (MANDATORY) ⚠️
+
+- [ ] T110 [P] [US2] Vérification statique : `rg "WelcomeMessageUiState|welcome_message_banner" app/src/main/java/com/miamia/camera/` ⇒ 0 occurrence (alignement SC-D-004). À automatiser optionnellement via un test unitaire de présence/absence (lecture de fichier ressource) ou laissé en vérification manuelle CI.
+- [ ] T111 [P] [US2] Relancer la suite d'instrumentation existante de capture-recognition pour vérifier la non-régression : `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.package=com.miamia.camera`. Exigence : `CameraCaptureLayoutUiTest`, `CameraUnavailableLlmButtonUiTest`, `CaptureActionLabelUiTest` doivent tous passer au vert sans modification (SC-D-003).
+
+### Implementation for User Story US-D2
+
+- [ ] T112 [US2] Aucune implémentation distincte — la non-régression est obtenue par la **non-modification** des éléments hors scope (T106 ne touche pas la chrome de capture-recognition ni `MediaPipeStatusIndicator`). Cette tâche consigne explicitement qu'aucun fichier hors `CameraScreen.kt` (et hors tests `welcome/` reconfigurés) ne MUST être modifié dans cette livraison.
+
+**Checkpoint**: T111 vert ⇒ aucune régression sur les flux capture/test LLM. SC-D-003 + SC-D-004 atteints.
+
+---
+
+## Phase 5: Polish & Cross-Cutting Concerns — Feature D
+
+**Purpose**: Traçabilité, migration-index (rétractation explicite de la Feature 010 / Feature C), suivi de nettoyage.
+
+- [ ] T113 [P] Mettre à jour `specs/domains/user-guidance-experience/traceability.csv` en ajoutant les entrées Feature D : `D,spec.md,spec.md,Functional Requirements (UGE-D-FR-001..005),mapped`, `D,spec.md,plan.md,Constitution Check,mapped`, `D,spec.md,contracts/capture-screen-no-welcome-banner.md,Obligations,mapped`, `D,spec.md,research.md,D-Decision 1..5,mapped`, `D,SC-D-001,quickstart.md,Scenario D1,planned`, `D,SC-D-002,quickstart.md,Scenario D1,planned`, `D,SC-D-003,quickstart.md,Régression,planned`, `D,SC-D-004,research.md,D-Decision 1,planned`.
+- [ ] T114 [P] Mettre à jour `specs/domains/user-guidance-experience/migration-index.md` avec une entrée **de rétractation** : « Feature D rétracte la portion d'exigence d'affichage de la bannière welcome de la Feature 010 / Feature C — la logique de sélection `welcome/` reste valide en tant que politique mais ne MUST plus être projetée sur l'UI capture ». Statut : `validated` côté specs/code (exécution tests instrumentés différée).
+- [ ] T115 Exécuter manuellement les scénarios D1, D2, D3, D4 de `specs/domains/user-guidance-experience/quickstart.md` sur émulateur portrait + appareil compact ; capturer une copie d'écran post-implémentation comparable à la copie d'écran d'origine (référence : chrome épurée, gain d'espace visible sur la `PreviewRegion`).
+- [ ] T116 [P] Note de suivi (hors scope cette PR) : créer un ticket pour le nettoyage complet du package `app/src/main/java/com/miamia/welcome/` et du flow `CameraViewModel.welcomeUiState` (décisions D-Decision 1 et D-Decision 2 documentent l'orientation). Référencer la Feature D comme prérequis de couverture.
+
+---
+
+## Dependencies & Execution Order — Feature D
+
+### Phase Dependencies
+
+- **Setup (Phase 1)** : aucune dépendance, démarre immédiatement (sanity check facultatif si l'environnement n'a pas le SDK Android).
+- **Foundational (Phase 2)** : dépend de Phase 1 ; **bloque** US-D1 et US-D2 (cibles code/test à confirmer avant édition).
+- **US-D1 (Phase 3)** : dépend de Phase 2 ; **indépendant** d'US-D2 (les deux opèrent dans le même fichier de production, US-D1 modifie, US-D2 vérifie la non-régression).
+- **US-D2 (Phase 4)** : dépend de Phase 2 + idéalement de l'achèvement de T106 (pour mesurer la non-régression sur le delta réel). T110/T111 peuvent toutefois être lancés en parallèle de T108/T109.
+- **Polish (Phase 5)** : dépend de l'achèvement des deux user stories (T113/T114 référencent l'état post-merge ; T116 peut être planifié dès la fin de US-D1).
+
+### User Story Dependencies
+
+- **US-D1 (P1)** : démarre après Phase 2 ; pas de dépendance vers US-D2. Touche `CameraScreen.kt` + 1 nouveau test + 2 tests legacy reconfigurés.
+- **US-D2 (P2)** : démarre après Phase 2 ; **dépendance douce** vers T106 (US-D1) pour observer la suppression effective. Aucune modification de code de production.
+
+### Within Each User Story
+
+- Tests d'acceptation MUST être rouges avant implémentation (T104/T105 avant T106 ; T108/T109 avant que les tests existants ne soient adaptés).
+- Aucune nouvelle entité / modèle ⇒ pas d'ordre modèle→service.
+- Suppression du bloc de rendu (T106) **après** T104/T105 (ATDD).
+- Reconfiguration tests legacy (T108/T109) peut être faite en parallèle de T106 — séquentiellement ils sont indépendants (fichiers différents).
+
+### Parallel Opportunities — Feature D
+
+- T102 ‖ T103 (Phase 2) — fichiers / activités distincts (vérification production vs vérification tests).
+- T104 ‖ T105 (Phase 3 / Tests US-D1) — même fichier mais tests indépendants ; peuvent être édités séquentiellement dans un même commit.
+- T108 ‖ T109 (Phase 3 / Reconfiguration legacy) — deux fichiers de test distincts.
+- T110 ‖ T111 (Phase 4) — vérification statique ‖ exécution suite instrumentation existante.
+- T113 ‖ T114 ‖ T116 (Phase 5) — fichiers et nature distincts (traceability, migration-index, ticket de suivi).
+
+---
+
+## Parallel Example: User Story US-D1 (tests ATDD)
+
+```bash
+# Lancer les tests rouges en parallèle :
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.camera.NoWelcomeBannerOnCaptureUiTest &
+
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.welcome.US1WelcomeAfterLoginFlowTest &
+
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.welcome.US2PositiveToneWelcomeTest &
+
+wait
+```
+
+## Parallel Example: User Story US-D2 (non-régression)
+
+```bash
+# Vérification statique en local :
+rg "WelcomeMessageUiState|welcome_message_banner" app/src/main/java/com/miamia/camera/
+
+# Suite d'instrumentation capture-recognition (non-régression) :
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.package=com.miamia.camera
+```
+
+---
+
+## Implementation Strategy — Feature D
+
+### MVP First (User Story US-D1 Only)
+
+1. Phase 1 (T101) — sanity build/tests.
+2. Phase 2 (T102, T103) — audit cibles code + tests legacy.
+3. Phase 3 (T104 → T109) — suppression effective + reconfigurations.
+4. **STOP et valider** : MVP utilisable (l'écran d'accueil est épuré, conforme à la décision produit), US-D2 reste à vérifier comme polish.
+
+### Incremental Delivery
+
+1. Setup + Foundational ✅ → audit prêt.
+2. US-D1 ✅ → bannière supprimée ; tests d'absence verts (nouveau + legacy reconfigurés) — démontrable seul.
+3. US-D2 ✅ → suite capture-recognition verte sans modification de code de production — démontrable seul (ou cumulé avec US-D1).
+4. Polish ✅ → traçabilité + migration-index (rétractation) + validation manuelle + suivi cleanup planifié.
+
+### Parallel Team Strategy
+
+À deux développeurs :
+
+1. Dev A : Phase 2 + US-D1 (T104 → T107 séquence atomique sur `CameraScreen.kt`).
+2. Dev B : T108 + T109 (reconfiguration tests legacy `welcome/`) dès Phase 2 verte, en parallèle de Dev A.
+3. Polish (T113–T116) partageable.
+
+---
+
+## Notes — Feature D
+
+- `[P]` = fichiers / activités disjointes, exécutables en parallèle.
+- `[Story]` = traçabilité utilisateur (US-D1 = `US1` ici, US-D2 = `US2`) ; absent pour Setup / Foundational / Polish.
+- ATDD : T104, T105, T108, T109 **doivent être rouges** avant T106 (suppression effective du bloc bannière).
+- À éviter : suppression du package `welcome/` dans cette livraison (décision D-Decision 1, suivi T116) ; suppression du flow `CameraViewModel.welcomeUiState` dans cette livraison (D-Decision 2, suivi T116) ; modification de la chrome non-bannière (MediaPipe, CaptureActionBar) — strict diff minimum sur `CameraScreen.kt`.

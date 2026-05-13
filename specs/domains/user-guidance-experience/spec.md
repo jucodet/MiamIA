@@ -277,6 +277,74 @@ En tant qu'utilisatrice dont le téléchargement a été interrompu, je veux pou
 
 ---
 
+## Feature D — Suppression du message d'accueil sur l'écran capture
+
+**Branche**: `022-remove-welcome-banner` · **Date**: 2026-05-13 · **Statut**: Draft
+
+> Décision produit (2026-05-13) : retirer la bannière de message d'accueil affichée en haut de l'écran capture. L'écran capture devient l'écran d'accueil dans une forme épurée, centrée sur la caméra et l'action de capture. Cette décision **rétracte** l'exigence visuelle d'affichage du message d'accueil dans Feature C / 010-message-bienvenue-sourire pour l'écran d'accueil ; le code du package `welcome/` peut être conservé temporairement comme legacy mais ne MUST plus être rendu.
+
+### User Scenarios (Feature D)
+
+#### US-D1 — Écran d'accueil sans bannière d'accueil (P1)
+
+En tant qu'utilisatrice, lorsque j'ouvre l'application et arrive sur l'écran d'accueil (= écran capture), je ne veux **plus voir aucun message de bienvenue** au-dessus de l'aperçu caméra. L'écran présente uniquement l'indicateur de statut technique (MediaPipe), la zone caméra, et la bande d'action.
+
+**Pourquoi P1** : la bannière occupe de l'espace vertical critique sur petits écrans et n'apporte pas la valeur attendue ; la décision produit est explicite et bloquante avant toute autre évolution UX de l'écran d'accueil.
+
+**Test indépendant** : à l'ouverture de l'application sur émulateur / appareil, vérifier qu'aucune chaîne issue du catalogue de messages de bienvenue n'est rendue et qu'aucun composable porteur du test tag `welcome_message_banner` n'est présent dans l'arbre Compose de l'écran capture.
+
+**Acceptance Scenarios** :
+
+1. **Given** l'application ouverte (lancement à froid ou retour au premier plan), **When** l'écran capture s'affiche, **Then** aucun message d'accueil (issu de `welcome/` ou de toute autre source) n'est rendu au-dessus, en dessous, ou autour de la zone caméra.
+2. **Given** l'écran capture affiché, **When** l'arbre Compose est inspecté, **Then** aucun nœud porteur du test tag `welcome_message_banner` n'est trouvé.
+3. **Given** l'écran capture, **When** l'utilisatrice mesure la hauteur disponible pour l'aperçu caméra, **Then** elle constate un gain équivalent à la hauteur précédemment occupée par la bannière (≥ 1 ligne de texte `bodyLarge`).
+4. **Given** un retour depuis un écran secondaire (résultat, erreur, paramètres), **When** l'écran capture réapparaît, **Then** aucune bannière d'accueil n'est rendue (cohérence avec UGE-A-FR-016).
+
+#### US-D2 — Aucune régression sur les autres parcours (P2)
+
+En tant qu'utilisatrice, le retrait du message d'accueil ne MUST modifier ni le comportement de la caméra, ni le bouton « Y a quoi là-dedans ? », ni le bouton « Test LLM », ni l'indicateur MediaPipe, ni la navigation vers le résultat.
+
+**Acceptance Scenarios** :
+
+1. **Given** l'écran capture, **When** l'utilisatrice active « Y a quoi là-dedans ? », **Then** le flux de capture démarre comme avant (aucune régression UGE-A-FR-001..016 ou capture-recognition CR-FR-001..011).
+2. **Given** l'écran capture, **When** l'utilisatrice active « Test LLM », **Then** le flux test LLM démarre comme avant.
+3. **Given** un état d'erreur (caméra indisponible, modèle absent), **When** l'écran affiche les messages d'état correspondants, **Then** aucune bannière d'accueil n'apparaît même en mode dégradé.
+
+### Functional Requirements (Feature D)
+
+- **UGE-D-FR-001** : Le système MUST NOT afficher de bannière de message d'accueil sur l'écran capture (= écran d'accueil) dans **aucun** état (`CameraReady`, `PreviewInitializing`, `PreviewActive`, `Capturing`, `Analyzing`, `CameraUnavailable`, `PermissionDenied`, `Empty`, `Error`, `BilanReady`, `CompositionLimit`, `CompositionAnalyzing`, `GemmaUnavailable`, `SegmentConfirmationRequired`, `Success`).
+- **UGE-D-FR-002** : Le système MUST NOT exposer dans l'arbre Compose de l'écran capture un nœud porteur du test tag `welcome_message_banner` ou de toute sémantique de « message d'accueil ».
+- **UGE-D-FR-003** : Le système MUST conserver, dans le code de l'application, les autres éléments de l'écran capture (`MediaPipeStatusIndicator`, aperçu caméra, `CaptureActionBar`) à l'identique de leur définition courante (aucune régression de structure imposée par cette évolution).
+- **UGE-D-FR-004** : Les tests existants ciblant l'affichage du message d'accueil (`US1WelcomeAfterLoginFlowTest`, `US2PositiveToneWelcomeTest`) MUST être soit retirés, soit reconfigurés en tests de **non-affichage** (assert absence), de manière à ne plus être contradictoires avec UGE-D-FR-001/002.
+- **UGE-D-FR-005** : Cette évolution **rétracte** la portion d'exigence de la Feature 010 / Feature C qui imposait le rendu de la bannière d'accueil sur l'écran d'accueil ; les FRs « ton positif », « catalogue », « sélection aléatoire » restent valides en tant que politiques du package `welcome/` mais ne MUST pas être consommées par l'UI.
+
+### Critères de succès mesurables (Feature D)
+
+- **SC-D-001** : Sur 100 % des lancements à froid de l'application (configuration standard portrait), aucune chaîne issue du catalogue `welcome/` n'apparaît à l'écran (vérification instrumentée : `onAllNodesWithTag("welcome_message_banner").assertCountEquals(0)`).
+- **SC-D-002** : Gain d'espace vertical mesuré sur la `PreviewRegion` de l'écran capture ≥ 1 ligne `bodyLarge` (≈ 22..28 dp selon densité) par rapport à l'état avant suppression.
+- **SC-D-003** : 0 régression sur les tests d'acceptation de l'écran capture (`CameraCaptureLayoutUiTest`, `CameraUnavailableLlmButtonUiTest`, `CaptureActionLabelUiTest`) après retrait.
+- **SC-D-004** : Aucune référence active (non-mortelle) à `WelcomeMessageUiState` dans `app/src/main/java/com/miamia/camera/` (vérification statique : `rg "WelcomeMessageUiState|welcome_message_banner" app/src/main/java/com/miamia/camera/` ⇒ 0 occurrence).
+
+### Cas limites
+
+- **Catalogue welcome non vide** : peu importe le contenu du catalogue ou la politique de sélection — rien ne doit être rendu sur l'écran capture.
+- **Catalogue welcome vide** : comportement déjà couvert par `US3EmptyCatalogNoMessageTest` ; aucun changement (rien à afficher de toute façon). Le test peut être conservé tel quel ou retiré selon la décision de cleanup.
+- **Récupération d'erreur** (`CameraUnavailable`, `PermissionDenied`) : aucune bannière n'apparaît même en mode dégradé.
+- **Rotation paysage / petit écran** : gain d'espace d'autant plus visible ; pas de comportement spécifique à orchestrer.
+- **Tests legacy `welcome/`** : ils restent valides en tant que tests **de logique de sélection** (sélecteur, policy) mais ne MUST plus assert un rendu UI.
+
+### Hypothèses (Feature D)
+
+- Le code du package `app/src/main/java/com/miamia/welcome/` n'est pas supprimé dans cette livraison (suivi de nettoyage possible, hors scope). Seules les **références d'affichage** dans l'UI capture sont retirées.
+- Le `CameraViewModel` peut continuer d'exposer `welcomeUiState` sans rupture de contrat — l'UI cesse simplement de le consommer. Un suivi peut viser à supprimer le flux entièrement.
+- Aucune nouvelle exigence visuelle de remplacement (pas de slogan, pas de logo). L'écran d'accueil reste minimaliste.
+
+### Décisions de rétrocompatibilité
+
+- Cette feature **prévaut** sur toute exigence antérieure imposant l'affichage du message d'accueil (`010-message-bienvenue-sourire/spec.md` US1/US2 d'affichage). Une trace de cette rétraction doit apparaître dans `migration-index.md` du domaine.
+
+---
+
 ## Cross-domain Notes
 
 - Le segment ingrédients n'est pas déterminé ici : délégation à `ingredient-normalization-validation`.

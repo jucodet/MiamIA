@@ -53,3 +53,51 @@
 
 1. Lancer l'application avec le modèle déjà téléchargé.
 2. **Vérifier** : aucun écran onboarding ne s'affiche ; accès direct à l'écran capture.
+
+---
+
+## Addendum Feature D — Vérifier l'absence du message d'accueil sur l'écran capture
+
+### Scénario D1 — Premier rendu de l'écran capture (US-D1, P1)
+
+1. Lancer l'application (modèle présent, caméra accordée).
+2. **Attendu** :
+   - L'écran capture s'affiche directement.
+   - Aucune bannière texte ne précède l'aperçu caméra. La chrome se réduit à : `MediaPipeStatusIndicator` (haut) → `photo_preview_box` (zone caméra adaptative) → `CaptureActionBar` (« Y a quoi là-dedans ? » + « Test LLM ») → statut textuel (« Aperçu caméra actif » ou équivalent).
+
+### Scénario D2 — État `CameraUnavailable` (US-D1, P1)
+
+1. Forcer un état `CameraUnavailable` (révoquer la permission caméra ou simuler via `debugOverrideScanStateForTests`).
+2. **Attendu** :
+   - Le placeholder `photo_preview_placeholder` s'affiche normalement.
+   - Aucune bannière d'accueil n'apparaît au-dessus de `Caméra indisponible: …`.
+
+### Scénario D3 — Retour depuis un écran secondaire (US-D1, P1)
+
+1. Depuis l'écran capture, naviguer vers l'écran résultat (ou un écran secondaire).
+2. Revenir en arrière vers l'écran capture.
+3. **Attendu** : aucune bannière d'accueil n'apparaît au retour. La chrome reste identique.
+
+### Scénario D4 — Non-régression sur l'action principale (US-D2, P2)
+
+1. Sur l'écran capture, activer « Y a quoi là-dedans ? ».
+2. **Attendu** : démarrage du flux capture inchangé (cohérence avec `capture-recognition` CR-FR-001..011 et `user-guidance-experience` UGE-A-FR-001..016).
+3. Idem avec « Test LLM ».
+
+### Commandes de tests (locales)
+
+```bash
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.camera.NoWelcomeBannerOnCaptureUiTest
+
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.welcome.US1WelcomeAfterLoginFlowTest
+
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.welcome.US2PositiveToneWelcomeTest
+```
+
+### Régression (Feature D)
+
+- Aucun changement de comportement attendu pour les boutons capture / test LLM, l'indicateur MediaPipe, et la navigation post-capture.
+- Le flow `CameraViewModel.welcomeUiState` reste exposé mais non consommé ; les tests unitaires `welcome/` (sélecteur, policy, catalogue) restent valides à l'identique.

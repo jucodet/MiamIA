@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -111,33 +112,41 @@ fun CameraScreen(
 
             is ScanState.CameraUnavailable -> {
                 val unavailable = state as ScanState.CameraUnavailable
-                Text(
-                    text = "Caméra indisponible: ${unavailable.reason ?: "erreur inconnue"}",
-                    modifier = Modifier
-                        .semantics { contentDescription = "Message caméra indisponible avec détail" }
-                        .testTag("camera_unavailable_message")
-                )
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(360.dp)
-                        .testTag("photo_preview_placeholder"),
-                    contentAlignment = Alignment.Center
+                        .weight(1f, fill = true),
+                    verticalArrangement = Arrangement.spacedBy(HomeSpacingRules.standardFixedSpacing)
                 ) {
                     Text(
-                        text = "Prévisualisation désactivée — la caméra n'est pas disponible.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
+                        text = "Caméra indisponible: ${unavailable.reason ?: "erreur inconnue"}",
+                        modifier = Modifier
+                            .semantics { contentDescription = "Message caméra indisponible avec détail" }
+                            .testTag("camera_unavailable_message")
                     )
-                }
-                CaptureActionBar(
-                    onCapture = { viewModel.capturePhoto(onCreateTempImage()) },
-                    canCapture = viewModel.canCapturePhoto(),
-                    onRunLlmTest = viewModel::runCameraTabLlmMockTest,
-                    canRunLlmTest = viewModel.canRunCameraTabLlmTest()
-                )
-                Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("retry_camera")) {
-                    Text("Réessayer")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = true)
+                            .heightIn(min = 200.dp, max = 480.dp)
+                            .testTag("photo_preview_placeholder"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Prévisualisation désactivée — la caméra n'est pas disponible.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                    CaptureActionBar(
+                        onCapture = { viewModel.capturePhoto(onCreateTempImage()) },
+                        canCapture = viewModel.canCapturePhoto(),
+                        onRunLlmTest = viewModel::runCameraTabLlmMockTest,
+                        canRunLlmTest = viewModel.canRunCameraTabLlmTest()
+                    )
+                    Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("retry_camera")) {
+                        Text("Réessayer")
+                    }
                 }
             }
 
@@ -327,12 +336,18 @@ fun CameraScreen(
             ScanState.Analyzing -> {
                 var focusTapOffset by remember { mutableStateOf<Offset?>(null) }
                 var focusTapKey by remember { mutableIntStateOf(0) }
-                Column(verticalArrangement = Arrangement.spacedBy(HomeSpacingRules.standardFixedSpacing)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = true),
+                    verticalArrangement = Arrangement.spacedBy(HomeSpacingRules.standardFixedSpacing)
+                ) {
                     key(previewSession) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(360.dp)
+                                .weight(1f, fill = true)
+                                .heightIn(min = 220.dp, max = 480.dp)
                                 .testTag("photo_preview_box")
                         ) {
                             CameraPreviewBox(
