@@ -30,9 +30,6 @@ import com.miamia.permissions.CameraPermissionHandler
 import com.miamia.recognition.IngredientRecognitionCoordinator
 import com.miamia.recognition.ScanFailureClassifier
 import com.miamia.gemma4local.Gemma4LocalAvailabilityChecker
-import com.miamia.home.HomeLlmFailureCategory
-import com.miamia.home.HomeLlmMockOutcome
-import com.miamia.home.HomeLlmMockRunner
 import com.miamia.home.MediaPipeLlmAvailabilityProbe
 import com.miamia.home.MediaPipeStatusViewState
 import com.miamia.welcome.WelcomeDisplayLogger
@@ -54,13 +51,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
 
 class CameraViewModel(
     application: Application,
     private val coordinator: IngredientRecognitionCoordinator?,
     private val compositionEngine: CompositionAnalysisEngine? = null,
-    private val homeLlmRunner: HomeLlmMockRunner? = null,
     private val permissionHandler: CameraPermissionHandler = CameraPermissionHandler(),
     private val mapper: ExtractedIngredientMapper = ExtractedIngredientMapper(),
     private val failureClassifier: ScanFailureClassifier = ScanFailureClassifier(),
@@ -113,8 +108,6 @@ class CameraViewModel(
 
     private val _navigateToLlmResult = MutableSharedFlow<CameraLlmResultNavigation>(extraBufferCapacity = 1)
     val navigateToLlmResult: SharedFlow<CameraLlmResultNavigation> = _navigateToLlmResult.asSharedFlow()
-
-    private val cameraTabLlmTestInFlight = AtomicBoolean(false)
 
     fun setCaptureRouteActive(active: Boolean) {
         _captureRouteActive.value = active
@@ -196,67 +189,10 @@ class CameraViewModel(
         refreshMediaPipeAvailability()
     }
 
-    fun canRunCameraTabLlmTest(): Boolean {
-        if (homeLlmRunner == null) return false
-        if (inFlightScan || cameraTabLlmTestInFlight.get()) return false
-        return when (_scanState.value) {
-            is ScanState.CompositionAnalyzing,
-            ScanState.Capturing,
-            ScanState.Analyzing -> false
-            is ScanState.SegmentConfirmationRequired -> false
-            else -> true
-        }
-    }
-
     fun canCapturePhoto(): Boolean {
-        if (inFlightScan || cameraTabLlmTestInFlight.get()) return false
+        if (inFlightScan) return false
         if (_scanState.value is ScanState.CompositionAnalyzing) return false
         return _scanState.value == ScanState.PreviewActive
-    }
-
-    fun runCameraTabLlmMockTest() {
-        val runner = homeLlmRunner ?: return
-        if (!canRunCameraTabLlmTest()) return
-        if (!cameraTabLlmTestInFlight.compareAndSet(false, true)) return
-        viewModelScope.launch {
-            _scanState.value = ScanState.CompositionAnalyzing()
-            _streamingBilan.value = StreamingBilanState.Streaming()
-            navigateToResultScreen()
-            val mockInferenceStart = SystemClock.elapsedRealtime()
-            try {
-                when (val outcome = runner.run()) {
-                    is HomeLlmMockOutcome.Success -> {
-                        val mockInferenceTimeMs = SystemClock.elapsedRealtime() - mockInferenceStart
-                        val parsed = StreamingBilanParser.parsePartial(outcome.responseText)
-                        _streamingBilan.value = parsed.copy(
-                            sectionReached = StreamingSection.DONE
-                        )
-                        val bilan = com.miamia.composition.GemmaBilanParser.parse(outcome.responseText)
-                        if (bilan != null) {
-                            _streamingBilan.value = StreamingBilanState.Complete(
-                                bilan = bilan,
-                                rawTranscript = outcome.responseText,
-                                inferenceTimeMs = mockInferenceTimeMs
-                            )
-                        }
-                    }
-                    is HomeLlmMockOutcome.Failure -> {
-                        _streamingBilan.value = StreamingBilanState.Error(
-                            message = outcome.message,
-                            errorCategory = outcome.category.wireValue
-                        )
-                    }
-                }
-            } finally {
-                cameraTabLlmTestInFlight.set(false)
-                if (permissionHandler.hasCameraPermission(getApplication())) {
-                    _scanState.value = ScanState.CameraReady
-                    _previewSession.value += 1
-                } else {
-                    _scanState.value = ScanState.PermissionDenied
-                }
-            }
-        }
     }
 
     private fun navigateToResultScreen() {
@@ -628,7 +564,6 @@ class CameraViewModel(
             application: Application,
             coordinator: IngredientRecognitionCoordinator?,
             compositionEngine: CompositionAnalysisEngine? = null,
-            homeLlmRunner: HomeLlmMockRunner? = null
         ): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -638,7 +573,6 @@ class CameraViewModel(
                         application,
                         coordinator,
                         compositionEngine,
-                        homeLlmRunner
                     ) as T
                 }
             }

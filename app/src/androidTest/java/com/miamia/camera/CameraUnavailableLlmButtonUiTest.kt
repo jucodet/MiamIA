@@ -22,7 +22,7 @@ class CameraUnavailableLlmButtonUiTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun cameraUnavailable_showsMessageAndLlmTestButton() {
+    fun cameraUnavailable_showsMessageAndCaptureButton() {
         composeRule.waitForIdle()
 
         val activity = composeRule.activity
@@ -33,7 +33,7 @@ class CameraUnavailableLlmButtonUiTest {
 
         composeRule.onNodeWithTag("camera_unavailable_message").assertIsDisplayed()
         composeRule.onNodeWithTag("photo_preview_placeholder").assertIsDisplayed()
-        composeRule.onNodeWithTag("camera_tab_llm_test_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("capture_photo_button").assertIsDisplayed()
     }
 
     /**
@@ -53,15 +53,12 @@ class CameraUnavailableLlmButtonUiTest {
 
         val placeholder = composeRule.onNodeWithTag("photo_preview_placeholder", useUnmergedTree = true)
         val capture = composeRule.onNodeWithTag("capture_photo_button")
-        val llm = composeRule.onNodeWithTag("camera_tab_llm_test_button")
 
         placeholder.assertIsDisplayed()
         capture.assertIsDisplayed()
-        llm.assertIsDisplayed()
 
         val placeholderBounds = placeholder.getUnclippedBoundsInRoot()
         val captureBounds = capture.getUnclippedBoundsInRoot()
-        val llmBounds = llm.getUnclippedBoundsInRoot()
 
         val minGap = 16.dp
 
@@ -69,11 +66,6 @@ class CameraUnavailableLlmButtonUiTest {
             "capture_photo_button must be strictly below photo_preview_placeholder. " +
                 "placeholderBottom=${placeholderBounds.bottom}, captureTop=${captureBounds.top}",
             captureBounds.top >= placeholderBounds.bottom
-        )
-        assertTrue(
-            "camera_tab_llm_test_button must be strictly below photo_preview_placeholder. " +
-                "placeholderBottom=${placeholderBounds.bottom}, llmTop=${llmBounds.top}",
-            llmBounds.top >= placeholderBounds.bottom
         )
         val captureGap = captureBounds.top - placeholderBounds.bottom
         assertTrue(

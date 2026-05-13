@@ -63,7 +63,7 @@
 1. Lancer l'application (modèle présent, caméra accordée).
 2. **Attendu** :
    - L'écran capture s'affiche directement.
-   - Aucune bannière texte ne précède l'aperçu caméra. La chrome se réduit à : `MediaPipeStatusIndicator` (haut) → `photo_preview_box` (zone caméra adaptative) → `CaptureActionBar` (« Y a quoi là-dedans ? » + « Test LLM ») → statut textuel (« Aperçu caméra actif » ou équivalent).
+   - Aucune bannière texte ne précède l'aperçu caméra. La chrome se réduit à : `MediaPipeStatusIndicator` (haut) → `photo_preview_box` (zone caméra adaptative) → `CaptureActionBar` (au minimum « Y a quoi là-dedans ? ») → statut textuel explicite (Feature F : plus de « Aperçu caméra actif » ni « Disponible » seul ; pas de bouton « Test LLM »).
 
 ### Scénario D2 — État `CameraUnavailable` (US-D1, P1)
 
@@ -81,8 +81,16 @@
 ### Scénario D4 — Non-régression sur l'action principale (US-D2, P2)
 
 1. Sur l'écran capture, activer « Y a quoi là-dedans ? ».
-2. **Attendu** : démarrage du flux capture inchangé (cohérence avec `capture-recognition` CR-FR-001..011 et `user-guidance-experience` UGE-A-FR-001..016).
-3. Idem avec « Test LLM ».
+2. **Attendu** : démarrage du flux capture inchangé (cohérence avec `capture-recognition` CR-FR-001..011 et `user-guidance-experience` UGE-A-FR-001..016, sous réserve Feature F : plus de bouton Test LLM).
+
+### Scénario F1 — Libellés et absence Test LLM (Feature F, P1)
+
+1. Lancer l'app (modèle présent, caméra accordée), arriver sur l'écran capture en `PreviewActive`.
+2. **Attendu** :
+   - Aucun bouton « Test LLM » ; aucun nœud avec tag `camera_tab_llm_test_button`.
+   - Aucune occurrence du texte exact « Aperçu caméra actif ».
+   - Les libellés d'état visibles ne se réduisent pas au seul mot « Disponible » pour indiquer « prêt à scanner ».
+3. (Optionnel) Parcourir un état transitoire (`PreviewInitializing`) : texte lisible, sans chaîne interdite.
 
 ### Commandes de tests (locales)
 
@@ -99,5 +107,30 @@
 
 ### Régression (Feature D)
 
-- Aucun changement de comportement attendu pour les boutons capture / test LLM, l'indicateur MediaPipe, et la navigation post-capture.
+- Après Feature F : seul le bouton « Y a quoi là-dedans ? » reste exigé sur la bande d'action ; l'indicateur MediaPipe et la navigation post-capture restent fonctionnels.
 - Le flow `CameraViewModel.welcomeUiState` reste exposé mais non consommé ; les tests unitaires `welcome/` (sélecteur, policy, catalogue) restent valides à l'identique.
+
+---
+
+## Addendum Feature E — Phrases loaders (catalogue élargi)
+
+### Scénario E1 — Téléchargement modèle (rotation)
+
+1. Réinstaller l'app ou supprimer le modèle pour forcer l'écran d'attente téléchargement.
+2. Lancer le téléchargement et observer les phrases sous la marmite (`download_waiting_phrase`).
+3. **Attendu** : au fil des rotations (~5 s), apparaissent parfois les **nouvelles** formulations (ton alimentaire / étiquette, sans contenu offensant). Le pool paraît plus varié qu'avant livraison.
+
+### Scénario E2 — Loader streaming résultat
+
+1. Lancer une capture menant à l'écran résultat avec streaming (ou tout parcours qui affiche le loader streaming).
+2. Pendant l'état d'attente initial (`streaming_waiting_phrase`), observer les rotations.
+3. **Attendu** : les mêmes nouvelles phrases peuvent apparaître (catalogue partagé), affichage lisible sans troncature anormale sur téléphone portrait.
+
+### Commandes (locales)
+
+```bash
+./gradlew :app:testDebugUnitTest --tests "com.miamia.ui.shared.WaitingPhrasesCatalogFeatureETest"
+
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.onboarding.ModelDownloadWaitingAcceptanceTest
+```

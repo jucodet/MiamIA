@@ -1,89 +1,76 @@
-# Implementation Plan: Suppression du message d'accueil sur l'écran capture (Feature D)
+# Implementation Plan : Feature F — libellés capture, fin test LLM, retrait « Aperçu caméra actif »
 
-**Branch**: `021-auto-analyze-ingredients-tag` (branche active ; voir note Plan vs Branche ci-dessous) | **Date**: 2026-05-13 | **Spec**: [spec.md — Feature D](./spec.md#feature-d--suppression-du-message-daccueil-sur-lécran-capture)
-**Input**: Feature specification from `specs/domains/user-guidance-experience/spec.md` (Feature D)
-
-> Note Plan vs Branche : la branche courante a été créée pour un autre incrément. L'évolution Feature D est strictement UI, indépendante des autres flux et peut être livrée sur cette branche ou via une branche dédiée selon la stratégie de release.
+**Branch** : `021-auto-analyze-ingredients-tag` (branche renvoyée par `setup-plan.ps1` ; créer une branche dédiée si la stratégie release l’exige) | **Date** : 2026-05-13 | **Spec** : [spec.md — Feature F](./spec.md#feature-f--libellé-caméra-explicite-suppression-test-llm-retrait-aperçu-caméra-actif-)
+**Input** : `specs/domains/user-guidance-experience/spec.md` (Feature F)
 
 ## Summary
 
-Retirer la bannière de message d'accueil rendue actuellement par `CameraScreen.kt` au-dessus de l'aperçu caméra. Le rendu se fait via un `Text(welcomeState.text, testTag = "welcome_message_banner")` consommant `CameraViewModel.welcomeUiState`. La feature consiste à supprimer **uniquement la consommation UI** (et l'import associé) sans toucher au package `welcome/` (catalogue, sélecteur, policy), pour conserver un diff minimal et préserver la possibilité d'un retour rapide ou d'une réutilisation contextuelle ultérieure. Une tâche de nettoyage facultative est planifiée comme suivi hors livraison.
+Rendre l’état « prêt à scanner » lisible sans le mot ambigu « Disponible » seul, retirer tout bouton et parcours « Test LLM » de l’écran d’accueil (= capture), et supprimer la ligne de statut « Aperçu caméra actif ». Changements concentrés sur `CameraScreen.kt`, `CameraViewModel.kt`, `MediaPipeStatusViewState.kt`, `MainActivity.kt` (câblage runner), tests AndroidTest sous `com.miamia.camera`, et documentation des contrats. Alignement documentaire requis avec le domaine voisin `capture-recognition` (`contracts/capture-action-bar.md`, test tags) dans la même livraison ou immédiatement après (UGE-F-FR-004).
 
 ## Technical Context
 
-**Language/Version**: Kotlin (Android), Jetpack Compose (Material 3) — versions de l'application existante.  
-**Primary Dependencies**: Compose UI (`Column`, `Text`, `Modifier.testTag`), `StateFlow.collectAsState` (à retirer côté UI capture pour `welcomeUiState`).  
-**Storage**: N/A (changement UI pur, aucune donnée persistée concernée).  
-**Testing**: AndroidTest Compose UI (existant pour la capture) + tests unitaires existants pour le package `welcome/` (sélecteur, policy, catalogue) → à laisser inchangés.  
-**Target Platform**: Android (téléphone, principalement portrait).  
-**Project Type**: mobile-app (module Android `app`).  
-**Performance Goals**: aucun objectif spécifique au-delà de « aucune régression » ; gain marginal (un `collectAsState` en moins côté écran capture).  
-**Constraints**:
-- aucune chaîne issue du catalogue `welcome/` ne MUST apparaître sur l'écran capture (UGE-D-FR-001) ;
-- aucun nœud porteur du test tag `welcome_message_banner` ne MUST exister dans l'arbre Compose de l'écran capture (UGE-D-FR-002) ;
-- conformité avec capture-recognition (CR-FR-009..011) préservée (gain d'espace ≥ 1 ligne `bodyLarge`, SC-D-002, bénéficie à la `PreviewRegion`).  
-**Scale/Scope**: 1 écran (`CameraScreen.kt`), 1 bloc `if (welcomeState is WelcomeMessageUiState.Displayed) { ... }` à retirer (lignes 87-93 dans la version courante), 1 import et 1 collecte `welcomeState` côté UI. Aucun nouveau composable. Aucune entité.
+**Language / Version** : Kotlin (Android), Jetpack Compose (Material 3), API min du projet inchangée.  
+**Primary Dependencies** : Compose UI, `ScanState` / flux existant post-capture, `HomeLlmMockRunner` (retrait du chemin UI uniquement).  
+**Storage** : N/A.  
+**Testing** : AndroidTest Compose (`CameraCaptureLayoutUiTest`, `CameraUnavailableLlmButtonUiTest` à réécrire ou renommer), tests unitaires éventuels sur mapping de libellés ; pas de nouveau framework.  
+**Target Platform** : Android téléphone, portrait principal.  
+**Project Type** : mobile-app (`app`).  
+**Performance Goals** : aucune régression sur temps d’affichage de l’écran capture ; pas de recomposition supplémentaire inutile.  
+**Constraints** : respect UGE-F-FR-001..003 et SC-D-003 (tests capture cohérents après retrait LLM) ; frontière DDD : logique mock LLM peut rester dans `home/` pour tests internes si isolée, mais aucune exposition UI (UGE-F-FR-002).  
+**Scale/Scope** : ~4 fichiers Kotlin principaux + 2 fichiers AndroidTest + contrats / quickstart / `capture-recognition` en suivi contractuel.
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*GATE : doit passer avant Phase 0 ; revérifier après Phase 1.*
 
 | Principe (constitution v0.2.0) | Évaluation | Justification |
 |---|---|---|
-| I. Qualité produit/code (non négociable) | ✅ PASS | Traçabilité spec (UGE-D-FR-001..005 + SC-D-001..004) → tests acceptation (assertion d'absence) → code (1 bloc supprimé). Aucune régression UX/perf attendue ; la suite de tests existante capture/llm-onboarding reste valide. |
-| II. ATDD d'abord | ✅ PASS | Nouveaux scénarios Given/When/Then écrits avant code, tests AndroidTest **d'absence** (`assertCountEquals(0)` sur le test tag) à ajouter avant la suppression du rendu. |
-| III. UX moderne et optimale | ✅ PASS | Décision produit explicite ; gain d'espace pour la `PreviewRegion`. |
-| IV. Performance comme exigence produit | ✅ PASS | Léger gain (un flow consommé en moins). Aucun nouveau calcul. |
-| V. Simplicité, lisibilité, évolutivité | ✅ PASS | Diff minimal ; pas de sur-architecture. Le code `welcome/` est conservé tel quel (suivi possible). |
-| VI. Frontières DDD et autonomie des domaines | ⚠️ PASS (avec note) | L'évolution est interne à `user-guidance-experience` (responsable des messages d'accueil). Le code de rendu se trouve actuellement dans `CameraScreen.kt` (co-occupé avec `capture-recognition`) — cette co-habitation préexiste et n'est pas créée par cette livraison. Aucun contrat inter-domaines n'est rompu ; aucun signal cross-context n'est introduit. Voir « Suivi DDD » ci-dessous. |
+| I. Qualité produit / code | ✅ PASS | Spec Feature F traçable → tests mis à jour → code ; pas de régression silencieuse sur la capture principale. |
+| II. ATDD | ✅ PASS | Scénarios Given/When/Then dans spec ; tests layout existants adaptés (assert absence bouton LLM, nouveaux libellés) ou nouveaux tests ciblés. |
+| III. UX | ✅ PASS | Objectif explicite : micro-copies claires, suppression bruit redondant et action de démo. |
+| IV. Performance | ✅ PASS | Suppression d’éléments UI ; pas de charge ajoutée. |
+| V. Simplicité | ✅ PASS | Suppression de code mort UI et de branches ViewModel liées au bouton ; pas de nouvelle couche. |
+| VI. Frontières DDD | ✅ PASS | Orchestration UX dans `user-guidance-experience` ; contrat technique des tags et bande d’action reste owner `capture-recognition` — mise à jour croisée documentée (UGE-F-FR-004). |
 
-Aucune violation ⇒ pas d'entrée dans Complexity Tracking.
-
-### Suivi DDD (hors scope livraison)
-
-- `CameraScreen.kt` mélange aujourd'hui des éléments de plusieurs bounded contexts (`capture-recognition` : aperçu + bande d'action ; `user-guidance-experience` : `MediaPipeStatusIndicator`, bannière welcome ; `local-llm-runtime` indirect via états `GemmaUnavailable`). Cette co-habitation est antérieure à la Feature D et reste hors scope. Un suivi est recommandé pour clarifier les frontières (extraction d'un `HomeShell` côté UGE, ou réduction de la responsabilité de `CameraScreen` à `capture-recognition`).
+Aucune violation ⇒ pas d’entrée obligatoire dans Complexity Tracking.
 
 ## Project Structure
 
-### Documentation (this feature)
+### Documentation (ce plan)
 
 ```text
 specs/domains/user-guidance-experience/
 ├── plan.md              # Ce fichier
-├── research.md          # Phase 0 — addendum Feature D
-├── data-model.md        # Phase 1 — addendum Feature D (aucune nouvelle entité)
-├── quickstart.md        # Phase 1 — addendum Feature D
+├── research.md          # Phase 0 — addendum Feature F
+├── data-model.md        # Phase 1 — addendum Feature F
+├── quickstart.md        # Phase 1 — addendum scénarios + commandes tests
 ├── contracts/
-│   └── capture-screen-no-welcome-banner.md   # Phase 1 — nouveau contrat UI
-└── tasks.md             # Phase 2 (généré par /speckit.tasks — non créé ici)
+│   ├── capture-screen-feature-f-status-copy.md   # Phase 1 — libellés + absence bouton LLM
+│   └── homepage-llm-mock-ui-contract.md            # marqué obsolète côté UI capture (Feature F)
+└── tasks.md             # Phase 2 (/speckit.tasks — non créé ici)
 ```
 
-### Source Code (repository root)
+### Source Code (extrait ciblé)
 
 ```text
-app/
-├── src/
-│   ├── main/java/com/miamia/
-│   │   ├── camera/
-│   │   │   └── CameraScreen.kt           # cible principale (retrait du bloc bannière + import + collectAsState welcomeState)
-│   │   └── welcome/                       # PRÉSERVÉ tel quel (catalogue, selector, policy)
-│   └── androidTest/java/com/miamia/
-│       ├── camera/
-│       │   └── (nouveau) NoWelcomeBannerOnCaptureUiTest.kt
-│       └── welcome/
-│           ├── US1WelcomeAfterLoginFlowTest.kt    # à reconfigurer ou retirer (UGE-D-FR-004)
-│           └── US2PositiveToneWelcomeTest.kt      # à reconfigurer ou retirer (UGE-D-FR-004)
+app/src/main/java/com/miamia/
+├── camera/
+│   ├── CameraScreen.kt          # bande d’action, libellés ScanState, suppression bouton Test LLM
+│   └── CameraViewModel.kt      # suppression runCameraTabLlmMockTest + deps runner si inutilisées
+├── home/
+│   └── MediaPipeStatusViewState.kt   # remplacer label "Disponible" par libellé explicite (UGE-F-FR-001)
+└── MainActivity.kt             # arrêt injection runner pour onglet capture si applicable
+
+app/src/androidTest/java/com/miamia/camera/
+├── CameraCaptureLayoutUiTest.kt       # retirer assertions sur camera_tab_llm_test_button ; conserver non-recouvrement preview / bouton principal
+└── CameraUnavailableLlmButtonUiTest.kt # renommer / réorienter (ex. bande d’action sans second bouton) ou fusionner avec layout test
 ```
 
-**Structure Decision**:
-- Cible unique = `app/src/main/java/com/miamia/camera/CameraScreen.kt` (retrait d'un `if`-block, un import, un `collectAsState`).
-- Pas de modification du `CameraViewModel` (laisse `welcomeUiState` exposé, simplement non consommé côté UI capture). Suivi possible : nettoyage ultérieur.
-- Nouveau test d'acceptation `NoWelcomeBannerOnCaptureUiTest.kt` qui assert `onAllNodesWithTag("welcome_message_banner").assertCountEquals(0)` dans plusieurs `ScanState`.
-- Tests existants `welcome/`  AndroidTest (US1WelcomeAfterLoginFlowTest, US2PositiveToneWelcomeTest) à reconfigurer en tests d'absence ou à retirer (UGE-D-FR-004).
+**Structure Decision** : point d’entrée unique écran capture = package `camera/` ; libellé MediaPipe partagé via `home/MediaPipeStatusViewState.kt` (déjà consommé par l’écran capture).
 
 ## Complexity Tracking
 
-> Aucune violation à justifier.
+> Aucune violation constitutionnelle à justifier.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
@@ -91,31 +78,33 @@ app/
 
 ## Phase 0 — Outline & Research
 
-Voir `research.md` (addendum Feature D). Sujets résolus :
-1. **Stratégie de retrait** : suppression du rendu UI uniquement, conservation du package `welcome/` comme legacy non-consommé.
-2. **Sort du flow `welcomeUiState`** : exposition conservée côté ViewModel (zéro régression sur les tests unitaires existants) ; consommation supprimée côté `CameraScreen`.
-3. **Sort des tests `welcome/` AndroidTest** : reconfiguration en assertions d'absence (cf. UGE-D-FR-004) vs retrait pur — décision = reconfiguration pour conserver la couverture « pas de message d'accueil au lancement ».
-4. **Test d'acceptation principal** : nouveau test Compose UI dédié `NoWelcomeBannerOnCaptureUiTest` couvrant tous les `ScanState` représentatifs.
-5. **Impact perf / espace** : gain estimé ≥ 24 dp (1 ligne `bodyLarge`) sur la hauteur de `PreviewRegion` (cohérent avec SC-D-002).
+Consolidé dans `research.md`, section **Addendum Feature F**. Décisions clés :
+
+1. **Libellé « Disponible »** : aujourd’hui dans `MediaPipeStatusViewState.kt` ; remplacer par une formulation explicite liée à la détection d’étiquette (ex. « Détection prête » ou « MediaPipe prêt ») — à valider avec coproduit pour éviter jargon ; interdit : chaîne d’un seul mot générique « Disponible ».
+2. **Statut `PreviewActive`** : remplacer « Aperçu caméra actif » par la même famille de libellé que US-F1 (caméra prête à scanner) **ou** masquer la ligne si redondance visuelle totale — défaut retenu : **une ligne explicite** satisfaisant UGE-F-FR-001 et UGE-F-FR-003 (plus de chaîne exacte « Aperçu caméra actif »).
+3. **Test LLM** : retirer `OutlinedButton` + `onRunLlmTest` + `camera_tab_llm_test_button` ; supprimer `runCameraTabLlmMockTest` et simplifier constructeur `CameraViewModel` / factory `MainActivity` si le runner n’est plus utilisé que pour ce bouton.
+4. **Contrat `homepage-llm-mock-ui-contract.md`** : marqué **hors produit** pour l’UI capture ; le runner peut subsister pour tests JVM/Android hors écran capture si nécessaire.
 
 ## Phase 1 — Design & Contracts
 
-Voir :
-- `data-model.md` — addendum Feature D : **aucun nouvel agrégat ni value object**. Note explicite : `WelcomeMessageUiState` reste défini dans le package `welcome/` mais n'est plus projeté sur l'UI capture.
-- `contracts/capture-screen-no-welcome-banner.md` — contrat UI : interdiction de rendu de tout nœud lié à un message d'accueil sur l'écran capture, dans tous les `ScanState`. Test tags requis stables.
-- `quickstart.md` — addendum Feature D : scénarios manuels et commandes Gradle pour les tests instrumentés.
+Livrables :
 
-Mise à jour du fichier d'agent Spec Kit (`.cursor/rules/specify-rules.mdc`) : référence du plan pointée vers le présent fichier.
+- `data-model.md` — addendum : mapping `ScanState` → libellé utilisateur (sans « Aperçu caméra actif ») ; ligne MediaPipe explicite.
+- `contracts/capture-screen-feature-f-status-copy.md` — chaînes interdites / attendues, absence tag `camera_tab_llm_test_button`, cohérence avec tests.
+- `quickstart.md` — addendum Feature F : parcours manuel + commandes Gradle ciblées.
+- **Ref domaine voisin** : PR d’implémentation MUST inclure ou référencer une mise à jour de `specs/domains/capture-recognition/contracts/capture-action-bar.md` (suppression second bouton, statuts textuels).
+
+Fichier d’agent (`.cursor/rules/specify-rules.mdc`) : pointe déjà vers ce `plan.md` — aucun changement de chemin requis.
 
 ## Post-Design Constitution Re-check
 
 | Principe | Statut |
 |---|---|
-| I — Qualité | ✅ inchangé |
-| II — ATDD | ✅ contrats + tests prévus avant code |
-| III — UX | ✅ aligné |
-| IV — Perf | ✅ inchangé (léger gain) |
-| V — Simplicité | ✅ diff minimal |
-| VI — DDD | ✅ pas de débordement nouveau ; suivi noté |
+| I — Qualité | ✅ |
+| II — ATDD | ✅ tests adaptés listés en Phase 0 |
+| III — UX | ✅ |
+| IV — Perf | ✅ |
+| V — Simplicité | ✅ |
+| VI — DDD | ✅ ref `capture-recognition` explicite |
 
 Aucune nouvelle violation.

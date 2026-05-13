@@ -85,3 +85,48 @@
 ### Read models présentation (UI, incrément Feature D)
 
 - **CaptureScreenChrome** (conceptuel) : décrit la chrome non-camera de l'écran capture comme un ensemble réduit à `{ MediaPipeStatusIndicator, CaptureActionBar, status text }`. La bannière welcome n'en fait **plus** partie. Référence : [`contracts/capture-screen-no-welcome-banner.md`](./contracts/capture-screen-no-welcome-banner.md).
+
+---
+
+## Addendum Feature E — Catalogue de phrases d'attente (2026-05-13)
+
+### Entité logique : `WaitingPhraseCatalog` (value object implicite)
+
+| Attribut | Description |
+|----------|-------------|
+| `phrases` | Liste immuable de chaînes UTF-8, français ; actuellement matérialisée par `WAITING_PHRASES` dans le code. |
+| Taille post-livraison | Exactement **21** entrées (11 baseline + 10 ajouts Feature E). |
+| Unicité | Aucun doublon exact (comparaison après trim espaces début/fin). |
+
+### Règles de validation (métier)
+
+- Chaque entrée MUST respecter UGE-E-FR-002 et UGE-E-FR-005.
+- Les dix ajouts MUST être distincts des onze formulations baseline (UGE-E-FR-003).
+
+### Relations
+
+- Consommée par les écrans d'attente UX (`LlmResultScreen`, `ModelDownloadWaitingScreen`) sans couplage inverse : les écrans ne mutent pas le catalogue.
+
+### Transitions d'état
+
+- Aucune machine d'état nouvelle ; seule la cardinalité du catalogue change.
+
+---
+
+## Addendum Feature F — Statuts textuels écran capture (2026-05-13)
+
+### Read model : `CaptureStatusLine` (conceptuel)
+
+| Attribut | Description |
+|----------|-------------|
+| `scanStateLabel` | Texte dérivé de `ScanState` affiché sous la bande d’action (hors `PreviewRegion`). Pour `PreviewActive`, MUST être une phrase explicite « prêt à scanner » (UGE-F-FR-001) et MUST NOT être la chaîne exacte « Aperçu caméra actif » (UGE-F-FR-003). |
+| `mediaPipeStatusLabel` | Texte court pour l’indicateur MediaPipe en haut d’écran ; MUST NOT se réduire au seul mot « Disponible » comme unique information (UGE-F-FR-001). |
+
+### Invariants ajoutés
+
+- **INV-F-1** : Aucun composable interactif « Test LLM » (tag, sémantique ou libellé équivalent) ne MUST apparaître sur l’écran capture.
+- **INV-F-2** : Le tag de test `camera_tab_llm_test_button` ne MUST plus être émis dans l’arbre Compose de production.
+
+### Relations
+
+- Dépend de `ScanState` (défini côté `camera/` / capture) pour le mapping texte ; pas de nouvelle entité persistante.

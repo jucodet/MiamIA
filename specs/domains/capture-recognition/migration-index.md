@@ -13,6 +13,8 @@
   - Tests AndroidTest ajoutés/étendus : `CameraCaptureLayoutUiTest`, `CameraUnavailableLlmButtonUiTest`, `CaptureActionLabelUiTest`.
   - Sanity compile / exécution tests instrumentés : à exécuter sur poste avec SDK Android configuré (différé hors de cet environnement).
 
+- **Alignement Feature F** (`user-guidance-experience`, 2026-05-13) → `contracts/capture-action-bar.md` (révision : plus de bouton Test LLM obligatoire, plus de tag `camera_tab_llm_test_button`, libellés d’état sans « Aperçu caméra actif » / sans « Disponible » seul) [planned — doc livrée avec plan UGE ; code à suivre].
+
 ## Conflict Decisions
 
 - Owner decision: la redirection post-OCR est geree par `user-guidance-experience`; `capture-recognition` expose uniquement les preconditions OCR.

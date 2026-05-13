@@ -52,6 +52,9 @@ import java.io.File
 
 private const val CapturePrimaryActionLabel = "Y a quoi là-dedans ?"
 
+/** Libellé explicite état prêt (Feature F — plus de « Aperçu caméra actif » / « Disponible » seul). */
+private const val CapturePreviewReadyStatusLabel = "Caméra prête — vous pouvez scanner"
+
 @Composable
 fun CameraScreen(
     viewModel: CameraViewModel,
@@ -131,9 +134,7 @@ fun CameraScreen(
                     }
                     CaptureActionBar(
                         onCapture = { viewModel.capturePhoto(onCreateTempImage()) },
-                        canCapture = viewModel.canCapturePhoto(),
-                        onRunLlmTest = viewModel::runCameraTabLlmMockTest,
-                        canRunLlmTest = viewModel.canRunCameraTabLlmTest()
+                        canCapture = viewModel.canCapturePhoto()
                     )
                     Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("retry_camera")) {
                         Text("Réessayer")
@@ -392,20 +393,19 @@ fun CameraScreen(
 
                     CaptureActionBar(
                         onCapture = { viewModel.capturePhoto(onCreateTempImage()) },
-                        canCapture = viewModel.canCapturePhoto(),
-                        onRunLlmTest = viewModel::runCameraTabLlmMockTest,
-                        canRunLlmTest = viewModel.canRunCameraTabLlmTest()
+                        canCapture = viewModel.canCapturePhoto()
                     )
 
                     Text(
                         text = when (state) {
-                            ScanState.PreviewActive -> "Aperçu caméra actif"
+                            ScanState.PreviewActive -> CapturePreviewReadyStatusLabel
                             ScanState.PreviewInitializing -> "Démarrage de l'aperçu caméra…"
                             ScanState.Capturing -> "Capture en cours…"
                             ScanState.Analyzing -> "Traitement de l'image…"
                             else -> "Préparez le cadrage"
                         },
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.testTag("capture_scan_status_text")
                     )
                 }
             }
@@ -425,8 +425,6 @@ fun CameraScreen(
 private fun CaptureActionBar(
     onCapture: () -> Unit,
     canCapture: Boolean,
-    onRunLlmTest: () -> Unit,
-    canRunLlmTest: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -441,16 +439,6 @@ private fun CaptureActionBar(
                 .testTag("capture_photo_button")
         ) {
             Text(CapturePrimaryActionLabel)
-        }
-        OutlinedButton(
-            onClick = onRunLlmTest,
-            enabled = canRunLlmTest,
-            modifier = Modifier
-                .fillMaxWidth()
-                .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
-                .testTag("camera_tab_llm_test_button")
-        ) {
-            Text("Test LLM")
         }
     }
 }

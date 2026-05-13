@@ -38,7 +38,6 @@ import com.miamia.gemma4local.Gemma4LocalRequestMapper
 import com.miamia.gemma4local.HybridGemma4LocalGateway
 import com.miamia.healthcritique.HealthCritiqueResultScreen
 import com.miamia.healthcritique.HealthCritiqueViewModel
-import com.miamia.home.CompositionEngineHomeLlmMockRunner
 import com.miamia.home.HomeSpecPriorityResolver
 import com.miamia.permissions.CameraPermissionHandler
 import com.miamia.recognition.AiEdgeGalleryRecognizer
@@ -145,14 +144,12 @@ class MainActivity : ComponentActivity() {
                     gateway = localGateway
                 )
                 val compositionEngine = Gemma4LocalCompositionEngine(localClient)
-                val homeLlmRunner = CompositionEngineHomeLlmMockRunner(compositionEngine)
                 cameraViewModel = ViewModelProvider(
                     this@MainActivity,
                     CameraViewModel.factory(
                         application,
                         coordinator,
-                        compositionEngine,
-                        homeLlmRunner
+                        compositionEngine
                     )
                 )[CameraViewModel::class.java]
                 healthCritiqueViewModel = ViewModelProvider(
