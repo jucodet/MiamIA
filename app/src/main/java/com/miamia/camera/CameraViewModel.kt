@@ -487,7 +487,13 @@ class CameraViewModel(
                         )
                     }
                 } else {
-                    when (val v = CompositionResultValidator.validateAgainstSource(outcome.bilan, rawText)) {
+                    when (
+                        val v = CompositionResultValidator.validateAgainstSource(
+                            outcome.bilan,
+                            rawText,
+                            outcome.rawModelOutput,
+                        )
+                    ) {
                         is AnalyzeCompositionResult.BilanSuccess -> {
                             _lastValidatedSegmentForHealth.value = rawText
                             _streamingBilan.value = StreamingBilanState.Complete(
@@ -497,7 +503,11 @@ class CameraViewModel(
                             )
                             if (!_captureRouteActive.value) {
                                 val kpi = withContext(Dispatchers.Default) {
-                                    BuildAdditiveKpiDisplay(v.bilan, rawText)
+                                    BuildAdditiveKpiDisplay(
+                                        bilan = v.bilan,
+                                        rawLlmTextForParsing = v.rawModelOutput,
+                                        validatedIngredientSegment = rawText,
+                                    )
                                 }
                                 _additiveKpiDisplay.value = kpi
                                 _scanState.value = ScanState.BilanReady(

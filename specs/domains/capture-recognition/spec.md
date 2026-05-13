@@ -25,6 +25,52 @@ Capturer une image produit de facon fiable, produire un `RawOcrText` rattache a 
 - CR-FR-003: le domaine MUST exposer des etats utilisateurs explicites (verification readiness, analyse en cours, succes, echec) sans blocage silencieux.
 - CR-FR-004: le domaine MUST nettoyer les artefacts temporaires de capture en succes, annulation et erreur.
 - CR-FR-005: le domaine MUST refuser la progression vers l'analyse amont si le texte OCR est vide ou inexploitable. *(Note sync 2026-05-12 : le blocage est assuré par CameraViewModel, pas par ScanFailureClassifier directement. Le comportement est aligné ; l'architecture interne n'est pas prescrite par cette spec.)*
+- CR-FR-006: l'écran de consultation du `RawOcrText` après capture MUST afficher le texte dans une zone à hauteur bornée avec défilement vertical lorsque le contenu dépasse l'espace alloué à cette zone.
+- CR-FR-007: les actions principales (boutons) affichées sous le texte capturé MUST rester visibles et actionnables sans que l'utilisateur ait à faire défiler tout l'écran pour les atteindre, y compris lorsque le texte occupe plusieurs « pages » équivalentes à l'écran.
+- CR-FR-008: lorsque le texte capturé est court, la zone de texte MUST rester lisible (pas de masquage du contenu par des contraintes de hauteur inadaptées) et ne pas imposer de défilement inutile.
+
+## Feature increment — Zone défilante texte capturé (bannière actions fixe)
+
+**Branche**: `019-captured-text-scroll` · **Date**: 2026-05-13 · **Statut**: Draft
+
+### User Scenarios & Testing
+
+#### User Story 1 — Parcours texte long (P1)
+
+Après une capture réussie, l'utilisateur consulte un texte OCR très long (liste d'ingrédients dense). Il fait défiler uniquement la zone de texte pour relire le haut et le bas, tout en voyant en permanence les boutons de confirmation ou de poursuite du parcours.
+
+**Priorité P1**: sans cela, le parcours de capture peut être bloqué ou source d'erreurs (actions inaccessibles).
+
+**Test indépendant**: scénario instrumenté ou manuel avec jeu de données texte dépassant la hauteur utile de l'écran ; vérifier accès scroll au texte et visibilité des boutons.
+
+**Scénarios d'acceptation**:
+
+1. **Given** un `RawOcrText` dont la hauteur rendue dépasse la zone texte, **When** l'utilisateur affiche l'écran de relecture, **Then** le texte est entièrement consultable par défilement à l'intérieur de la zone dédiée et les boutons d'action sous la zone restent visibles sans scroll global cachant ces boutons.
+2. **Given** le même écran, **When** l'utilisateur a fait défiler le texte jusqu'en bas de la zone, **Then** les boutons d'action restent visibles et utilisables.
+
+#### User Story 2 — Parcours texte court (P2)
+
+Le texte OCR tient en peu de lignes. L'écran reste équilibré : le texte reste lisible, pas de barre de défilement trompeuse ou de zone vide disproportionnée.
+
+**Scénarios d'acceptation**:
+
+1. **Given** un `RawOcrText` court, **When** l'écran s'affiche, **Then** le texte est lisible sans défilement obligatoire et les boutons restent visibles sous la zone texte.
+
+### Cas limites
+
+- Clavier logiciel ouvert sur l'écran : les boutons restent atteignables (comportement conforme aux attentes plateforme sans masquer définitivement les actions).
+- Orientation paysage ou petite hauteur utile : la zone texte se contracte, le défilement interne prévaut ; les boutons restent dans la partie visible inférieure ou suivent le pattern d'accessibilité déjà retenu par l'application pour les barres d'action fixes.
+- Texte vide ou quasi vide : inchangé par rapport à CR-FR-005 ; pas de régression sur le refus de progression.
+
+### Critères de succès mesurables
+
+- **SC-CR-001**: pour un jeu de contenus texte représentatif « long étiquette » (hauteur supérieure à la zone utile), 100 % des testeurs peuvent atteindre le dernier caractère du texte et activer un bouton d'action principal sans quitter l'écran.
+- **SC-CR-002**: pour un texte court (≤ quelques lignes), au moins 90 % des évaluations qualitatives jugent l'écran « lisible et sans friction » (pas de scroll forcé inutile).
+
+### Hypothèses
+
+- L'écran concerné est celui qui présente le `RawOcrText` issu de la capture avec des actions disposées sous le bloc de texte (même parcours qu'aujourd'hui, seule la disposition change).
+- Les libellés et nombre de boutons ne changent pas dans le cadre de cette évolution ; seule la géométrie / contrainte de mise en page est ajustée.
 
 ## Cross-domain Notes
 

@@ -35,7 +35,16 @@ class CameraLlmFlowViewModelTest {
             rawText: String,
             maxInferenceMs: Long,
             onStreamPartial: ((String) -> Unit)?
-        ) = AnalyzeCompositionResult.BilanSuccess(bilan)
+        ) = AnalyzeCompositionResult.BilanSuccess(
+            bilan = bilan,
+            rawModelOutput = """
+                ###LISTE
+                - eau
+                - sucre
+                ###ANALYSE
+                Analyse courte.
+            """.trimIndent(),
+        )
     }
 
     @Test

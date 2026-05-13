@@ -26,6 +26,12 @@ fun AdditiveKpiPanel(
             .testTag("additive_kpi_panel"),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        Text(
+            text = "Risques additifs (données dérivées de l'étiquette lue)",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.testTag("additive_kpi_attribution_header"),
+        )
         if (result.parseErrors.isNotEmpty()) {
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,

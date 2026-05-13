@@ -2,6 +2,7 @@ package com.miamia.composition
 
 /**
  * Post-valide le bilan par rapport au texte source (US2 — pas d’ingrédients manifestement hors texte).
+ * Feature C : ancrage **strict** v1 via [SegmentAnchoringV1] (tout ou rien sur les lignes checkables).
  */
 object CompositionResultValidator {
 
@@ -13,21 +14,25 @@ object CompositionResultValidator {
         return null
     }
 
-    fun validateAgainstSource(bilan: CompositionBilan, rawText: String): AnalyzeCompositionResult {
-        val normalizedSource = rawText.lowercase()
-        val checkable = bilan.ingredientLines.filter { it.trim().length >= 4 }
-        if (checkable.isEmpty()) return AnalyzeCompositionResult.BilanSuccess(bilan)
-
-        val missingCount = checkable.count { line ->
-            val token = line.lowercase().trim()
-            !normalizedSource.contains(token)
+    fun validateAgainstSource(
+        bilan: CompositionBilan,
+        segmentText: String,
+        rawModelOutput: String = "",
+    ): AnalyzeCompositionResult {
+        if (!SegmentAnchoringV1.allCheckableIngredientLinesAnchored(bilan.ingredientLines, segmentText)) {
+            return AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
         }
-        val missingRatio = missingCount.toDouble() / checkable.size
-        if (missingRatio > 0.5) {
-            return AnalyzeCompositionResult.CompositionLimit(
-                CompositionMessages.COMPOSITION_LIMIT_GENERIC
-            )
+        for (impact in bilan.healthImpacts) {
+            val ing = impact.ingredient.trim()
+            if (ing.length >= 2 && !SegmentAnchoringV1.isSubstringAnchored(ing, segmentText)) {
+                return AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
+            }
         }
-        return AnalyzeCompositionResult.BilanSuccess(bilan)
+        bilan.identifiedProduct?.trim()?.takeIf { it.length >= 3 }?.let { product ->
+            if (!SegmentAnchoringV1.isSubstringAnchored(product, segmentText)) {
+                return AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
+            }
+        }
+        return AnalyzeCompositionResult.BilanSuccess(bilan = bilan, rawModelOutput = rawModelOutput)
     }
 }

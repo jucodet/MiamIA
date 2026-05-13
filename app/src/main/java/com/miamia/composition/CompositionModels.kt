@@ -23,7 +23,14 @@ data class CompositionBilan(
 )
 
 sealed class AnalyzeCompositionResult {
-    data class BilanSuccess(val bilan: CompositionBilan) : AnalyzeCompositionResult()
+    /**
+     * @param rawModelOutput Texte brut renvoyé par le modèle (parse additifs / traçabilité).
+     *        Peut être vide si le backend ne le fournit pas.
+     */
+    data class BilanSuccess(
+        val bilan: CompositionBilan,
+        val rawModelOutput: String = "",
+    ) : AnalyzeCompositionResult()
 
     data class GemmaError(
         val code: GemmaErrorCode,

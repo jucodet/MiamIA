@@ -1,28 +1,46 @@
 package com.miamia.additives
 
 import com.miamia.composition.CompositionBilan
+import com.miamia.composition.SegmentAnchoringV1
 
 /**
  * Construit le résultat affichable KPI additifs à partir du bilan composition et du texte brut modèle.
  * Les compteurs [RiskSummaryKpi] sont dérivés strictement de [AnalysisDisplayResult.itemsOrdered] (SC-003).
+ *
+ * @param rawLlmTextForParsing Sortie texte du modèle (sections ###ADDITIFS_RISQUE, etc.).
+ * @param validatedIngredientSegment Segment ingrédients validé ; sert à filtrer les lignes non ancrées (**IHI-C-FR-007**).
  */
 object BuildAdditiveKpiDisplay {
 
     operator fun invoke(
-        @Suppress("UNUSED_PARAMETER") bilan: CompositionBilan,
-        rawLlmText: String,
+        bilan: CompositionBilan,
+        rawLlmTextForParsing: String,
+        validatedIngredientSegment: String = rawLlmTextForParsing,
     ): AnalysisDisplayResult {
-        val outcome = AdditiveKpiParser.parse(rawLlmText)
-        val items = outcome.items
-        val isEmpty = items.isEmpty()
-        val summary = buildSummary(items)
+        val outcome = AdditiveKpiParser.parse(rawLlmTextForParsing)
+        val before = outcome.items
+        val filtered = before.filter { item -> isAdditiveAnchoredInSegment(item, validatedIngredientSegment) }
+        val warnings = outcome.warnings.toMutableList()
+        if (before.isNotEmpty() && filtered.size < before.size) {
+            warnings += "Certains additifs détectés ne figurent pas sur l'étiquette validée et ont été masqués."
+        }
+        val isEmpty = filtered.isEmpty()
+        val summary = buildSummary(filtered)
         return AnalysisDisplayResult(
-            sourceRawLlmText = rawLlmText,
-            itemsOrdered = items,
+            sourceRawLlmText = rawLlmTextForParsing,
+            itemsOrdered = filtered,
             summary = summary,
-            parseErrors = outcome.warnings.toList(),
+            parseErrors = warnings,
             isEmptyState = isEmpty,
         )
+    }
+
+    private fun isAdditiveAnchoredInSegment(item: AdditiveRiskItem, segment: String): Boolean {
+        val candidates = listOf(item.displayName, item.canonicalName)
+            .map { it.trim() }
+            .filter { it.length >= 2 }
+        if (candidates.isEmpty()) return false
+        return candidates.any { SegmentAnchoringV1.isSubstringAnchored(it, segment) }
     }
 
     private fun buildSummary(items: List<AdditiveRiskItem>): RiskSummaryKpi {
