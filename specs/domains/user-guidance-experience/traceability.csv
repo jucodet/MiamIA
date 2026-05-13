@@ -7,3 +7,14 @@ photo-capture-llm-result-flow,tasks.md,app/src/main/java/com/miamia/result/LlmRe
 photo-capture-llm-result-flow,contracts/capture-llm-result-navigation-contract.md,app/src/main/java/com/miamia/MainActivity.kt,NavHost camera tab,done
 photo-capture-llm-result-flow,contracts/capture-llm-result-navigation-contract.md,app/src/main/java/com/miamia/camera/CameraViewModel.kt,LLM nav + runner,done
 photo-capture-llm-result-flow,contracts/capture-llm-result-navigation-contract.md,app/src/main/java/com/miamia/camera/CameraScreen.kt,layout + loader + lifecycle,done
+D,spec.md,spec.md,Functional Requirements (UGE-D-FR-001..005),mapped
+D,spec.md,plan.md,Constitution Check,mapped
+D,spec.md,contracts/capture-screen-no-welcome-banner.md,Obligations,mapped
+D,spec.md,research.md,D-Decision 1..5,mapped
+D,SC-D-001,quickstart.md,Scenario D1,planned
+D,SC-D-002,quickstart.md,Scenario D1,planned
+D,SC-D-003,quickstart.md,Régression,planned
+D,SC-D-004,research.md,D-Decision 1,planned
+D,spec.md,app/src/main/java/com/miamia/camera/CameraScreen.kt,retrait bloc bannière welcome,done
+D,spec.md,app/src/androidTest/java/com/miamia/camera/NoWelcomeBannerOnCaptureUiTest.kt,test d'acceptation (3 ScanState),done
+D,spec.md,app/src/main/java/com/miamia/camera/CameraViewModel.kt,debugForceWelcomeDisplayedForTests @VisibleForTesting,done

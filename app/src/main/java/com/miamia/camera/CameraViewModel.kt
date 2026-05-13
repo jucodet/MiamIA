@@ -125,6 +125,16 @@ class CameraViewModel(
         _scanState.value = state
     }
 
+    /**
+     * Réservé aux AndroidTest (Feature D / UGE-D-FR-002) : force un état `Displayed` du
+     * flow `welcomeUiState` afin d'exercer le scénario « policy yields a welcome message »
+     * sans dépendre du catalogue de production. Aucune utilisation en code de production.
+     */
+    @VisibleForTesting
+    fun debugForceWelcomeDisplayedForTests(text: String = "Bienvenue (test)") {
+        _welcomeUiState.value = WelcomeMessageUiState.Displayed(text)
+    }
+
     /** Exclus tests unitaires — simule un OCR terminé avant l’étape composition. */
     @VisibleForTesting
     fun debugSeedTranscript(transcript: String, items: List<String> = emptyList()) {

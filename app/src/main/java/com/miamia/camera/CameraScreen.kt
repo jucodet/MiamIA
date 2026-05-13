@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.miamia.home.HomeSpacingRules
 import com.miamia.home.MediaPipeStatusIndicator
-import com.miamia.welcome.WelcomeMessageUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -64,7 +63,6 @@ fun CameraScreen(
     val state by viewModel.scanState.collectAsState()
     val additiveKpi by viewModel.additiveKpiDisplay.collectAsState()
     val previewSession by viewModel.previewSession.collectAsState()
-    val welcomeState by viewModel.welcomeUiState.collectAsState()
     val mediaPipeStatus by viewModel.mediaPipeStatus.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -85,13 +83,6 @@ fun CameraScreen(
             viewState = mediaPipeStatus,
             modifier = Modifier.fillMaxWidth()
         )
-        if (welcomeState is WelcomeMessageUiState.Displayed) {
-            Text(
-                text = (welcomeState as WelcomeMessageUiState.Displayed).text,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.testTag("welcome_message_banner")
-            )
-        }
 
         when (state) {
             ScanState.PermissionDenied -> {
