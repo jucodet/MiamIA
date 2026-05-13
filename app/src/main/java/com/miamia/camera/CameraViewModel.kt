@@ -131,8 +131,11 @@ class CameraViewModel(
      * sans dépendre du catalogue de production. Aucune utilisation en code de production.
      */
     @VisibleForTesting
-    fun debugForceWelcomeDisplayedForTests(text: String = "Bienvenue (test)") {
-        _welcomeUiState.value = WelcomeMessageUiState.Displayed(text)
+    fun debugForceWelcomeDisplayedForTests(
+        text: String = "Bienvenue (test)",
+        messageId: String = "test-welcome-id"
+    ) {
+        _welcomeUiState.value = WelcomeMessageUiState.Displayed(text = text, messageId = messageId)
     }
 
     /** Exclus tests unitaires — simule un OCR terminé avant l’étape composition. */
