@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -63,7 +62,6 @@ fun CameraScreen(
     val previewSession by viewModel.previewSession.collectAsState()
     val welcomeState by viewModel.welcomeUiState.collectAsState()
     val mediaPipeStatus by viewModel.mediaPipeStatus.collectAsState()
-    val ingredientsFramingTag by viewModel.ingredientsFramingTagActive.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Le flag suit la présence effective de la route capture dans la navigation Compose.
@@ -395,17 +393,6 @@ fun CameraScreen(
                             }
                         }
                     }
-
-                    FilterChip(
-                        selected = ingredientsFramingTag,
-                        onClick = {
-                            viewModel.setIngredientsFramingTagActive(!ingredientsFramingTag)
-                        },
-                        label = { Text("Balise ingrédients") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("ingredients_framing_tag_chip")
-                    )
 
                     Button(
                         onClick = { viewModel.capturePhoto(onCreateTempImage()) },

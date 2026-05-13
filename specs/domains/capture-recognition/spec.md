@@ -11,6 +11,8 @@ Capturer une image produit de facon fiable, produire un `RawOcrText` rattache a 
 - Gestion temporaire des photos (ephemeres, suppression fin de cycle).
 - Emission de donnees brutes vers l'ACL de normalisation.
 
+**Ref. domaine aval** : lorsque l’intention produit « balise / mode ingrédients » est portée **uniquement** par l’UI de capture (choix utilisateur avant la photo), ce signal est consommé par `ingredient-normalization-validation` pour l’enchaînement analyse sans écran de validation du segment (FR-010). Ce domaine ne redéfinit pas les règles d’ancrage ni le gate — voir `specs/domains/ingredient-normalization-validation/contracts/session-capture-intent-for-implicit-validation.md`.
+
 ## Invariants
 
 - Chaque `RawOcrText` appartient a une `ScanSession`.
