@@ -7,11 +7,12 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -172,90 +173,125 @@ fun CameraScreen(
             is ScanState.BilanReady -> {
                 val bilanState = state as ScanState.BilanReady
                 var showRaw by remember { mutableStateOf(false) }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    BilanResultCard(
-                        bilan = bilanState.bilan,
-                        rawTranscript = bilanState.rawTranscript,
-                        additiveKpi = additiveKpi,
-                        showRaw = showRaw,
-                        onToggleRaw = { showRaw = !showRaw },
-                        inferenceTimeMs = bilanState.inferenceTimeMs
-                    )
-                    Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
-                        Text("Nouveau scan")
+                ScrollableReviewWithPrimaryActions(
+                    scrollTestTag = "bilan_review_scroll",
+                    scrollableContent = {
+                        BilanResultCard(
+                            bilan = bilanState.bilan,
+                            rawTranscript = bilanState.rawTranscript,
+                            additiveKpi = additiveKpi,
+                            showRaw = showRaw,
+                            onToggleRaw = { showRaw = !showRaw },
+                            inferenceTimeMs = bilanState.inferenceTimeMs
+                        )
+                    },
+                    footerActions = {
+                        Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
+                            Text("Nouveau scan")
+                        }
                     }
-                }
+                )
             }
 
             is ScanState.GemmaUnavailable -> {
                 val g = state as ScanState.GemmaUnavailable
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Analyse composition", style = MaterialTheme.typography.titleMedium)
-                    Text(g.message, modifier = Modifier.testTag("gemma_error_message"))
-                    Button(
-                        onClick = viewModel::retryCompositionAnalysis,
-                        modifier = Modifier.testTag("retry_composition_button")
-                    ) {
-                        Text("Réessayer l'analyse")
+                ScrollableReviewWithPrimaryActions(
+                    scrollTestTag = "gemma_unavailable_scroll",
+                    scrollableContent = {
+                        Text("Analyse composition", style = MaterialTheme.typography.titleMedium)
+                        Text(g.message, modifier = Modifier.testTag("gemma_error_message"))
+                    },
+                    footerActions = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Button(
+                                onClick = viewModel::retryCompositionAnalysis,
+                                modifier = Modifier.testTag("retry_composition_button")
+                            ) {
+                                Text("Réessayer l'analyse")
+                            }
+                            OutlinedButton(
+                                onClick = viewModel::showRawTranscriptOnly,
+                                modifier = Modifier.testTag("show_raw_transcript_button")
+                            ) {
+                                Text("Voir le texte brut")
+                            }
+                            OutlinedButton(
+                                onClick = onChooseGemmaModel,
+                                modifier = Modifier.testTag("choose_gemma_model_button")
+                            ) {
+                                Text("Choisir un modele Gemma")
+                            }
+                            Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
+                                Text("Nouveau scan")
+                            }
+                        }
                     }
-                    OutlinedButton(
-                        onClick = viewModel::showRawTranscriptOnly,
-                        modifier = Modifier.testTag("show_raw_transcript_button")
-                    ) {
-                        Text("Voir le texte brut")
-                    }
-                    OutlinedButton(
-                        onClick = onChooseGemmaModel,
-                        modifier = Modifier.testTag("choose_gemma_model_button")
-                    ) {
-                        Text("Choisir un modele Gemma")
-                    }
-                    Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
-                        Text("Nouveau scan")
-                    }
-                }
+                )
             }
 
             is ScanState.CompositionLimit -> {
                 val c = state as ScanState.CompositionLimit
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(c.message, style = MaterialTheme.typography.bodyLarge)
-                    OutlinedButton(
-                        onClick = viewModel::showRawTranscriptOnly,
-                        modifier = Modifier.testTag("composition_limit_show_raw")
-                    ) {
-                        Text("Voir le texte capturé")
+                ScrollableReviewWithPrimaryActions(
+                    scrollTestTag = "composition_limit_scroll",
+                    scrollableContent = {
+                        Text(c.message, style = MaterialTheme.typography.bodyLarge)
+                    },
+                    footerActions = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = viewModel::showRawTranscriptOnly,
+                                modifier = Modifier.testTag("composition_limit_show_raw")
+                            ) {
+                                Text("Voir le texte capturé")
+                            }
+                            Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
+                                Text("Nouveau scan")
+                            }
+                        }
                     }
-                    Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
-                        Text("Nouveau scan")
-                    }
-                }
+                )
             }
 
             is ScanState.Success -> {
-                Text("Analyse terminée")
-                Text((state as ScanState.Success).transcriptText)
-                (state as ScanState.Success).items.forEach { Text("- $it") }
-                Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
-                    Text("Nouveau scan")
-                }
+                val success = state as ScanState.Success
+                ScrollableReviewWithPrimaryActions(
+                    scrollTestTag = "captured_review_scroll",
+                    scrollableContent = {
+                        Text("Analyse terminée", style = MaterialTheme.typography.titleMedium)
+                        Text(success.transcriptText, style = MaterialTheme.typography.bodyMedium)
+                        success.items.forEach { line ->
+                            Text("- $line", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    },
+                    footerActions = {
+                        Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("new_scan_button")) {
+                            Text("Nouveau scan")
+                        }
+                    }
+                )
             }
             is ScanState.SegmentConfirmationRequired -> {
                 val confirmation = state as ScanState.SegmentConfirmationRequired
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Text("Vérifier la liste d'ingrédients", style = MaterialTheme.typography.titleMedium)
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f, fill = false)
-                            .heightIn(max = 280.dp)
+                            .weight(1f)
                             .verticalScroll(rememberScrollState())
-                            .testTag("segment_preview_scroll")
+                            .testTag("segment_preview_scroll"),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
                             text = confirmation.segmentPreview,
@@ -392,6 +428,32 @@ fun CameraScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ColumnScope.ScrollableReviewWithPrimaryActions(
+    scrollTestTag: String,
+    scrollableContent: @Composable () -> Unit,
+    footerActions: @Composable () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .testTag(scrollTestTag),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            scrollableContent()
+        }
+        footerActions()
     }
 }
 
