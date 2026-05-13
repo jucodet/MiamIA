@@ -8,16 +8,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -45,10 +46,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.miamia.home.HomeSpacingRules
 import com.miamia.home.MediaPipeStatusIndicator
-import com.miamia.welcome.WelcomeMessageUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
+
+private const val CapturePrimaryActionLabel = "Y a quoi là-dedans ?"
+
+/** Libellé explicite état prêt (Feature F — plus de « Aperçu caméra actif » / « Disponible » seul). */
+private const val CapturePreviewReadyStatusLabel = "Caméra prête — vous pouvez scanner"
 
 @Composable
 fun CameraScreen(
@@ -61,9 +66,7 @@ fun CameraScreen(
     val state by viewModel.scanState.collectAsState()
     val additiveKpi by viewModel.additiveKpiDisplay.collectAsState()
     val previewSession by viewModel.previewSession.collectAsState()
-    val welcomeState by viewModel.welcomeUiState.collectAsState()
     val mediaPipeStatus by viewModel.mediaPipeStatus.collectAsState()
-    val ingredientsFramingTag by viewModel.ingredientsFramingTagActive.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Le flag suit la présence effective de la route capture dans la navigation Compose.
@@ -83,13 +86,6 @@ fun CameraScreen(
             viewState = mediaPipeStatus,
             modifier = Modifier.fillMaxWidth()
         )
-        if (welcomeState is WelcomeMessageUiState.Displayed) {
-            Text(
-                text = (welcomeState as WelcomeMessageUiState.Displayed).text,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.testTag("welcome_message_banner")
-            )
-        }
 
         when (state) {
             ScanState.PermissionDenied -> {
@@ -110,46 +106,39 @@ fun CameraScreen(
 
             is ScanState.CameraUnavailable -> {
                 val unavailable = state as ScanState.CameraUnavailable
-                Text(
-                    text = "Caméra indisponible: ${unavailable.reason ?: "erreur inconnue"}",
-                    modifier = Modifier
-                        .semantics { contentDescription = "Message caméra indisponible avec détail" }
-                        .testTag("camera_unavailable_message")
-                )
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(360.dp)
-                        .testTag("photo_preview_placeholder"),
-                    contentAlignment = Alignment.Center
+                        .weight(1f, fill = true),
+                    verticalArrangement = Arrangement.spacedBy(HomeSpacingRules.standardFixedSpacing)
                 ) {
                     Text(
-                        text = "Prévisualisation désactivée — la caméra n'est pas disponible.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
+                        text = "Caméra indisponible: ${unavailable.reason ?: "erreur inconnue"}",
+                        modifier = Modifier
+                            .semantics { contentDescription = "Message caméra indisponible avec détail" }
+                            .testTag("camera_unavailable_message")
                     )
-                }
-                Button(
-                    onClick = { viewModel.capturePhoto(onCreateTempImage()) },
-                    enabled = viewModel.canCapturePhoto(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("capture_photo_button")
-                ) {
-                    Text("Prendre la photo")
-                }
-                OutlinedButton(
-                    onClick = viewModel::runCameraTabLlmMockTest,
-                    enabled = viewModel.canRunCameraTabLlmTest(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
-                        .testTag("camera_tab_llm_test_button")
-                ) {
-                    Text("Test LLM")
-                }
-                Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("retry_camera")) {
-                    Text("Réessayer")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = true)
+                            .heightIn(min = 200.dp, max = 480.dp)
+                            .testTag("photo_preview_placeholder"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Prévisualisation désactivée — la caméra n'est pas disponible.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                    CaptureActionBar(
+                        onCapture = { viewModel.capturePhoto(onCreateTempImage()) },
+                        canCapture = viewModel.canCapturePhoto()
+                    )
+                    Button(onClick = viewModel::onRetry, modifier = Modifier.testTag("retry_camera")) {
+                        Text("Réessayer")
+                    }
                 }
             }
 
@@ -339,12 +328,18 @@ fun CameraScreen(
             ScanState.Analyzing -> {
                 var focusTapOffset by remember { mutableStateOf<Offset?>(null) }
                 var focusTapKey by remember { mutableIntStateOf(0) }
-                Column(verticalArrangement = Arrangement.spacedBy(HomeSpacingRules.standardFixedSpacing)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = true),
+                    verticalArrangement = Arrangement.spacedBy(HomeSpacingRules.standardFixedSpacing)
+                ) {
                     key(previewSession) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(360.dp)
+                                .weight(1f, fill = true)
+                                .heightIn(min = 220.dp, max = 480.dp)
                                 .testTag("photo_preview_box")
                         ) {
                             CameraPreviewBox(
@@ -396,49 +391,54 @@ fun CameraScreen(
                         }
                     }
 
-                    FilterChip(
-                        selected = ingredientsFramingTag,
-                        onClick = {
-                            viewModel.setIngredientsFramingTagActive(!ingredientsFramingTag)
-                        },
-                        label = { Text("Balise ingrédients") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("ingredients_framing_tag_chip")
+                    CaptureActionBar(
+                        onCapture = { viewModel.capturePhoto(onCreateTempImage()) },
+                        canCapture = viewModel.canCapturePhoto()
                     )
-
-                    Button(
-                        onClick = { viewModel.capturePhoto(onCreateTempImage()) },
-                        enabled = viewModel.canCapturePhoto(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("capture_photo_button")
-                    ) {
-                        Text("Prendre la photo")
-                    }
-                    OutlinedButton(
-                        onClick = viewModel::runCameraTabLlmMockTest,
-                        enabled = viewModel.canRunCameraTabLlmTest(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { contentDescription = "Lancer le test LLM (données de démonstration)" }
-                            .testTag("camera_tab_llm_test_button")
-                    ) {
-                        Text("Test LLM")
-                    }
 
                     Text(
                         text = when (state) {
-                            ScanState.PreviewActive -> "Aperçu caméra actif"
+                            ScanState.PreviewActive -> CapturePreviewReadyStatusLabel
                             ScanState.PreviewInitializing -> "Démarrage de l'aperçu caméra…"
                             ScanState.Capturing -> "Capture en cours…"
                             ScanState.Analyzing -> "Traitement de l'image…"
                             else -> "Préparez le cadrage"
                         },
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.testTag("capture_scan_status_text")
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Bande d'action de capture (incrément 020) — placée **sous** l'aperçu vidéo, en dehors de
+ * la `Box` portant le test tag `photo_preview_box` / `photo_preview_placeholder`, afin de
+ * garantir CR-FR-009 (aucun bouton ne recouvre l'aperçu) et CR-FR-010 (bande dédiée).
+ *
+ * Un `Spacer` interne assure une séparation visuelle non ambiguë (≥ 16 dp cumulés avec
+ * l'espacement de la `Column` parente) entre l'aperçu et le premier bouton.
+ */
+@Composable
+private fun CaptureActionBar(
+    onCapture: () -> Unit,
+    canCapture: Boolean,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = onCapture,
+            enabled = canCapture,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("capture_photo_button")
+        ) {
+            Text(CapturePrimaryActionLabel)
         }
     }
 }

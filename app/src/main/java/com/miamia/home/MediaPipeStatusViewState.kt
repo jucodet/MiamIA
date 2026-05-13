@@ -20,7 +20,7 @@ data class MediaPipeStatusViewState(
 
         fun available(): MediaPipeStatusViewState = MediaPipeStatusViewState(
             state = MediaPipeStatusState.AVAILABLE,
-            label = "Disponible",
+            label = "Détection d'étiquette prête",
             colorToken = MediaPipeStatusColorToken.SUCCESS
         )
 
