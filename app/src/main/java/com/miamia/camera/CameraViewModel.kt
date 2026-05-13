@@ -30,6 +30,7 @@ import com.miamia.permissions.CameraPermissionHandler
 import com.miamia.recognition.IngredientRecognitionCoordinator
 import com.miamia.recognition.ScanFailureClassifier
 import com.miamia.gemma4local.Gemma4LocalAvailabilityChecker
+import com.miamia.home.HomeLlmFailureCategory
 import com.miamia.home.MediaPipeLlmAvailabilityProbe
 import com.miamia.home.MediaPipeStatusViewState
 import com.miamia.welcome.WelcomeDisplayLogger
