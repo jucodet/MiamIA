@@ -24,7 +24,7 @@ Capturer une image produit de facon fiable, produire un `RawOcrText` rattache a 
 - CR-FR-002: le domaine MUST executer OCR sur l'appareil et publier le texte extrait sans envoi image/texte vers un service distant.
 - CR-FR-003: le domaine MUST exposer des etats utilisateurs explicites (verification readiness, analyse en cours, succes, echec) sans blocage silencieux.
 - CR-FR-004: le domaine MUST nettoyer les artefacts temporaires de capture en succes, annulation et erreur.
-- CR-FR-005: le domaine MUST refuser la progression vers l'analyse amont si le texte OCR est vide ou inexploitable. *(Note sync 2026-05-12 : le blocage est assuré par CameraViewModel, pas par ScanFailureClassifier directement. Le comportement est aligné ; l'architecture interne n'est pas prescrite par cette spec.)*
+- CR-FR-005: le domaine MUST refuser la progression vers l'analyse amont si le texte OCR est vide ou inexploitable.
 
 ## Cross-domain Notes
 

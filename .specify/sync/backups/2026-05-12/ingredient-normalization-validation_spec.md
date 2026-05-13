@@ -4,7 +4,7 @@
 **Domain Context**: `ingredient-normalization-validation`  
 **Target Domain Folder**: `specs/domains/ingredient-normalization-validation`  
 **Created**: 2026-05-06  
-**Status**: Draft — *Backfill P12 applied 2026-05-12*  
+**Status**: Draft  
 **Input**: User description: "Modifier la capture OCR pour prendre en compte le caractère '.' suivi d'un espace ou d'un retour à la ligne comme fin de capture de la liste d'ingrédients. Un point non suivi d'un espace ou retour à la ligne (ex. abréviations, codes additifs) ne constitue pas une fin de capture."
 
 ## Clarifications
@@ -91,7 +91,7 @@ En tant qu'utilisatrice, si le texte ne permet pas d'appliquer la règle d'ancra
 - **FR-006**: Lorsque plusieurs occurrences d'une ancre reconnue (française ou anglaise selon FR-002) existent, le système MUST **ignorer** toute occurrence autre que la première pour construire la proposition automatique.
 - **FR-007**: Le système MUST afficher la proposition isolée à l'utilisatrice et exiger une **confirmation explicite** avant de lancer une analyse santé ou composition qui repose sur cette liste.
 - **FR-008**: Le système MUST refuser de lancer une analyse aval sur une liste non confirmée ou lorsque l'ancre est absente, la proposition est vide ou manifestement inexploitable comme liste, avec un message compréhensible et une voie de reprise (nouvelle capture ou correction selon le parcours existant).
-- **FR-009**: Le système MUST conserver, au minimum en mémoire pendant la session active, la traçabilité entre le texte brut fourni pour l’étiquette (`scanId`), la proposition isolée et le segment validé après confirmation. La persistance au-delà de la session est une évolution souhaitable mais non bloquante pour le MVP. *(Backfill P12 — 2026-05-12 : traçabilité mémoire via scanId suffisante pour le MVP ; persistance Room reportée.)*
+- **FR-009**: Le système MUST conserver la traçabilité entre le texte brut fourni pour l'étiquette, la proposition isolée et le segment validé après confirmation.
 
 ### Key Entities *(include if feature involves data)*
 

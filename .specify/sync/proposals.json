@@ -1,0 +1,264 @@
+{
+  "generated": "2026-05-12T17:29:00+02:00",
+  "based_on": "drift-report from 2026-05-12T17:14:00+02:00",
+  "summary": {
+    "backfill": 7,
+    "align": 6,
+    "new_specs": 3,
+    "remove_from_spec": 0,
+    "human_decision": 0
+  },
+  "proposals": [
+    {
+      "id": "P1",
+      "spec": "user-guidance-experience/photo-capture-llm-result-flow",
+      "requirements": [
+        "FR-006",
+        "FR-007",
+        "FR-013",
+        "FR-014"
+      ],
+      "direction": "BACKFILL",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Réécrire les 4 FRs pour refléter le flux streaming progressif sur l'écran résultat",
+      "phase": 1
+    },
+    {
+      "id": "P2",
+      "spec": "user-guidance-experience/photo-capture-llm-result-flow",
+      "requirements": [
+        "FR-017",
+        "FR-018"
+      ],
+      "direction": "BACKFILL+ALIGN",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Backfill FR-017 (état d'attente streaming accepté) + Align FR-018 (connecter fallback OCR à LlmResultScreen)",
+      "phase_backfill": 1,
+      "phase_align": 3
+    },
+    {
+      "id": "P3",
+      "spec": "user-guidance-experience/llm-download-onboarding",
+      "requirements": [
+        "FR-002",
+        "FR-011"
+      ],
+      "direction": "BACKFILL",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Spec s'aligne sur le code : 'Refuser et quitter' + finishAffinity()",
+      "phase": 1
+    },
+    {
+      "id": "P4",
+      "spec": "user-guidance-experience/llm-download-onboarding",
+      "requirements": [
+        "FR-008"
+      ],
+      "direction": "BACKFILL",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "AnimatedMarmite avec progression intégrée remplace le fouet dans la spec",
+      "phase": 1
+    },
+    {
+      "id": "P5",
+      "spec": "user-guidance-experience/llm-download-onboarding",
+      "requirements": [
+        "FR-013"
+      ],
+      "direction": "ALIGN",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Implémenter la vraie reprise HTTP Range dans GemmaModelDownloader",
+      "phase": 3,
+      "files_to_modify": [
+        "app/src/main/java/com/miamia/gemma4local/GemmaModelDownloader.kt",
+        "app/src/main/java/com/miamia/onboarding/ModelDownloadViewModel.kt"
+      ]
+    },
+    {
+      "id": "P6",
+      "spec": "ingredient-health-intelligence/test-llm-mock-ingredients",
+      "requirements": [
+        "FR-002",
+        "FR-010"
+      ],
+      "direction": "ALIGN",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Restaurer les diacritiques dans MOCK_INGREDIENTS_INPUT",
+      "phase": 2,
+      "files_to_modify": [
+        "app/src/main/java/com/miamia/home/HomeLlmMockRunner.kt"
+      ]
+    },
+    {
+      "id": "P7",
+      "spec": "ingredient-health-intelligence/test-llm-mock-ingredients",
+      "requirements": [
+        "FR-008"
+      ],
+      "direction": "BACKFILL",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Timeout spec mis à jour de 30s à 180s (réalisme Gemma local)",
+      "phase": 1
+    },
+    {
+      "id": "P8",
+      "spec": "ingredient-health-intelligence/test-llm-mock-ingredients",
+      "requirements": [
+        "FR-003",
+        "FR-005",
+        "FR-011"
+      ],
+      "direction": "ALIGN",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Assertion trim + inputUsed dans outcome + @Tag('manual')",
+      "phase": 2,
+      "files_to_modify": [
+        "app/src/test/java/com/miamia/home/HomeLlmMockTriggerTest.kt",
+        "app/src/main/java/com/miamia/home/HomeViewModel.kt",
+        "app/src/main/java/com/miamia/home/HomeLlmMockRunner.kt"
+      ]
+    },
+    {
+      "id": "P9",
+      "spec": "ingredient-normalization-validation/ingredient-phrase-segment",
+      "requirements": [
+        "FR-001",
+        "FR-004"
+      ],
+      "direction": "ALIGN",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Supprimer enum mortes LINE_END et NO_NEWLINE_TO_EOF",
+      "phase": 2,
+      "files_to_modify": [
+        "app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientSegmentModels.kt"
+      ]
+    },
+    {
+      "id": "P10",
+      "spec": "ingredient-normalization-validation/ingredient-phrase-segment",
+      "requirements": [
+        "FR-002"
+      ],
+      "direction": "ALIGN",
+      "status": "approved",
+      "confidence": "MEDIUM",
+      "summary": "Retirer contrainte début de ligne regex ancre + supprimer duplication",
+      "phase": 3,
+      "files_to_modify": [
+        "app/src/main/java/com/miamia/analysis/ingredientsegment/IngredientAnchorNormalizer.kt",
+        "app/src/main/java/com/miamia/recognition/IngredientExtractionPipeline.kt"
+      ]
+    },
+    {
+      "id": "P11",
+      "spec": "ingredient-normalization-validation/ingredient-phrase-segment",
+      "requirements": [
+        "FR-008"
+      ],
+      "direction": "ALIGN",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Ancre absente → ScanState.Empty avec message explicite et reprise",
+      "phase": 2,
+      "files_to_modify": [
+        "app/src/main/java/com/miamia/camera/CameraViewModel.kt"
+      ]
+    },
+    {
+      "id": "P12",
+      "spec": "ingredient-normalization-validation/ingredient-phrase-segment",
+      "requirements": [
+        "FR-009"
+      ],
+      "direction": "BACKFILL",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Traçabilité mémoire via scanId suffisante pour le MVP",
+      "phase": 1
+    },
+    {
+      "id": "P13",
+      "spec": "capture-recognition",
+      "requirements": [
+        "CR-FR-005"
+      ],
+      "direction": "BACKFILL",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Aucune modification — reclassifier comme aligné",
+      "phase": 1
+    },
+    {
+      "id": "P14",
+      "spec": "ingredient-health-intelligence",
+      "requirements": [],
+      "direction": "NEW_SPEC",
+      "status": "approved",
+      "confidence": "HIGH",
+      "summary": "Backfill spec composition + health critique (1758 lignes non spécifiées)",
+      "phase": 4,
+      "target_file": "specs/domains/ingredient-health-intelligence/spec-composition-health-critique.md",
+      "source_packages": [
+        "app/src/main/java/com/miamia/healthcritique/",
+        "app/src/main/java/com/miamia/composition/"
+      ]
+    },
+    {
+      "id": "P15",
+      "spec": "local-llm-runtime",
+      "requirements": [],
+      "direction": "NEW_SPEC",
+      "status": "approved",
+      "confidence": "MEDIUM",
+      "summary": "Créer domaine local-llm-runtime pour gemma4local/ (902 lignes)",
+      "phase": 4,
+      "target_file": "specs/domains/local-llm-runtime/spec.md",
+      "source_packages": [
+        "app/src/main/java/com/miamia/gemma4local/"
+      ]
+    },
+    {
+      "id": "P16",
+      "spec": "user-guidance-experience",
+      "requirements": [],
+      "direction": "NEW_SPEC",
+      "status": "approved",
+      "confidence": "MEDIUM",
+      "summary": "Backfill welcome/ + nettoyage home/ dans user-guidance-experience",
+      "phase": 4,
+      "source_packages": [
+        "app/src/main/java/com/miamia/welcome/",
+        "app/src/main/java/com/miamia/home/"
+      ]
+    }
+  ],
+  "consolidation_note": {
+    "applied": "2026-05-12",
+    "description": "FR IDs renumbered during domain spec consolidation",
+    "mapping": {
+      "user-guidance-experience": {
+        "spec.md FR-001..FR-021": "now UGE-A-FR-001..UGE-A-FR-021",
+        "spec-llm-download-onboarding.md FR-001..FR-016": "now UGE-B-FR-001..UGE-B-FR-016",
+        "spec-welcome-home.md": "now Feature C placeholder in spec.md"
+      },
+      "ingredient-health-intelligence": {
+        "spec.md FR-001..FR-011": "now IHI-A-FR-001..IHI-A-FR-011",
+        "spec-composition-health-critique.md": "now Feature B placeholder in spec.md"
+      }
+    },
+    "files_removed": [
+      "specs/domains/user-guidance-experience/spec-llm-download-onboarding.md",
+      "specs/domains/user-guidance-experience/spec-welcome-home.md",
+      "specs/domains/ingredient-health-intelligence/spec-composition-health-critique.md"
+    ]
+  }
+}

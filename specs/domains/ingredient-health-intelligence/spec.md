@@ -1,114 +1,157 @@
-# Feature Specification: test-llm-mock-ingredients
+# Domain Spec — ingredient-health-intelligence
 
-**Feature Branch**: `016-test-llm-mock`  
-**Domain Context**: `CompositionAnalysisContext`  
-**Target Domain Folder**: `specs/domains/ingredient-health-intelligence`  
-**Created**: 2026-05-06  
-**Status**: Draft  
-**Input**: User description: "Créer un test bouchonné ne mettant à l'épreuve que le processus de demander au LLM local l'analyse d'une liste d'ingrédients mockée."
+**Domain Context**: `ingredient-health-intelligence`
+**Created**: 2026-05-06
+**Last Modified**: 2026-05-12 (sync-apply consolidation)
+**Status**: Draft
 
-## Clarifications
+## Purpose
 
-### Session 2026-05-06
+Analyser une liste d'ingrédients via le LLM local Gemma pour produire un bilan de composition et une critique santé par population. Ce domaine fournit aussi un test bouchonné isolé pour valider le flux d'appel LLM indépendamment de la capture et de l'OCR.
 
-- Q: Quel est le critère exact de "réponse exploitable" ? → A: Succès si la réponse est non vide et classée comme analysable par le parseur de test (format souple contrôlé).
-- Q: Quelle politique de timeout doit appliquer le test ? → A: Échec automatique si aucune réponse exploitable n'est obtenue dans une fenêtre de 30 secondes (timeout strict).
-- Q: Quelles catégories d'échec doivent être tracées ? → A: Tracer exactement 3 catégories: timeout, runtime-unavailable, non-analysable-response.
-- Q: Quelle règle d'égalité doit s'appliquer à l'entrée mockée ? → A: Égalité stricte caractère par caractère entre la chaîne mockée et la charge envoyée.
-- Q: Quelle politique de validation projet doit s'appliquer à ce test ? → A: Le test est manuel uniquement, hors validation régulière.
+## Scope
 
-## User Scenarios & Testing *(mandatory)*
+- Test bouchonné du flux LLM local (entrée mockée → analyse → résultat/échec)
+- Analyse de composition (bilan ingrédients via Gemma)
+- Critique santé par population (enfants, femmes enceintes, adultes, personnes âgées)
+- Gestion des erreurs et limites (timeout, modèle indisponible, réponse non analysable)
+- Persistance et consultation du dernier résultat
+- Copie et partage des résultats
 
-### User Story 1 - Valider le flux d'appel LLM local (Priority: P1)
+## Invariants
 
-En tant que développeuse, je veux lancer un test bouchonné avec une liste d'ingrédients mockée fixe afin de vérifier que le processus d'envoi vers le LLM local et de réception de réponse fonctionne de bout en bout, indépendamment de l'OCR et de la capture caméra.
-
-**Why this priority**: Ce flux est le coeur de la valeur d'analyse; s'il est instable, les autres couches n'apportent pas de valeur fiable.
-
-**Independent Test**: Peut être validé en exécutant uniquement le test bouchonné avec la chaîne d'entrée figée, puis en vérifiant qu'une réponse d'analyse est renvoyée sans dépendre de la caméra ou de l'OCR.
-
-**Acceptance Scenarios**:
-
-1. **Given** une entrée mockée exactement égale à la liste d'ingrédients de référence, **When** le processus d'analyse est déclenché, **Then** la requête est transmise au moteur LLM local et une réponse exploitable est renvoyée.
-2. **Given** le test bouchonné isolé des autres modules, **When** le test s'exécute, **Then** aucune dépendance à la capture caméra, à l'OCR ou à une entrée utilisateur interactive n'est requise.
+- Chaque résultat d'analyse est associé à l'entrée qui l'a produit (traçabilité).
+- Les catégories d'échec sont normalisées : `timeout`, `runtime-unavailable`, `non-analysable-response`.
+- Le test bouchonné est exécutable manuellement, hors suites automatiques.
 
 ---
 
-### User Story 2 - Garantir l'intégrité de l'entrée analysée (Priority: P2)
+## Feature A — Test LLM Mock Ingredients
 
-En tant que développeuse, je veux que la chaîne d'ingrédients mockée soit transmise telle quelle pour confirmer que l'analyse produite correspond exactement au texte source attendu.
+> Origine : `016-test-llm-mock`
+> Input : "Créer un test bouchonné ne mettant à l'épreuve que le processus de demander au LLM local l'analyse d'une liste d'ingrédients mockée."
 
-**Why this priority**: L'analyse perd sa crédibilité si l'entrée transmise diffère du texte de référence du test.
+### Clarifications (Feature A)
 
-**Independent Test**: Peut être validé en comparant la charge utile effectivement analysée avec la chaîne mockée définie dans le scénario.
+#### Session 2026-05-06
+
+- Q: Critère de "réponse exploitable" ? → A: Succès si non vide et classée analysable par le parseur de test.
+- Q: Politique de timeout ? → A: 180 secondes (timeout strict). *(Backfill P7 — 2026-05-12 : 30 s → 180 s pour réalisme Gemma local.)*
+- Q: Catégories d'échec ? → A: `timeout`, `runtime-unavailable`, `non-analysable-response`.
+- Q: Règle d'égalité entrée mockée ? → A: Stricte caractère par caractère.
+- Q: Politique de validation projet ? → A: Test manuel uniquement, hors validation régulière.
+
+### User Scenarios (Feature A)
+
+#### US-A1 — Valider le flux d'appel LLM local (P1)
+
+En tant que développeuse, je veux lancer un test bouchonné avec une liste d'ingrédients mockée fixe afin de vérifier le flux d'envoi vers le LLM local et de réception de réponse, indépendamment de l'OCR et de la capture.
 
 **Acceptance Scenarios**:
 
-1. **Given** la chaîne mockée de référence, **When** le processus construit la demande d'analyse, **Then** la charge utile conserve exactement le même contenu textuel.
-2. **Given** une analyse terminée, **When** le résultat est journalisé dans le contexte de test, **Then** la trace associe explicitement le résultat à la chaîne d'entrée mockée.
+1. **Given** entrée mockée exactement égale à la référence, **When** analyse déclenchée, **Then** requête transmise au moteur LLM local et réponse exploitable renvoyée.
+2. **Given** test isolé des autres modules, **When** test exécuté, **Then** aucune dépendance à la caméra, l'OCR ou une entrée interactive.
 
----
+#### US-A2 — Garantir l'intégrité de l'entrée analysée (P2)
 
-### User Story 3 - Rendre les échecs explicites dans le test (Priority: P3)
+En tant que développeuse, je veux que la chaîne mockée soit transmise telle quelle pour confirmer que l'analyse correspond exactement au texte source.
+
+**Acceptance Scenarios**:
+
+1. **Given** chaîne mockée de référence, **When** demande d'analyse construite, **Then** charge utile conserve exactement le même contenu textuel.
+2. **Given** analyse terminée, **When** résultat journalisé, **Then** trace associe explicitement le résultat à l'entrée mockée.
+
+#### US-A3 — Rendre les échecs explicites (P3)
 
 En tant que développeuse, je veux un comportement d'échec lisible pour distinguer un problème de runtime local d'un problème de logique du test.
 
-**Why this priority**: Des erreurs ambiguës ralentissent le diagnostic et la stabilisation de la fonctionnalité.
-
-**Independent Test**: Peut être validé en simulant l'absence de réponse du runtime local et en vérifiant qu'un résultat d'échec explicite est produit.
-
 **Acceptance Scenarios**:
 
-1. **Given** un runtime local indisponible pendant le test, **When** la demande d'analyse est lancée, **Then** le test renvoie un état d'échec explicite et actionnable.
+1. **Given** runtime local indisponible, **When** demande lancée, **Then** état d'échec explicite et actionnable.
+
+#### Edge Cases (Feature A)
+
+- Chaîne mockée vide ou sans ingrédients exploitables.
+- Runtime local répond avec un contenu non interprétable.
+- Réponse dépasse le délai attendu.
+
+### Functional Requirements (Feature A)
+
+- **IHI-A-FR-001**: Le système MUST exécuter un test bouchonné dédié au flux d'analyse LLM local sans dépendre de la capture caméra ni de l'OCR.
+- **IHI-A-FR-002**: Le système MUST utiliser comme entrée de test unique la chaîne mockée suivante :
+  `Ingredients. Sucre, farine de BLÉ 33 %, farine complète de BLÉ 15 %, huile de palme, huile de colza, amidon de BLÉ, sirop de glucose, poudres à lever (carbonates d'ammonium, carbonates de sodium), émulsifiant (lécithines de SOJA), sel, LAIT écrémé en poudre, LAIT entier en poudre, arômes.`
+- **IHI-A-FR-003**: Le système MUST transmettre l'entrée mockée sans altération de contenu au processus d'analyse.
+- **IHI-A-FR-004**: Le système MUST retourner un résultat indiquant clairement soit une analyse reçue, soit un échec explicite.
+- **IHI-A-FR-005**: Le système MUST associer chaque résultat du test à l'entrée mockée utilisée pour traçabilité.
+- **IHI-A-FR-006**: Le système MUST permettre l'exécution répétable du même scénario avec les mêmes attentes.
+- **IHI-A-FR-007**: Le système MUST considérer une réponse comme exploitable uniquement si non vide et classée analysable par le parseur de test.
+- **IHI-A-FR-008**: Le système MUST échouer automatiquement le test si aucune réponse exploitable n'est obtenue dans une fenêtre de 180 secondes. *(Backfill P7 — 2026-05-12 : 30 s → 180 s pour réalisme Gemma local.)*
+- **IHI-A-FR-009**: Le système MUST classifier chaque échec dans : `timeout`, `runtime-unavailable`, `non-analysable-response`.
+- **IHI-A-FR-010**: Le système MUST vérifier une égalité stricte caractère par caractère entre `MockIngredientInput` et la charge transmise.
+- **IHI-A-FR-011**: Le système MUST être exécutable manuellement et ne fait pas partie des contrôles bloquants réguliers.
+
+### Key Entities (Feature A)
+
+- **MockIngredientInput**: Chaîne d'ingrédients de référence du test.
+- **LlmAnalysisRequest**: Demande d'analyse générée à partir de `MockIngredientInput`.
+- **LlmAnalysisOutcome**: Résultat observable (succès avec contenu, ou échec avec raison).
+- **TestTraceRecord**: Lien de traçabilité entre entrée mockée, demande envoyée et résultat.
+
+### Success Criteria (Feature A)
+
+- **SC-A-001**: 100 % des exécutions → chaîne mockée de référence utilisée.
+- **SC-A-002**: ≥ 95 % des exécutions en environnement prêt → réponse exploitable en < 180 s.
+- **SC-A-003**: 100 % des échecs → état d'erreur explicite avec catégorie identifiable.
+- **SC-A-004**: Scénario reproductible sur ≥ 3 exécutions successives.
+- **SC-A-005**: 100 % des succès → réponse non vide classée analysable.
+- **SC-A-006**: 100 % des exécutions > 180 s sans réponse → marquées `timeout`.
+- **SC-A-007**: 100 % des échecs → catégorie dans la liste définie.
+- **SC-A-008**: 100 % des requêtes → texte source conservé (égalité caractère par caractère).
 
 ---
 
-### Edge Cases
+## Feature B — Composition & Health Critique (Placeholder)
 
-- Que se passe-t-il si la chaîne mockée est vide ou ne contient pas d'ingrédients exploitables?
-- Comment le flux réagit-il si le runtime local répond avec un contenu non interprétable?
-- Que se passe-t-il si la réponse dépasse le délai attendu pour le scénario de test?
+> Origine : sync-apply P14, 2026-05-12
+> Source packages : `healthcritique/` (13 fichiers, ~1030 lignes), `composition/` (9 fichiers, ~728 lignes)
+> Status : à compléter via `/speckit-sync-backfill`
 
-## Requirements *(mandatory)*
+### Scope (Feature B)
 
-### Functional Requirements
+#### Analyse de composition (`composition/`)
+- Bilan ingrédients via Gemma local (`CompositionAnalysisEngine`)
+- Parser bilan (`CompositionBilanParser`)
+- Validation résultat (`CompositionResultValidator`)
+- Messages d'erreur (`CompositionErrorMessages`)
+- Modèles de données composition
 
-- **FR-001**: Le système MUST exécuter un test bouchonné dédié au flux d'analyse LLM local sans dépendre de la capture caméra ni de l'OCR.
-- **FR-002**: Le système MUST utiliser comme entrée de test unique la chaîne mockée suivante:
-  `Ingredients. Sucre, farine de BLÉ 33 %, farine complète de BLÉ 15 %, huile de palme, huile de colza, amidon de BLÉ, sirop de glucose, poudres à lever (carbonates d'ammonium, carbonates de sodium), émulsifiant (lécithines de SOJA), sel, LAIT écrémé en poudre, LAIT entier en poudre, arômes.`
-- **FR-003**: Le système MUST transmettre l'entrée mockée sans altération de contenu au processus d'analyse.
-- **FR-004**: Le système MUST retourner un résultat indiquant clairement soit une analyse reçue, soit un échec explicite.
-- **FR-007**: Le système MUST considérer une réponse comme exploitable uniquement si elle est non vide et classée analysable par le parseur de test.
-- **FR-005**: Le système MUST associer chaque résultat du test à l'entrée mockée utilisée pour assurer la traçabilité.
-- **FR-006**: Le système MUST permettre l'exécution répétable du même scénario avec le même jeu de données et des attentes identiques.
-- **FR-008**: Le système MUST échouer automatiquement le test si aucune réponse exploitable n'est obtenue dans une fenêtre de 30 secondes.
-- **FR-009**: Le système MUST classifier chaque échec dans l'une des catégories suivantes: `timeout`, `runtime-unavailable`, `non-analysable-response`.
-- **FR-010**: Le système MUST vérifier une égalité stricte caractère par caractère entre `MockIngredientInput` et la charge textuelle transmise à l'analyse.
-- **FR-011**: Le système MUST être exécutable manuellement pour validation ciblée et ne fait pas partie des contrôles bloquants réguliers de validation feature.
+#### Critique santé (`healthcritique/`)
+- Moteur de critique santé par population (`HealthCritiqueEngine`)
+- Prompt builder (`HealthCritiquePromptBuilder`)
+- Section parser (`HealthCritiqueSectionParser`)
+- Écrans UI (résultat critique, clipboard)
+- Persistance snapshot dernier résultat
+- Gestion des erreurs et limites
 
-### Key Entities *(include if feature involves data)*
+### Functional Requirements (Feature B)
 
-- **MockIngredientInput**: Représente la chaîne d'ingrédients de référence utilisée par le test bouchonné.
-- **LlmAnalysisRequest**: Représente la demande d'analyse générée à partir de `MockIngredientInput` pour le runtime local.
-- **LlmAnalysisOutcome**: Représente le résultat observable du test (succès avec contenu d'analyse, ou échec explicite avec raison).
-- **TestTraceRecord**: Représente le lien de traçabilité entre l'entrée mockée, la demande envoyée et le résultat obtenu.
+- *(à extraire du code via `/speckit-sync-backfill`)*
 
-## Success Criteria *(mandatory)*
+---
 
-### Measurable Outcomes
+## Cross-domain Notes
 
-- **SC-001**: 100% des exécutions du test bouchonné utilisent exactement la chaîne mockée de référence comme entrée d'analyse.
-- **SC-002**: En environnement local prêt, au moins 95% des exécutions produisent une réponse d'analyse exploitable en moins de 30 secondes.
-- **SC-003**: 100% des échecs d'exécution retournent un état d'erreur explicite permettant d'identifier la catégorie de panne.
-- **SC-004**: Le scénario de test est reproductible à l'identique sur au moins 3 exécutions successives sans variation des critères d'acceptation.
-- **SC-005**: 100% des résultats marqués "succès" correspondent à une réponse non vide classée analysable par le parseur de test.
-- **SC-006**: 100% des exécutions dépassant 30 secondes sans réponse exploitable sont marquées en échec timeout.
-- **SC-007**: 100% des exécutions en échec sont étiquetées dans l'une des 3 catégories définies, sans catégorie hors-liste.
-- **SC-008**: 100% des requêtes d'analyse du test conservent strictement le texte source (égalité caractère par caractère validée).
+- Consomme le segment validé de `ingredient-normalization-validation`.
+- Utilise le gateway de `local-llm-runtime` pour l'inférence.
+- L'orchestration UX est gérée par `user-guidance-experience`.
+- Les KPI additifs détaillés sont du ressort de `additive-risk-insights`.
+
+## Source Mapping
+
+- `specs/016-test-llm-mock/` (Feature A)
 
 ## Assumptions
 
-- Le runtime LLM local est déjà installé et utilisable dans l'environnement de développement ciblé.
-- Le test bouchonné vise uniquement le flux d'appel et de réponse, pas la qualité nutritionnelle intrinsèque de la réponse.
-- La chaîne mockée fournie est considérée comme source de vérité pour ce scénario.
-- Le contexte de test dispose d'un mécanisme de trace minimal pour relier entrée et résultat.
+- Le runtime LLM local est installé et utilisable dans l'environnement de développement.
+- Le test bouchonné vise le flux d'appel et de réponse, pas la qualité nutritionnelle intrinsèque.
+- La chaîne mockée est la source de vérité pour le scénario de test.
