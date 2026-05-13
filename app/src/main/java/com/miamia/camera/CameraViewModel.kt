@@ -103,6 +103,15 @@ class CameraViewModel(
 
     private val _captureRouteActive = MutableStateFlow(false)
 
+    /** Balise / mode « ingrédients » (FR-010) : intention explicite utilisateur, distincte du texte OCR. */
+    private val _ingredientsFramingTagActive = MutableStateFlow(false)
+    val ingredientsFramingTagActive: StateFlow<Boolean> =
+        _ingredientsFramingTagActive.asStateFlow()
+
+    fun setIngredientsFramingTagActive(active: Boolean) {
+        _ingredientsFramingTagActive.value = active
+    }
+
     private val _streamingBilan = MutableStateFlow<StreamingBilanState>(StreamingBilanState.Idle)
     val streamingBilan: StateFlow<StreamingBilanState> = _streamingBilan.asStateFlow()
 
@@ -165,6 +174,7 @@ class CameraViewModel(
         lastItemsPreview = null
         pendingAnalysisSegment = null
         pendingScanId = null
+        _ingredientsFramingTagActive.value = false
         _lastValidatedSegmentForHealth.value = null
         _previewSession.value += 1
         clearAdditiveKpiDisplay()

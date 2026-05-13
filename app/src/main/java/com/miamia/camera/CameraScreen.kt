@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -67,6 +69,7 @@ fun CameraScreen(
     val additiveKpi by viewModel.additiveKpiDisplay.collectAsState()
     val previewSession by viewModel.previewSession.collectAsState()
     val mediaPipeStatus by viewModel.mediaPipeStatus.collectAsState()
+    val ingredientsFramingTag by viewModel.ingredientsFramingTagActive.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Le flag suit la présence effective de la route capture dans la navigation Compose.
@@ -389,6 +392,20 @@ fun CameraScreen(
                                 }
                             }
                         }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start,
+                    ) {
+                        FilterChip(
+                            selected = ingredientsFramingTag,
+                            onClick = {
+                                viewModel.setIngredientsFramingTagActive(!ingredientsFramingTag)
+                            },
+                            label = { Text("Balise ingrédients") },
+                            modifier = Modifier.testTag("ingredients_framing_tag_chip"),
+                        )
                     }
 
                     CaptureActionBar(
