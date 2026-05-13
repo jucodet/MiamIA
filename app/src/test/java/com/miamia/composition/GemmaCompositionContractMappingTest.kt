@@ -16,7 +16,7 @@ class GemmaCompositionContractMappingTest {
             compositionAnalysis = "Hydratation.",
             disclaimer = "info"
         )
-        val r: AnalyzeCompositionResult = AnalyzeCompositionResult.BilanSuccess(bilan)
+        val r: AnalyzeCompositionResult = AnalyzeCompositionResult.BilanSuccess(bilan, rawModelOutput = "")
         assertTrue(r is AnalyzeCompositionResult.BilanSuccess)
         val mapped = when (r) {
             is AnalyzeCompositionResult.BilanSuccess -> "bilan_ready"

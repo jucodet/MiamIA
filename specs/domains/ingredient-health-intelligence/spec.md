@@ -2,18 +2,29 @@
 
 **Domain Context**: `ingredient-health-intelligence`
 **Created**: 2026-05-06
-**Last Modified**: 2026-05-12 (sync-apply consolidation)
+**Last Modified**: 2026-05-13 (Feature C + clarify session complète)
 **Status**: Draft
 
 ## Purpose
 
 Analyser une liste d'ingrédients via le LLM local Gemma pour produire un bilan de composition et une critique santé par population. Ce domaine fournit aussi un test bouchonné isolé pour valider le flux d'appel LLM indépendamment de la capture et de l'OCR.
 
+## Clarifications
+
+### Session 2026-05-13
+
+- Q: Politique d’équivalence (v1) au premier livrable ? → A: **Option A** — v1 **stricte** : ancrage par sous-chaînes littérales du `ValidatedIngredientSegment` ; équivalence initiale **vide**, sauf **normalisations mécaniques** explicitement énumérées (ex. casse, espaces) ; tout synonyme ou règle métier additionnelle entre en politique uniquement comme entrée **explicite et versionnée** ; hors politique = non ancré.
+- Q: Critique santé et faits scientifiques / nutritionnels généraux ? → A: **Option B** — autorisés dans un bloc **clairement général** ; toute mention explicite de **ce produit** (ou équivalent) ne s’appuie que sur des désignations **littéralement présentes** dans le segment (selon **IHI-C-FR-005**) ; pas d’inférence « étiquette » non sourcée.
+- Q: Réponse partiellement ancrée (une partie « fait produit » ancrée, une autre non) ? → A: **Option A** — **tout ou rien** : pas de succès avec analyse produit tronquée ; **IHI-C-FR-003** si l’ensemble des affirmations « fait produit » n’est pas entièrement ancré.
+- Q: Faits additifs / read-model `additive-risk-insights` à côté du bilan LLM ? → A: **Option B** — enrichissement autorisé **si** attribution explicite au domaine `additive-risk-insights` (pas comme étiquette) **et** chaque sujet/additif est **littéralement** dans le segment (voir **IHI-C-FR-007**).
+- Q: Vérification indépendante (**IHI-C-FR-006**) pour le MVP ? → A: **Option A** — **relecture humaine** et traçabilité suffisent ; pas d’exigence d’audit automatisé bloquant sur chaque succès au MVP (l’automatisation peut être ajoutée ultérieurement au plan).
+
 ## Scope
 
 - Test bouchonné du flux LLM local (entrée mockée → analyse → résultat/échec)
 - Analyse de composition (bilan ingrédients via Gemma)
 - Critique santé par population (enfants, femmes enceintes, adultes, personnes âgées)
+- **Interdiction des hallucinations produit** : aucun fait sur la composition ou l’étiquette sans ancrage dans le segment validé (Feature C)
 - Gestion des erreurs et limites (timeout, modèle indisponible, réponse non analysable)
 - Persistance et consultation du dernier résultat
 - Copie et partage des résultats
@@ -21,6 +32,7 @@ Analyser une liste d'ingrédients via le LLM local Gemma pour produire un bilan 
 ## Invariants
 
 - Chaque résultat d'analyse est associé à l'entrée qui l'a produit (traçabilité).
+- Les sorties présentées comme analyse fiable du produit respectent l’ancrage sur le segment validé (aucun fait produit non étayé — Feature C).
 - Les catégories d'échec sont normalisées : `timeout`, `runtime-unavailable`, `non-analysable-response`.
 - Le test bouchonné est exécutable manuellement, hors suites automatiques.
 
@@ -139,19 +151,107 @@ En tant que développeuse, je veux un comportement d'échec lisible pour disting
 
 ---
 
+## Feature C — Interdiction des hallucinations sur l’analyse LLM
+
+> Origine : intake 2026-05-13  
+> Intention : interdire complètement au modèle de langage de produire des faits produit non fondés sur le segment validé.
+
+### Clarifications (Feature C)
+
+#### Session 2026-05-13
+
+- « Hallucination » est prise au sens **métier** : affirmation présentée comme décrivant l’étiquette ou la composition du produit (ingrédient, quantité, pourcentage, allégation) **sans ancrage** dans le `ValidatedIngredientSegment` fourni en entrée.
+- Les reformulations ou synonymes acceptés sont ceux explicitement couverts par une **politique d’équivalence** documentée (voir FR-C-005) ; tout le reste est hors périmètre d’ancrage.
+- **V1 équivalence (clarify)** : politique **stricte** — équivalence initiale vide sauf normalisations mécaniques listées ; pas de catalogue implicite de synonymes.
+- **Contenu général + critique santé (clarify)** : **Option B** — blocs éducatifs généraux autorisés s’ils sont identifiables comme tels ; toute formulation liant **ce produit** à un ingrédient ou un risque ne cite que des termes **littéralement ancrables** dans le segment (via **IHI-C-FR-005**).
+- **Ancrage partiel (clarify)** : **Option A** — **tout ou rien** pour le statut succès sur la partie « fait produit » : pas de livraison d’analyse produit **tronquée** ou partiellement ancrée ; ancrage incomplet → **IHI-C-FR-003**.
+- **Additifs / `additive-risk-insights` (clarify)** : **Option B** — enrichissements autorisés en juxtaposition **si** attribution explicite au read-model du domaine `additive-risk-insights` et ancrage **littéral** de chaque additif concerné dans le segment (voir **IHI-C-FR-007**).
+- **Vérification MVP (clarify)** : **Option A** — **IHI-C-FR-006** satisfait au MVP par **procédure de relecture humaine** et traçabilité ; pas d’obligation d’outil automatisé d’audit d’ancrage sur chaque succès.
+- « Interdire complètement » signifie : **aucune** telle affirmation ne peut être livrée à l’utilisateur dans un résultat classé comme analyse réussie ; en cas d’échec d’ancrage, le flux suit les catégories d’échec ou de dégradation déjà normalisées (`non-analysable-response` ou équivalent métier).
+
+### User Scenarios (Feature C)
+
+#### US-C1 — Confiance : pas d’ingrédient « inventé » (P1)
+
+En tant qu’utilisatrice, je veux que l’analyse de composition et la critique santé ne mentionnent comme faits sur **mon** produit que ce qui est vérifiable à partir de la liste d’ingrédients que j’ai validée, afin de ne pas être induite en erreur.
+
+**Acceptance Scenarios**:
+
+1. **Given** un segment validé ne contenant pas l’ingrédient X, **When** l’analyse est produite et présentée comme résultat exploitable, **Then** aucune phrase ne présente X comme présent dans ce produit ni ne suggère une quantité ou un pourcentage pour X tirés de l’étiquette.
+2. **Given** un segment validé minimal mais cohérent, **When** l’analyse est produite, **Then** toute liste d’ingrédients présentée comme celle du produit est un sous-ensemble fidèle (reformulations autorisées uniquement selon la politique d’équivalence documentée) du texte validé.
+3. **Given** un segment contenant une mention textuelle d’additif et un bloc d’enrichissement `additive-risk-insights` affiché à côté d’une analyse LLM classée succès, **When** l’utilisatrice consulte l’écran, **Then** le bloc respecte **IHI-C-FR-007** (attribution explicite au domaine additifs, pas présenté comme libellé d’étiquette, additif littéralement dans le segment).
+
+#### US-C2 — Refus explicite plutôt que boucher les trous (P2)
+
+En tant qu’utilisatrice, je préfère un échec ou un message de non-analyse plutôt qu’une réponse qui comble les lacunes du texte par des suppositions présentées comme des faits.
+
+**Acceptance Scenarios**:
+
+1. **Given** une réponse générée contenant des segments non ancrables dans le segment validé, **When** le contrôle d’ancrage est appliqué, **Then** le résultat n’est pas livré comme analyse réussie et l’utilisatrice reçoit un état explicite (échec ou dégradation) sans faits produit inventés.
+2. **Given** une demande implicite de détails absents du segment (ex. pourcentage non indiqué), **When** l’analyse est produite, **Then** le système n’affiche pas de chiffre ou d’allégation produit spécifique présentée comme issue de l’étiquette.
+
+#### US-C3 — Séparer le général du particulier (P3)
+
+En tant qu’utilisatrice, si des informations générales sur la nutrition sont affichées, je veux qu’elles ne soient pas confondues avec une lecture de mon étiquette.
+
+**Acceptance Scenarios**:
+
+1. **Given** du contenu éducatif générique affiché à proximité de l’analyse, **When** l’utilisatrice consulte l’écran, **Then** le contenu générique est identifiable comme tel et ne contredit pas US-C1.
+2. **Given** une analyse classée succès incluant un bloc général et une phrase liant explicitement **ce produit** (ou formulation équivalente) à un ingrédient ou un risque, **When** le contrôle d’ancrage est appliqué, **Then** chaque ingrédient ou fait produit ainsi lié est étayé par une sous-chaîne admise du `ValidatedIngredientSegment` (selon **IHI-C-FR-005**).
+
+#### Edge Cases (Feature C)
+
+- Synonymes ou formes légitimes d’un même ingrédient (ex. « SOJA » / « lécithines de SOJA ») : en v1, **non** admis par défaut ; ils ne deviennent ancrables qu’après ajout explicite et versionné dans la politique d’équivalence.
+- Segment partiellement illisible ou ambigu : pas d’extrapolation vers des ingrédients « probables » présentés comme certains.
+- Réponse mêlant passages « fait produit » ancrés et non ancrés : **tout ou rien** pour un succès — confirmé clarify **Option A** : pas de succès avec portion tronquée ; **IHI-C-FR-003** s’applique.
+- Pont « ce produit » depuis un bloc général : autorisé uniquement si chaque ancrage satisfait **IHI-C-FR-004** (b) et **IHI-C-FR-005** ; sinon **IHI-C-FR-003** s’applique (pas de livraison en succès avec pont invalide).
+- Bloc enrichi `additive-risk-insights` : autorisé uniquement sous **IHI-C-FR-007** ; sinon ne pas l’afficher comme complément d’une analyse succès ou risquer la confusion avec le texte étiquette.
+
+### Functional Requirements (Feature C)
+
+- **IHI-C-FR-001**: Le système MUST traiter le `ValidatedIngredientSegment` comme **seule** source de vérité textuelle pour tout fait affirmé sur la composition ou le contenu du produit analysé.
+- **IHI-C-FR-002**: Le système MUST NOT présenter comme issus de l’étiquette des ingrédients, quantités, pourcentages, mentions légales ou allégations qui ne sont pas ancrés dans le segment validé selon la politique d’équivalence de **IHI-C-FR-005**.
+- **IHI-C-FR-003**: Le système MUST rejeter ou classer en échec contrôlé (catégorie `non-analysable-response` ou équivalent métier) toute réponse qui violerait **IHI-C-FR-001** ou **IHI-C-FR-002**, plutôt que de la livrer comme analyse réussie. **Clarify (2026-05-13)** : politique **tout ou rien** sur les affirmations « fait produit » — le système MUST NOT livrer un **succès** constitué d’une analyse produit **partiellement** ancrée (aucune livraison tronquée « uniquement les passages vérifiés » au titre d’une analyse complète).
+- **IHI-C-FR-004**: Lorsque du contenu général (non spécifique au produit) coexiste avec une analyse dans le même parcours, le système MUST : (a) le présenter dans un bloc **identifiable comme contenu général**, distinct des affirmations « fait étiquette » ; (b) exiger que toute formulation liant explicitement **ce produit** (ou tournure équivalente) à un ingrédient, une quantité, un risque ou une allégation ne référence que des éléments **littéralement ancrables** dans le `ValidatedIngredientSegment` conformément à **IHI-C-FR-005**, sans inférence présentée comme issue de l’étiquette ; (c) ne pas présenter le contenu général comme une lecture d’étiquette.
+- **IHI-C-FR-005**: Le système MUST publier et maintenir une politique d’équivalence textuelle **bornée** et **versionnée**. En **v1**, la politique MUST être **stricte** : tout ancrage admis repose sur une **sous-chaîne littérale** du `ValidatedIngredientSegment`, sauf entrées de **normalisation mécanique** explicitement énumérées (ex. casse, espaces) ; tout synonyme ou règle métier additionnelle MUST être une ligne explicite de la politique ; toute correspondance hors politique MUST être traitée comme **non ancrée**. Les extensions ultérieures de la politique MUST rester traçables (versionnement).
+- **IHI-C-FR-006**: Le système MUST permettre la vérification indépendante : pour chaque résultat classé succès, un réviseur peut retrouver, pour chaque fait produit affirmé **dans le texte issu du flux LLM évalué**, l’extrait du segment validé qui l’étaye (ou l’entrée de la politique d’équivalence applicable). **Clarify MVP (2026-05-13)** : cette obligation est tenue par **relecture / procédure humaine** et artefacts de traçabilité ; le MVP **n’exige pas** de contrôle automatisé bloquant sur chaque succès (des checks automatisés peuvent être ajoutés hors périmètre minimal de cette exigence).
+- **IHI-C-FR-007**: Le système MAY juxtaposer à une analyse LLM classée succès des contenus issus du read-model publié par le domaine `additive-risk-insights` **uniquement si** : (a) chaque additif ou sujet couvert par cet enrichissement correspond à une désignation **littéralement présente** dans le `ValidatedIngredientSegment` (selon **IHI-C-FR-005**) ; (b) l’enrichissement est **explicitement attribué** à `additive-risk-insights` (libellé ou identifiant d’attribution équivalent), et **not** présenté comme libellé ou texte d’étiquette ; (c) la juxtaposition ne crée pas d’ambiguïté dominante avec le bloc « fait étiquette » du LLM au sens de **IHI-C-FR-004** / **SC-C-003**.
+
+### Key Entities (Feature C)
+
+- **GroundedProductClaim**: affirmation sur le produit devant être ancrée dans le segment validé (ou équivalence documentée).
+- **EquivalencePolicy**: règles explicites, limitées et versionnées de correspondance textuelle autorisée entre sortie et segment ; **v1** = stricte (voir **IHI-C-FR-005**).
+- **AnchoringOutcome**: résultat du contrôle (entièrement ancré vs rejet / non analysable).
+- **AttributedAdditiveInsights**: faits ou KPI du domaine `additive-risk-insights` affichés en complément, conformément à **IHI-C-FR-007**.
+
+### Success Criteria (Feature C)
+
+- **SC-C-001**: Sur l’ensemble des scénarios d’acceptation documentés pour cette feature, 100 % des résultats classés succès satisfont **IHI-C-FR-001** et **IHI-C-FR-002** lors d’audit manuel ou procédure de relecture équivalente.
+- **SC-C-002**: Sur un jeu de contre-exemples documenté (invitant à inventer ingrédients ou pourcentages), 100 % des exécutions aboutissent à un rejet ou à un état d’échec explicite sans livrer de faits produit non ancrés.
+- **SC-C-003**: 100 % des parcours qui affichent à la fois contenu général et contenu produit respectent **IHI-C-FR-004** (distinguable par l’utilisatrice sans ambiguïté majeure).
+- **SC-C-004**: Sur les scénarios documentés mêlant passages « fait produit » ancrés et non ancrés, 0 % aboutissent à un statut **succès** (100 % → **IHI-C-FR-003** ou équivalent).
+- **SC-C-005**: 100 % des blocs enrichis `additive-risk-insights` montrés à côté d’un succès LLM respectent **IHI-C-FR-007** (a)(b)(c) sur les scénarios documentés.
+
+---
+
 ## Cross-domain Notes
 
-- Consomme le segment validé de `ingredient-normalization-validation`.
+- Consomme le segment validé de `ingredient-normalization-validation` (source de vérité pour l’ancrage — Feature C).
 - Utilise le gateway de `local-llm-runtime` pour l'inférence.
 - L'orchestration UX est gérée par `user-guidance-experience`.
-- Les KPI additifs détaillés sont du ressort de `additive-risk-insights`.
+- Les KPI additifs détaillés sont du ressort de `additive-risk-insights` ; leur juxtaposition à une analyse LLM succès est régie par **IHI-C-FR-007** (attribution explicite + ancrage littéral des mentions dans le segment).
 
 ## Source Mapping
 
 - `specs/016-test-llm-mock/` (Feature A)
+- Intake `/speckit-design` 2026-05-13 (Feature C)
 
 ## Assumptions
 
 - Le runtime LLM local est installé et utilisable dans l'environnement de développement.
 - Le test bouchonné vise le flux d'appel et de réponse, pas la qualité nutritionnelle intrinsèque.
 - La chaîne mockée est la source de vérité pour le scénario de test.
+- Pour Feature C, la **v1** de la politique d’équivalence est **stricte** (vide + normalisations mécaniques listées) ; les extensions (synonymes, etc.) sont **explicites, bornées et versionnées**.
+- La classification `non-analysable-response` (et équivalents) est acceptée comme résultat utilisateur valide lorsque l’ancrage échoue.
+- Un **contrat de read-model** (ou équivalent) avec `additive-risk-insights` est disponible pour permettre l’attribution explicite visée par **IHI-C-FR-007** ; à défaut, l’enrichissement additif ne s’affiche pas en juxtaposition d’un succès LLM.
+- Au **MVP**, la conformité à **IHI-C-FR-006** est démontrable par **relecture humaine** et traçabilité ; des garde-fous automatisés supplémentaires relèvent du plan d’évolution hors obligation minimale.

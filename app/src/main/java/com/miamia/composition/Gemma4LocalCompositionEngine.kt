@@ -17,7 +17,10 @@ class Gemma4LocalCompositionEngine(
         return if (localResult.status == AnalyseTextuelleStatus.SUCCESS && !localResult.outputText.isNullOrBlank()) {
             Log.d(TAG, "gemma_raw_output length=${localResult.outputText.length} text=[${localResult.outputText.take(500)}]")
             val parsed = GemmaBilanParser.parse(localResult.outputText)
-            if (parsed != null) AnalyzeCompositionResult.BilanSuccess(parsed)
+            if (parsed != null) AnalyzeCompositionResult.BilanSuccess(
+                bilan = parsed,
+                rawModelOutput = localResult.outputText.orEmpty(),
+            )
             else {
                 Log.w(TAG, "parse_failed full_output=[${localResult.outputText}]")
                 AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)

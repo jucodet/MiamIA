@@ -46,6 +46,17 @@ class HealthCritiqueEngine(
         return when (val out = llmRunner.generate(system, user, maxInferenceMs, onStreamPartial)) {
             is HealthCritiqueLlmGenerateResult.Success -> {
                 val parsed = sectionParser.parse(out.text)
+                val missingE = HealthCritiqueAnchoring.unanchoredENumbers(canonicalList, parsed.sections)
+                if (missingE.isNotEmpty()) {
+                    return HealthCritiqueResult.InferenceError(
+                        requestId = requestId,
+                        errorCode = HealthInferenceErrorCode.INFERENCE_FAILED,
+                        message = "Analyse non vérifiable depuis l'étiquette (mentions additives : ${
+                            missingE.distinct().joinToString()
+                        }).",
+                        processedAtEpochMs = now,
+                    )
+                }
                 HealthCritiqueResult.CritiqueReady(
                     requestId = requestId,
                     llmRawText = out.text,

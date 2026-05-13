@@ -295,7 +295,10 @@ class LiteRtGemmaEngine(
                 if (bilan == null) {
                     AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
                 } else {
-                    AnalyzeCompositionResult.BilanSuccess(bilan)
+                    AnalyzeCompositionResult.BilanSuccess(
+                        bilan = bilan,
+                        rawModelOutput = text,
+                    )
                 }
             }
         }
