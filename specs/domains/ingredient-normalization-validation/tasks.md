@@ -231,15 +231,12 @@ Task: "T014 IngredientSegmentConfirmationUiTest balise active"
 
 ## Notes
 
-<<<<<<< HEAD
 - **017** : changement principal `IngredientSegmentBoundaryResolver.kt` ; fixtures `OcrFixtures` et tests boundary associés.
 - **021 (FR-010)** : `AnalysisSubmissionGate`, `CameraViewModel`, `CameraScreen`, `AnalysisSubmissionDecision` ; exécuter `./gradlew :app:testDebugUnitTest` avec SDK Android (`ANDROID_HOME` ou `local.properties`).
 - **2026-05-13 (FR-012)** : paramètre `fullOcrTranscript` sur le gate ; wrapper Gradle requis (`gradle/wrapper/gradle-wrapper.jar` présent) pour lancer les tests en local.
-- US2 / US3 (phases 3–4) : vérifications de non-régression autour du gate et du fallback.
-=======
 - **T004 / T025** : restent **ouverts** tant que le SDK Android n’est pas configuré (`local.properties` / `ANDROID_HOME`) — exécuter Gradle localement pour clore.
 - **T026** : validation manuelle quickstart (A–H) — à faire côté équipe / device réel.
 - Les IDs **T001–T028** sont séquentiels pour éviter les collisions avec d’anciens plans ; marquer `[x]` au fur et à mesure dans ce fichier.
 - Frontière DDD : pas d’inférence « balise » depuis le seul texte OCR — voir [contracts/session-capture-intent-for-implicit-validation.md](./contracts/session-capture-intent-for-implicit-validation.md).
 - **SC-004** : ne s’applique pas au parcours FR-010 (clarification spec 2026-05-13).
->>>>>>> f2d806ea7921ea48dd8d92efc6c8fa3783e1ba2c
+- US2 / US3 (phases 3–4) : vérifications de non-régression autour du gate et du fallback.

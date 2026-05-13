@@ -319,13 +319,8 @@ class CameraViewModel(
                         scanId = result.scanId,
                         extraction = extraction,
                         userConfirmed = false,
-<<<<<<< HEAD
                         implicitValidationFromIngredientsFraming = _ingredientsFramingTagActive.value,
                         fullOcrTranscript = transcriptText,
-=======
-                        /** Validation implicite : enchaînement direct analyse LLM si le segment est exploitable (plus d’écran intermédiaire). */
-                        implicitValidationFromIngredientsFraming = true
->>>>>>> f2d806ea7921ea48dd8d92efc6c8fa3783e1ba2c
                     )
                     if (!previewDecision.submissionAllowed) {
                         if (previewDecision.blockedReason == SubmissionBlockedReason.USER_REJECTED) {
@@ -342,7 +337,6 @@ class CameraViewModel(
                         }
                         return@launch
                     }
-<<<<<<< HEAD
                     pendingAnalysisSegment = previewDecision.segmentPreview
                     pendingScanId = result.scanId
                     if (previewDecision.implicitValidationFromIngredientsFraming) {
@@ -353,22 +347,6 @@ class CameraViewModel(
                             itemsPreview = itemLabels,
                         )
                     }
-=======
-                    if (!previewDecision.submissionAllowed) {
-                        _scanState.value = ScanState.Error(
-                            "Analyse bloquee: segment non exploitable pour l'instant."
-                        )
-                        return@launch
-                    }
-                    val segmentForAnalysis = AnalysisInputBuilder.buildSegmentPayload(
-                        extraction.segmentText.orEmpty()
-                    )
-                    pendingAnalysisSegment = segmentForAnalysis
-                    pendingScanId = result.scanId
-                    lastRawTranscript = transcriptText
-                    lastItemsPreview = itemLabels
-                    confirmSegmentAndAnalyze()
->>>>>>> f2d806ea7921ea48dd8d92efc6c8fa3783e1ba2c
                 } else if (result.outcome == "empty") {
                     _scanState.value = ScanState.Empty(result.userMessage.ifBlank { "Aucun texte détecté" })
                 } else {
