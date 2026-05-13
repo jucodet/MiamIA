@@ -21,7 +21,7 @@ class CompositionResultValidatorGroundingTest {
     }
 
     @Test
-    fun identifiedProduct_mustAppearInSegment() {
+    fun identifiedProduct_whenNotAnchored_isStripped_successKeepsIngredients() {
         val bilan = CompositionBilan(
             ingredientLines = listOf("eau"),
             identifiedProduct = "Yaourt miracle inconnu",
@@ -31,7 +31,9 @@ class CompositionResultValidatorGroundingTest {
         )
         val segment = "eau, sel"
         val out = CompositionResultValidator.validateAgainstSource(bilan, segment)
-        assertTrue(out is AnalyzeCompositionResult.CompositionLimit)
+        assertTrue(out is AnalyzeCompositionResult.BilanSuccess)
+        val b = (out as AnalyzeCompositionResult.BilanSuccess).bilan
+        assertTrue(b.identifiedProduct == null && b.productConfidence == null)
     }
 
     @Test

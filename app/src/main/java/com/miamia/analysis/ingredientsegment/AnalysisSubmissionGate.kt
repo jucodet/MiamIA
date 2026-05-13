@@ -9,7 +9,8 @@ class AnalysisSubmissionGate {
     fun evaluate(
         scanId: String,
         extraction: IngredientSegmentExtraction,
-        userConfirmed: Boolean
+        userConfirmed: Boolean,
+        implicitValidationFromIngredientsFraming: Boolean = false
     ): AnalysisSubmissionDecision {
         if (!extraction.anchorFound) {
             logBlocked(scanId, SubmissionBlockedReason.ANCHOR_MISSING)
@@ -18,7 +19,8 @@ class AnalysisSubmissionGate {
                 segmentPreview = "",
                 userConfirmed = userConfirmed,
                 submissionAllowed = false,
-                blockedReason = SubmissionBlockedReason.ANCHOR_MISSING
+                blockedReason = SubmissionBlockedReason.ANCHOR_MISSING,
+                implicitValidationFromIngredientsFraming = false
             )
         }
 
@@ -31,27 +33,35 @@ class AnalysisSubmissionGate {
                 segmentPreview = segment,
                 userConfirmed = userConfirmed,
                 submissionAllowed = false,
-                blockedReason = SubmissionBlockedReason.EMPTY_SEGMENT
+                blockedReason = SubmissionBlockedReason.EMPTY_SEGMENT,
+                implicitValidationFromIngredientsFraming = false
             )
         }
 
-        if (!userConfirmed) {
+        val allowImplicit = implicitValidationFromIngredientsFraming && !userConfirmed
+        if (!userConfirmed && !allowImplicit) {
             return AnalysisSubmissionDecision(
                 scanId = scanId,
                 segmentPreview = segment,
                 userConfirmed = false,
                 submissionAllowed = false,
-                blockedReason = SubmissionBlockedReason.USER_REJECTED
+                blockedReason = SubmissionBlockedReason.USER_REJECTED,
+                implicitValidationFromIngredientsFraming = false
             )
         }
 
-        Log.d(TAG, "segment_submission_allowed scanId=$scanId mode=${extraction.fallbackMode}")
+        val implicitApplied = allowImplicit
+        Log.d(
+            TAG,
+            "segment_submission_allowed scanId=$scanId mode=${extraction.fallbackMode} implicitFraming=$implicitApplied"
+        )
         return AnalysisSubmissionDecision(
             scanId = scanId,
             segmentPreview = segment,
             userConfirmed = true,
             submissionAllowed = true,
-            blockedReason = SubmissionBlockedReason.NONE
+            blockedReason = SubmissionBlockedReason.NONE,
+            implicitValidationFromIngredientsFraming = implicitApplied
         )
     }
 

@@ -41,5 +41,7 @@ data class AnalysisSubmissionDecision(
     val segmentPreview: String,
     val userConfirmed: Boolean,
     val submissionAllowed: Boolean,
-    val blockedReason: SubmissionBlockedReason
+    val blockedReason: SubmissionBlockedReason,
+    /** Vrai lorsque FR-010 : validation implicite via balise « ingrédients », sans tap sur « Confirmer ». */
+    val implicitValidationFromIngredientsFraming: Boolean = false
 )

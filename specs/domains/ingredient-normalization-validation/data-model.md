@@ -1,4 +1,4 @@
-# Data Model - ingredient-normalization-validation (017-ocr-dot-end-capture)
+# Data Model - ingredient-normalization-validation (017 + 021)
 
 ## Entities existantes — pas de modification structurelle
 
@@ -44,4 +44,33 @@ Les `!` et `?` restent des terminateurs inconditionnels (pas de condition contex
 
 ## State transitions
 
-Pas de changement dans les transitions d'état (`IngredientSegmentFallbackMode`, `SubmissionBlockedReason`). Le flux `prepare()` → `resolveEnd()` → `AnalysisSubmissionGate.evaluate()` reste identique.
+### Isolation (inchangé, 017)
+
+Le flux `prepare()` → `resolveEnd()` → `AnalysisSubmissionGate.evaluate()` pour la **géométrie** du segment reste identique (`IngredientSegmentFallbackMode`, `SubmissionBlockedReason` pour ancre / segment vide inchangés).
+
+### Orchestration capture → analyse (021, FR-010)
+
+Nouvelle dimension : **intention de capture** (signal balise « ingrédients », booléen ou enum minimal) portée avec la session de scan.
+
+```text
+OCR success/partial + anchorFound
+       │
+       ├─► [FR-010] ingredientsTagActive == true
+       │         AND gate autorise validation implicite
+       │              └─► CompositionAnalyzing (pas SegmentConfirmationRequired)
+       │
+       └─► [FR-007 / FR-011] sinon
+                    └─► SegmentConfirmationRequired → confirmSegmentAndAnalyze() → CompositionAnalyzing
+```
+
+### Objet décisionnel (extension logique)
+
+- **`AnalysisSubmissionDecision`** : conserver `submissionAllowed`, `blockedReason`, `segmentPreview` ; documenter en implémentation comment distinguer **confirmation explicite** vs **validation implicite FR-010** (champ booléen dédié ou convention de log — à figer au moment du code sans changer les invariants « segment non vide »).
+
+## Nouveau concept (021) — intention de session capture
+
+| Concept | Description | Owner technique suggéré |
+|---------|-------------|-------------------------|
+| **IngredientsFramingTag** (nom logique) | Indique que l’utilisatrice a choisi le mode / balise « ingrédients » avant la capture, distinct du contenu OCR. | Propagé depuis UI ou `scanCoordinator` / résultat reconnaissance vers `CameraViewModel` ; référencé dans contrat [session-capture-intent-for-implicit-validation.md](./contracts/session-capture-intent-for-implicit-validation.md). |
+
+Aucun nouveau champ persistant obligatoire pour FR-010 (FR-009 : mémoire de session suffisante MVP).

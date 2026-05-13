@@ -26,9 +26,17 @@ class AnalysisSubmissionDecisionAcceptanceTest {
 
         val blocked = gate.evaluate("scan-confirm", extraction, userConfirmed = false)
         val allowed = gate.evaluate("scan-confirm", extraction, userConfirmed = true)
+        val implicitAllowed = gate.evaluate(
+            "scan-confirm",
+            extraction,
+            userConfirmed = false,
+            implicitValidationFromIngredientsFraming = true
+        )
 
         assertFalse(blocked.submissionAllowed)
         assertTrue(allowed.submissionAllowed)
+        assertTrue(implicitAllowed.submissionAllowed)
+        assertTrue(implicitAllowed.implicitValidationFromIngredientsFraming)
     }
 
     @Test

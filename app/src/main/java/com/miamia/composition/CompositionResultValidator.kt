@@ -3,6 +3,8 @@ package com.miamia.composition
 /**
  * Post-valide le bilan par rapport au texte source (US2 — pas d’ingrédients manifestement hors texte).
  * Feature C : ancrage **strict** v1 via [SegmentAnchoringV1] (tout ou rien sur les lignes checkables).
+ * Le libellé [CompositionBilan.identifiedProduct] est souvent une catégorie (prompt ###PRODUIT) :
+ * s’il n’est pas ancré dans le segment, il est retiré plutôt que de faire échouer liste + analyse.
  */
 object CompositionResultValidator {
 
@@ -28,11 +30,13 @@ object CompositionResultValidator {
                 return AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
             }
         }
-        bilan.identifiedProduct?.trim()?.takeIf { it.length >= 3 }?.let { product ->
-            if (!SegmentAnchoringV1.isSubstringAnchored(product, segmentText)) {
-                return AnalyzeCompositionResult.CompositionLimit(CompositionMessages.COMPOSITION_LIMIT_GENERIC)
+        val productClaim = bilan.identifiedProduct?.trim()?.takeIf { it.length >= 3 }
+        val bilanForSuccess =
+            if (productClaim != null && !SegmentAnchoringV1.isSubstringAnchored(productClaim, segmentText)) {
+                bilan.copy(identifiedProduct = null, productConfidence = null)
+            } else {
+                bilan
             }
-        }
-        return AnalyzeCompositionResult.BilanSuccess(bilan = bilan, rawModelOutput = rawModelOutput)
+        return AnalyzeCompositionResult.BilanSuccess(bilan = bilanForSuccess, rawModelOutput = rawModelOutput)
     }
 }

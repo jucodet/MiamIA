@@ -2,6 +2,7 @@ package com.miamia.analysis.ingredientsegment
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -69,6 +70,47 @@ class AnalysisSubmissionGateContractTest {
             fallbackMode = IngredientSegmentFallbackMode.NONE
         )
         val out = gate.evaluate("scan-fr", extraction, userConfirmed = true)
+        assertFalse(out.submissionAllowed)
+        assertEquals(SubmissionBlockedReason.EMPTY_SEGMENT, out.blockedReason)
+    }
+
+    @Test
+    fun `allows submission when implicit ingredients framing without user tap`() {
+        val extraction = IngredientSegmentExtraction(
+            scanId = "scan-implicit",
+            anchorFound = true,
+            anchorIndex = 0,
+            endIndex = 40,
+            segmentText = "Ingrédients: eau, sucre, sel.",
+            fallbackMode = IngredientSegmentFallbackMode.NONE
+        )
+        val out = gate.evaluate(
+            "scan-implicit",
+            extraction,
+            userConfirmed = false,
+            implicitValidationFromIngredientsFraming = true
+        )
+        assertTrue(out.submissionAllowed)
+        assertTrue(out.implicitValidationFromIngredientsFraming)
+        assertEquals(SubmissionBlockedReason.NONE, out.blockedReason)
+    }
+
+    @Test
+    fun `implicit framing still blocks label only segment`() {
+        val extraction = IngredientSegmentExtraction(
+            scanId = "scan-implicit-empty",
+            anchorFound = true,
+            anchorIndex = 0,
+            endIndex = 12,
+            segmentText = "Ingrédients:",
+            fallbackMode = IngredientSegmentFallbackMode.NONE
+        )
+        val out = gate.evaluate(
+            "scan-implicit-empty",
+            extraction,
+            userConfirmed = false,
+            implicitValidationFromIngredientsFraming = true
+        )
         assertFalse(out.submissionAllowed)
         assertEquals(SubmissionBlockedReason.EMPTY_SEGMENT, out.blockedReason)
     }

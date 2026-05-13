@@ -37,7 +37,39 @@
 
 ## Decision 5: Pas d'impact sur les couches aval
 
-- **Decision**: `IngredientSegmentPreparationService`, `AnalysisSubmissionGate`, `IngredientAnchorNormalizer`, et les écrans UI ne sont pas modifiés.
-- **Rationale**: Le changement est encapsulé dans `IngredientSegmentBoundaryResolver.resolveEnd()`. Le contrat de sortie (`Resolution` avec `endIndexExclusive` et `boundaryEndReason`) reste identique. Les tests aval existants continuent de passer.
+- **Decision**: `IngredientSegmentPreparationService`, `AnalysisSubmissionGate`, `IngredientAnchorNormalizer`, et les écrans UI ne sont pas modifiés **pour le périmètre 017 seul** (borne `.` contextuel).
+- **Rationale**: Le changement 017 est encapsulé dans `IngredientSegmentBoundaryResolver.resolveEnd()`. Le contrat de sortie (`Resolution` avec `endIndexExclusive` et `boundaryEndReason`) reste identique. Les tests aval existants continuent de passer.
 - **Alternatives considered**:
   - Refactorer aussi `IngredientAnchorNormalizer` pour une regex combinée ancre + fin → rejeté (mélange des responsabilités, complexité accrue).
+
+---
+
+## Évolution 021 — auto-analyze-ingredients-tag (FR-010)
+
+### Decision 6: Signal « balise ingrédients » indépendant du texte OCR
+
+- **Decision**: Introduire (ou réutiliser si déjà présent côté produit) un indicateur de session **explicite** — par ex. `ingredientsFramingTagActive: Boolean` ou enum `CaptureFramingIntent` — porté depuis l’UI / coordinator de capture jusqu’à `CameraViewModel`, **sans** inférer FR-010 uniquement à partir de la présence d’une ancre dans le transcript.
+- **Rationale**: La spec (US2 scénario 3, FR-011) distingue parcours avec balise et parcours étiquette entière ; se baser sur le seul texte violerait le périmètre et ouvrirait l’analyse automatique sur des scans non intentionnels.
+- **Alternatives considered**:
+  - Déduire le parcours accéléré si `anchorFound` → rejeté (trop large, conflit avec FR-007).
+
+### Decision 7: Extension contrôlée de `AnalysisSubmissionGate`
+
+- **Decision**: Étendre `evaluate(...)` (ou ajouter une surcharge documentée) pour accepter une condition du type **« validation implicite autorisée »** lorsque le signal balise est actif **et** que les garde-fous existants (ancre, segment non vide, pas label-seul) passent ; dans ce cas retourner `submissionAllowed = true` avec un marqueur traçable (`userConfirmed` / flag dédié dans `AnalysisSubmissionDecision` selon choix d’implémentation minimal).
+- **Rationale**: Aujourd’hui `userConfirmed = false` entraîne systématiquement `USER_REJECTED` ; FR-010 exige un chemin équivalent fonctionnel à la confirmation sans écran intermédiaire. Centraliser la règle dans le gate évite de court-circuiter les validations « segment vide ».
+- **Alternatives considered**:
+  - Appeler `evaluate(..., userConfirmed = true)` depuis le ViewModel sans changer le gate → rejeté (perte de sémantique et de traçabilité dans les logs / décisions).
+
+### Decision 8: Réutiliser la pipeline `confirmSegmentAndAnalyze`
+
+- **Decision**: Après décision « soumission autorisée » en mode implicite, invoquer la même séquence que `confirmSegmentAndAnalyze()` (passage à `CompositionAnalyzing`, `runCompositionStage`, navigation résultat) **sans** émettre `ScanState.SegmentConfirmationRequired`.
+- **Rationale**: Une seule voie d’analyse composition limite les divergences et satisfait US2b (« texte analysé = proposition automatique »).
+- **Alternatives considered**:
+  - Dupliquer l’appel `engine.analyze` dans `capturePhoto` → rejeté (maintenance, risque de dérive).
+
+### Decision 9: Tests et non-régression SC-003 / SC-005
+
+- **Decision**: Étendre `AnalysisSubmissionGateContractTest` (et tests ViewModel si présents) avec cas : balise active + segment valide → autorisé ; balise inactive + `userConfirmed=false` → toujours bloqué ; balise active + segment vide → bloqué (FR-008). Ajouter au minimum un test instrumenté ou robolectric ciblant l’absence d’UI de confirmation sur le chemin FR-010 lorsque le signal est activé en test.
+- **Rationale**: SC-005 exige 100 % d’enchaînement sans écran ; SC-003 exige que les autres parcours restent bloqués sans confirmation.
+- **Alternatives considered**:
+  - Seuls tests unitaires gate sans UI → insuffisant pour garantir absence d’écran ; combiner les deux niveaux.
