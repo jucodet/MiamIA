@@ -9,6 +9,7 @@
 - `capture-recognition`: capture image, OCR, gestion des sessions de scan.
 - `ingredient-normalization-validation`: isolation de segment (vue auxiliaire), ancre ingredients, validation utilisateur ; entree des analyses par modele de langage = texte OCR integral (spec domaine, mise a jour 2026-05-13).
 - `additive-risk-insights`: projection des faits d'analyse en KPI additifs/risques.
+- `ingredient-knowledge`: base de référence additifs (E-numbers) + allergènes réglementaires, embarquée hors-ligne ; publie un contexte de référence (contenu général) consommé par les flux LLM composition + critique ; amont de `ingredient-health-intelligence` et `additive-risk-insights`.
 - `user-guidance-experience`: orchestration UX transversale (accueil, readiness, transitions) ; accueil capture sans chip balise ni ligne statut « pret a scanner », OCR vers analyse sans ecran intermediaire de relecture (**Ref.** suppression segmentation cote `ingredient-normalization-validation`).
 
 ## Platform Technical Contexts
@@ -24,6 +25,7 @@
 | `ingredient-normalization-validation` | `ingredient-health-intelligence` | `Customer/Supplier` | Le core consomme un segment valide stable fourni par l'amont. |
 | `ingredient-health-intelligence` | `additive-risk-insights` | `Published Language` | Exposer des faits structures plutot qu'un texte libre non contractuel. |
 | `local-llm-runtime` | `ingredient-health-intelligence` | `Conformist` | Le core s'aligne sur l'API runtime locale existante. |
+| `ingredient-knowledge` | `ingredient-health-intelligence` | `Published Language` | Exposer un contexte de référence (contenu général) consommé par les flux LLM composition + critique. |
 | `traceability-storage` | `ingredient-health-intelligence` | `Shared Kernel (restricted)` | Partage strict de snapshots techniques versionnes. |
 | `user-guidance-experience` | `all domain contexts` | `Open Host Service` | La UI consomme des read-models/commandes publies. |
 
@@ -34,10 +36,12 @@
 - `ValidatedIngredientSegment`: segment confirme et immuable pour une analyse.
 - `HealthAnalysisReport`: sortie metier consolidee (composition + critique).
 - `AdditiveRiskFacts`: faits additifs/risques publies pour KPI.
+- `ReferenceContext`: contexte de référence factuel (additifs/allergènes) publié comme contenu général pour injection dans les flux LLM.
+- `AdditiveFactCard` / `AllergenFactCard`: fiches référence issues de la base `ingredient-knowledge`.
 
 ## Ownership Propose
 
-- Equipe domaine: `ingredient-health-intelligence`, `ingredient-normalization-validation`, `additive-risk-insights`.
+- Equipe domaine: `ingredient-health-intelligence`, `ingredient-normalization-validation`, `additive-risk-insights`, `ingredient-knowledge`.
 - Equipe mobile platform: `capture-recognition`, `local-llm-runtime`, `traceability-storage`, `user-guidance-experience`.
 # Domain Map (DDD cible)
 
