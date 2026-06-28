@@ -19,9 +19,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +49,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.miamia.healthcritique.UserProfile
 import com.miamia.home.HomeSpacingRules
 import com.miamia.home.MediaPipeStatusIndicator
 import kotlinx.coroutines.delay
@@ -64,6 +70,7 @@ fun CameraScreen(
     val additiveKpi by viewModel.additiveKpiDisplay.collectAsState()
     val previewSession by viewModel.previewSession.collectAsState()
     val mediaPipeStatus by viewModel.mediaPipeStatus.collectAsState()
+    val selectedProfile by viewModel.selectedProfile.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Le flag suit la présence effective de la route capture dans la navigation Compose.
@@ -81,6 +88,12 @@ fun CameraScreen(
     ) {
         MediaPipeStatusIndicator(
             viewState = mediaPipeStatus,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        ProfileSelector(
+            selectedProfile = selectedProfile,
+            onSelect = viewModel::selectProfile,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -169,7 +182,8 @@ fun CameraScreen(
                             additiveKpi = additiveKpi,
                             showRaw = showRaw,
                             onToggleRaw = { showRaw = !showRaw },
-                            inferenceTimeMs = bilanState.inferenceTimeMs
+                            inferenceTimeMs = bilanState.inferenceTimeMs,
+                            backend = bilanState.backend
                         )
                     },
                     footerActions = {
@@ -423,6 +437,56 @@ private fun ColumnScope.ScrollableReviewWithPrimaryActions(
             scrollableContent()
         }
         footerActions()
+    }
+}
+
+/**
+ * Sélecteur du profil utilisateur sur l'écran de capture (Feature I, 2026-06-28).
+ *
+ * Visible dans tous les états de scan (UGE-I-FR-003 / UGE-I-FR-012), propose exactement
+ * les 5 profils de [UserProfile] (via `label`), défaut « Adulte » (UGE-I-FR-002),
+ * modification libre avant capture (UGE-I-FR-004).
+ */
+@Composable
+private fun ProfileSelector(
+    selectedProfile: UserProfile,
+    onSelect: (UserProfile) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("capture_profile_selector")
+                .semantics { contentDescription = "Profil évalué : ${selectedProfile.label}" }
+        ) {
+            Text(
+                text = "Évalué pour : ${selectedProfile.label}",
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = null
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            UserProfile.values().forEach { profile ->
+                DropdownMenuItem(
+                    text = { Text(profile.label) },
+                    onClick = {
+                        onSelect(profile)
+                        expanded = false
+                    },
+                    modifier = Modifier.testTag("capture_profile_option_${profile.name}")
+                )
+            }
+        }
     }
 }
 

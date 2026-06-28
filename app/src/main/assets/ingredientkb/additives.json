@@ -1,0 +1,12 @@
+[
+  { "e_number": "E300", "canonical_name": "acide ascorbique", "aliases": ["vitamine c", "ascorbate de sodium", "ascorbate"], "role": "antioxydant", "risk_level": "FAIBLE" },
+  { "e_number": "E301", "canonical_name": "ascorbate de sodium", "aliases": ["ascorbate de soude"], "role": "antioxydant", "risk_level": "FAIBLE" },
+  { "e_number": "E320", "canonical_name": "butylhydroxyanisole", "aliases": ["bha"], "role": "antioxydant", "risk_level": "MODERE" },
+  { "e_number": "E321", "canonical_name": "butylhydroxytoluene", "aliases": ["bht"], "role": "antioxydant", "risk_level": "MODERE" },
+  { "e_number": "E330", "canonical_name": "acide citrique", "aliases": ["citrate"], "role": "acidifiant", "risk_level": "FAIBLE" },
+  { "e_number": "E432", "canonical_name": "polyoxyethylene sorbitan monolaurate", "aliases": ["polysorbate 20"], "role": "emulsifiant", "risk_level": "MODERE" },
+  { "e_number": "E621", "canonical_name": "glutamate monosodique", "aliases": ["msg", "glutamate"], "role": "exhausteur de gout", "risk_level": "MODERE" },
+  { "e_number": "E951", "canonical_name": "aspartame", "aliases": [], "role": "edulcorant", "risk_level": "ELEVE" },
+  { "e_number": "E102", "canonical_name": "tartrazine", "aliases": [], "role": "colorant", "risk_level": "ELEVE" },
+  { "e_number": "E250", "canonical_name": "nitrite de sodium", "aliases": ["nitrite de soude"], "role": "conservateur", "risk_level": "ELEVE" }
+]

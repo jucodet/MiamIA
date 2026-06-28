@@ -1,5 +1,7 @@
 package com.miamia.composition
 
+import com.miamia.gemma4local.model.BackendExecution
+
 /**
  * Post-valide le bilan par rapport au texte source (US2 — pas d’ingrédients manifestement hors texte).
  * Feature C : ancrage v1 via [SegmentAnchoringV1] (tout ou rien sur les lignes checkables),
@@ -23,6 +25,7 @@ object CompositionResultValidator {
         bilan: CompositionBilan,
         segmentText: String,
         rawModelOutput: String = "",
+        backend: BackendExecution = BackendExecution.INDETERMINATE,
     ): AnalyzeCompositionResult {
         val segmentForChecks = IngredientOcrLexicon.expandForAnchoring(segmentText)
         if (!SegmentAnchoringV1.allCheckableIngredientLinesAnchored(bilan.ingredientLines, segmentForChecks)) {
@@ -42,6 +45,10 @@ object CompositionResultValidator {
                 bilan
             }
         val withSanitizedEnergy = EnergyEstimateValidator.sanitizeBilan(bilanForSuccess)
-        return AnalyzeCompositionResult.BilanSuccess(bilan = withSanitizedEnergy, rawModelOutput = rawModelOutput)
+        return AnalyzeCompositionResult.BilanSuccess(
+            bilan = withSanitizedEnergy,
+            rawModelOutput = rawModelOutput,
+            backend = backend,
+        )
     }
 }

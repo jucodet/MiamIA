@@ -5,11 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import android.content.Context
 import com.miamia.BuildConfig
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -20,12 +17,15 @@ data class HealthCritiqueScreenState(
     val result: HealthCritiqueResult? = null,
     val restoredSnapshot: LastHealthAnalysisSnapshot? = null,
     val lastSystemPrompt: String = "",
+    val profile: UserProfile = UserProfile.DEFAULT,
+    val isDefaultProfile: Boolean = true,
 )
 
 class HealthCritiqueViewModel(
     private val engine: HealthCritiqueEngine,
     private val store: LastHealthAnalysisStore,
     private val promptBuilder: HealthCritiquePromptBuilder,
+    private val userProfileProvider: UserProfileProvider = DefaultUserProfileProvider(),
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(HealthCritiqueScreenState())
@@ -33,9 +33,6 @@ class HealthCritiqueViewModel(
 
     private val _streamingText = MutableStateFlow("")
     val streamingText: StateFlow<String> = _streamingText.asStateFlow()
-
-    private val _navigateToResult = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val navigateToResult: SharedFlow<Unit> = _navigateToResult.asSharedFlow()
 
     /** Segment validé courant (null = pas encore de bilan prêt côté scan). */
     private var validatedSegmentFromScan: String? = null
@@ -65,13 +62,22 @@ class HealthCritiqueViewModel(
                 "SC-005 : buffer affiché et segment validé doivent rester alignés."
             }
         }
-        val systemPreview = promptBuilder.buildSystemInstruction()
+        val profile = userProfileProvider.current()
+        val systemPreview = promptBuilder.buildSystemInstruction(profile)
         _streamingText.value = ""
-        _ui.update { it.copy(isLoading = true, result = null, lastSystemPrompt = systemPreview) }
-        _navigateToResult.tryEmit(Unit)
+        _ui.update {
+            it.copy(
+                isLoading = true,
+                result = null,
+                lastSystemPrompt = systemPreview,
+                profile = profile,
+                isDefaultProfile = profile == UserProfile.DEFAULT,
+            )
+        }
         viewModelScope.launch {
             val outcome = engine.analyze(
                 ingredientText = segmentSnapshot,
+                profile = profile,
                 onStreamPartial = { partial ->
                     _streamingText.value = partial
                 },
@@ -95,7 +101,15 @@ class HealthCritiqueViewModel(
     }
 
     companion object {
-        fun factory(context: Context): ViewModelProvider.Factory =
+        /**
+         * Factory de production. [userProfileProvider] est injecté par l'orchestration UGE
+         * (Feature I) afin que la critique lise le profil sélectionné sur l'écran de capture.
+         * Défaut : [DefaultUserProfileProvider] (compatibilité tests IHI existants).
+         */
+        fun factory(
+            context: Context,
+            userProfileProvider: UserProfileProvider = DefaultUserProfileProvider(),
+        ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -107,7 +121,7 @@ class HealthCritiqueViewModel(
                         promptBuilder = promptBuilder,
                         llmRunner = runner,
                     )
-                    return HealthCritiqueViewModel(engine, store, promptBuilder) as T
+                    return HealthCritiqueViewModel(engine, store, promptBuilder, userProfileProvider) as T
                 }
             }
     }

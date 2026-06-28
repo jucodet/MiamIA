@@ -2,7 +2,7 @@
 
 **Domain Context**: `ingredient-health-intelligence`
 **Created**: 2026-05-06
-**Last Modified**: 2026-05-13 (Feature K — pastille kcal/100 g ; clarify bornes affichage 1–1100)
+**Last Modified**: 2026-06-28 (Feature O — critique santé intégrée à l'écran principal des résultats : déclenchement automatique + restitution inline, supersede Feature M)
 **Status**: Draft
 
 ## Purpose
@@ -308,11 +308,468 @@ En tant qu’utilisatrice, je ne veux pas qu’une estimation soit présentée c
 
 ---
 
+## Feature L — Personnalisation du prompt de critique santé
+
+> Origine : intake `/speckit-design` + `/speckit-specify` 2026-06-28
+> Intention : personnaliser le prompt utilisé pour l'analyse des ingrédients (critique santé) afin d'expliciter le **persona expert** (nutrition clinique + cancérologie préventive), les **dimensions de risque** évaluées par ingrédient, la **hiérarchie faits / incertitudes / hypothèses** (avec références CIRC/OMS), l'attention aux **populations vulnérables**, et le **format de sortie strict** par population.
+
+### Clarifications (Feature L)
+
+#### Session 2026-06-28
+
+- **Portée** : la personnalisation porte sur le **prompt de critique santé** (flux LLM critique par population) ; elle ne modifie pas le bilan de composition ni les KPI additifs (`additive-risk-insights`), et reste soumise à l'ancrage Feature C (aucun fait étiquette non ancré).
+- **Persona expert** : le prompt MUST positionner le modèle comme **expert de renommée mondiale en nutrition clinique et en cancérologie préventive, spécialisé dans l'évaluation des risques alimentaires** ; ce persona est une instruction de cadrage, pas une allégation produit.
+- **Dimensions de risque** : le prompt MUST demander l'évaluation explicite, par ingrédient, des potentiels **cancérogène, mutagène, neurotoxique, métabolique (ex. pics glycémiques, cholestérol) et inflammatoire**.
+- **Hiérarchie des preuves** : le prompt MUST imposer de distinguer **1) les faits établis** (ex. classification CIRC/OMS, consensus scientifique), **2) les incertitudes scientifiques** (ex. débats actuels, effets à doses massives chez l'animal), **3) les hypothèses ou mécanismes suspectés**.
+- **Populations vulnérables** : le prompt MUST porter une attention particulière aux **femmes enceintes/allaitantes, enfants, personnes immunodéprimées et personnes ayant des antécédents familiaux de cancer** (au-delà des 4 sections de sortie, comme axe transversal de vigilance).
+- **Format de sortie** : les 4 marqueurs de section (`###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES`) et la structure par bloc (Points de vigilance / Analyse par ingrédient & Nuances / Niveau de prudence) sont **inchangés** ; seuls les libellés et le contenu de cadrage du prompt évoluent.
+- **Conformité Feature C** : le prompt personnalisé MUST NOT encourager le modèle à produire des faits produit non ancrés ; il MUST réaffirmer l'interdiction d'inventer des ingrédients absents et de poser un diagnostic/prescription.
+- Q: Mécanisme de personnalisation du prompt ? → A: **Remplacement en dur versionné** dans le builder de prompt (contenu intégré au code, testable, répétable) ; pas d'externalisation configurée ni de registre de prompts au périmètre Feature L.
+- Q: Affichage des populations vulnérables sans section dédiée (immunodéprimées, antécédents familiaux cancer) ? → A: **Mention transversale intégrée** dans chaque section pertinente (Points de vigilance / Nuances), comme axe de vigilance, sans ajouter de section ni de préambule (préserve le format strict des 4 marqueurs).
+- Q: La personnalisation s'applique-t-elle aussi au prompt du bilan de composition ? → A: **Non, uniquement au prompt de critique santé** (périmètre Feature L strict) ; le bilan de composition garde son propre contrat, une extension éventuelle ferait l'objet d'une feature distincte.
+- Q: Seuil déclenchant la synthèse pour « liste très longue » ? → A: **Seuil en nombre d'ingrédients** (ex. ≥ 20), non en caractères ; la valeur exacte est laissée au plan d'implémentation.
+- Q: Validation de la conformité au prompt (persona / hiérarchie des preuves / populations vulnérables) au MVP ? → A: **Relecture humaine + traçabilité** sur un jeu fixe d'ingrédients (aligné Feature C / `IHI-C-FR-006` MVP) ; le format de sortie reste vérifié par le parseur existant, la conformité sémantique n'est pas automatisée au MVP.
+
+### User Scenarios (Feature L)
+
+#### US-L1 — Cadre expert et dimensions de risque explicites (P1)
+
+En tant qu'utilisatrice, je veux que la critique santé soit produite avec un cadrage d'expert en nutrition clinique et cancérologie préventive, évaluant explicitement plusieurs dimensions de risque par ingrédient, afin d'obtenir une analyse plus structurée et plus crédible.
+
+**Why this priority**: cœur de la personnalisation demandée ; sans persona et sans dimensions de risque explicites, la sortie reste générique.
+
+**Independent Test**: vérifiable en inspectant le prompt construit (présence du persona expert + des 5 dimensions de risque) et en contrôlant que la sortie LLM distingue faits / incertitudes / hypothèses sur un jeu fixe.
+
+**Acceptance Scenarios**:
+
+1. **Given** le prompt de critique santé construit, **When** on inspecte son contenu, **Then** il contient explicitement le cadrage « expert de renommée mondiale en nutrition clinique et en cancérologie préventive, spécialisé dans l'évaluation des risques alimentaires ».
+2. **Given** le même prompt, **When** on inspecte ses dimensions d'évaluation, **Then** il exige l'évaluation par ingrédient des potentiels cancérogène, mutagène, neurotoxique, métabolique et inflammatoire.
+3. **Given** une analyse produite depuis ce prompt sur un jeu d'ingrédients fixe, **When** on lit la sortie, **Then** chaque ingrédient analysé distingue visiblement faits établis, incertitudes scientifiques et hypothèses/mécanismes suspectés.
+
+#### US-L2 — Populations vulnérables élargies et garde-fous éthiques (P1)
+
+En tant qu'utilisatrice faisant partie d'une population vulnérable (ex. immunodéprimée, antécédents familiaux de cancer), je veux que le prompt porte une attention particulière à ma situation et conserve les garde-fous éthiques (pas de diagnostic, pas de prescription), afin de rester prudente et informée.
+
+**Why this priority**: sécurise l'usage médical et l'inclusion des populations au-delà des 4 sections de sortie.
+
+**Independent Test**: vérifiable en inspectant le prompt (mention des populations vulnérables élargies + garde-fous éthiques) et en contrôlant le refus de diagnostic sur une demande explicite simulée.
+
+**Acceptance Scenarios**:
+
+1. **Given** le prompt construit, **When** on inspecte son contenu, **Then** il mentionne explicitement l'attention particulière aux femmes enceintes/allaitantes, enfants, personnes immunodéprimées et personnes ayant des antécédents familiaux de cancer.
+2. **Given** le prompt construit, **When** on inspecte les garde-fous éthiques, **Then** il interdit explicitement de poser un diagnostic, de prescrire un régime ou un traitement, et oriente vers un professionnel de santé en cas de demande d'avis médical personnalisé.
+3. **Given** une demande simulée d'avis médical personnalisé transmise au flux, **When** l'analyse est produite, **Then** la sortie refuse poliment de poser un diagnostic/prescription et oriente vers un professionnel de santé, tout en conservant la structure des 4 sections.
+
+#### US-L3 — Format de sortie strict préservé (P1)
+
+En tant qu'utilisatrice, je veux que la personnalisation du prompt ne casse pas le format de sortie attendu (4 sections, blocs structurés), afin de garder une présentation cohérente avec l'existant.
+
+**Why this priority**: garantit la non-régression du contrat de parsing et de l'UX de résultat.
+
+**Independent Test**: vérifiable en exécutant le flux sur un jeu fixe et en contrôlant que les marqueurs `###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES` et les 3 blocs attendus sont présents et ordonnés.
+
+**Acceptance Scenarios**:
+
+1. **Given** le prompt personnalisé, **When** on inspecte la section « format de sortie », **Then** il exige **uniquement** les marqueurs `###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES` dans cet ordre, avec aucun texte avant `###ENFANTS`.
+2. **Given** le même prompt, **When** on inspecte la structure exigée sous chaque marqueur, **Then** il requiert obligatoirement : 1) Points de vigilance (liste à puces courte), 2) Analyse par ingrédient & Nuances (faits établis vs incertitudes), 3) Niveau de prudence (Faible / Modéré / Élevé) avec justification prudente.
+3. **Given** une analyse produite depuis ce prompt sur un jeu fixe, **When** le parseur de sections traite la sortie, **Then** les 4 sections sont reconnues dans l'ordre attendu, sans régression par rapport au comportement pré-Feature L.
+
+### Edge Cases (Feature L)
+
+- Liste d'ingrédients très longue : le prompt MUST demander une **synthèse des risques majeurs en tête de la section 2** (Analyse par ingrédient & Nuances), puis le détail des ingrédients pertinents, sans déroger au format des 4 sections.
+- Liste dans une autre langue ou illisible : le prompt MUST conserver la structure des marqueurs et demander poliment des précisions / une meilleure capture dans la section 2 de chaque partie concernée.
+- Terme ambigu (« arômes », « épices », additif non spécifié) : le prompt MUST demander de signaler l'opacité et son impact négatif sur la confiance de l'analyse.
+- Demande d'avis médical personnalisé : le prompt MUST imposer un refus poli et une orientation vers un professionnel de santé, sans rompre la structure de sortie.
+- Risque d'invention d'ingrédients (correction OCR) : le prompt MUST autoriser la **correction mentale** des erreurs OCR et l'usage de la dénomination scientifique/réglementaire la plus probable, tout en **interdisant d'inventer des ingrédients absents** (cohérent Feature C / `IHI-C-FR-001`).
+
+### Functional Requirements (Feature L)
+
+- **IHI-L-FR-001**: Le système MUST construire le prompt de critique santé en positionnant le modèle comme **expert de renommée mondiale en nutrition clinique et en cancérologie préventive, spécialisé dans l'évaluation des risques alimentaires**.
+- **IHI-L-FR-002**: Le système MUST exiger dans le prompt l'analyse **ingrédient par ingrédient**, avec correction mentale des erreurs typiques d'OCR vers la dénomination scientifique ou réglementaire la plus probable, **sans jamais inventer d'ingrédients absents** (cohérent `IHI-C-FR-001` / `IHI-C-FR-002`).
+- **IHI-L-FR-003**: Le système MUST exiger dans le prompt l'évaluation explicite, par ingrédient, des potentiels **cancérogène, mutagène, neurotoxique, métabolique (ex. pics glycémiques, cholestérol) et inflammatoire**.
+- **IHI-L-FR-004**: Le système MUST exiger dans le prompt la distinction explicite entre : **1) faits établis** (ex. classification CIRC/OMS, consensus scientifique), **2) incertitudes scientifiques** (ex. débats actuels, effets à doses massives chez l'animal), **3) hypothèses ou mécanismes suspectés**.
+- **IHI-L-FR-005**: Le système MUST exiger dans le prompt la **contextualisation de la dose et de l'exposition** (un ingrédient n'est toxique que si sa dose l'est) et l'interdiction des conclusions catégoriques (« toujours toxique », « poison »).
+- **IHI-L-FR-006**: Le système MUST exiger dans le prompt le signalement de l'**opacité** pour les termes ambigus (« arômes », « épices », additifs non spécifiés) et de son impact négatif sur la confiance de l'analyse.
+- **IHI-L-FR-007**: Le système MUST exiger dans le prompt les **garde-fous éthiques** : aucun diagnostic, aucune prescription de régime ou traitement ; refus poli et orientation vers un professionnel de santé en cas de demande d'avis médical personnalisé.
+- **IHI-L-FR-008**: Le système MUST exiger dans le prompt une **attention particulière aux populations vulnérables** : femmes enceintes/allaitantes, enfants, personnes immunodéprimées et personnes ayant des antécédents familiaux de cancer. Le prompt MUST indiquer que les populations sans section dédiée (immunodéprimées, antécédents familiaux de cancer) sont traitées comme une **vigilance transversale intégrée** dans chaque section pertinente (Points de vigilance / Nuances), **sans** ajouter de section ni de préambule au format de sortie strict.
+- **IHI-L-FR-009**: Le système MUST conserver le **format de sortie strict** : uniquement les marqueurs `###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES` dans cet ordre, aucun texte avant `###ENFANTS`.
+- **IHI-L-FR-010**: Le système MUST exiger, sous chaque marqueur, un bloc structuré contenant obligatoirement : **1) Points de vigilance** (liste à puces courte des ingrédients préoccupants pour cette population), **2) Analyse par ingrédient & Nuances** (faits établis vs incertitudes scientifiques, détaillée ingrédient par ingrédient), **3) Niveau de prudence** (Faible / Modéré / Élevé) avec justification prudente basée sur les doses probables et les risques à long terme.
+- **IHI-L-FR-011**: Le système MUST exiger dans le prompt la **rédaction intégrale en français** (y compris synthèses et formulations de prudence) et la présence du **disclaimer** indiquant que l'information est indicative à visée éducative et ne remplace pas un avis médical ou nutritionnel personnalisé.
+- **IHI-L-FR-012**: Le système MUST exiger, pour les listes très longues, une **synthèse des risques majeurs en tête de la section 2** de chaque partie, puis le détail des ingrédients pertinents. Le seuil « très longue » est défini en **nombre d'ingrédients** (valeur exacte fixée au plan d'implémentation, ex. ≥ 20), non en caractères.
+- **IHI-L-FR-013**: Le système MUST exiger, pour les listes dans une autre langue ou illisibles, le maintien de la structure des marqueurs et une demande polie de précisions / meilleure capture dans la section 2 de chaque partie concernée.
+- **IHI-L-FR-014**: Le système MUST respecter **Feature C** : le prompt personnalisé MUST NOT encourager la production de faits produit non ancrés sur le `ValidatedIngredientSegment` ; toute formulation liant « ce produit » à un ingrédient/risque reste soumise à `IHI-C-FR-004` / `IHI-C-FR-005`.
+- **IHI-L-FR-015**: Le système MUST permettre la **répétabilité** de la construction du prompt (même entrée → même prompt construit) pour faciliter les tests unitaires et la non-régression du contrat de critique.
+- **IHI-L-FR-016**: Le système MUST matérialiser le prompt personnalisé comme un **contenu intégré au code (remplacement en dur versionné)** dans le builder de prompt ; il MUST NOT introduire de configuration externe modifiable sans recompilation ni de registre de prompts sélectionnables au périmètre Feature L.
+- **IHI-L-FR-017**: Le système MUST limiter la personnalisation Feature L au **prompt de critique santé** ; le prompt du bilan de composition MUST conserver son propre contrat (non modifié par Feature L). Toute extension du persona/des dimensions de risque au flux composition ferait l'objet d'une feature distincte.
+
+### Key Entities (Feature L)
+
+- **HealthCritiquePrompt**: prompt de critique santé construit (instruction système + message utilisateur), intégrant persona expert, dimensions de risque, hiérarchie des preuves, populations vulnérables et format de sortie strict.
+- **RiskDimension**: dimension d'évaluation par ingrédient parmi {cancérogène, mutagène, neurotoxique, métabolique, inflammatoire}.
+- **EvidenceTier**: niveau de preuve parmi {fait établi, incertitude scientifique, hypothèse / mécanisme suspecté}.
+- **VulnerablePopulation**: population à vigilance accrue parmi {femmes enceintes/allaitantes, enfants, personnes immunodéprimées, antécédents familiaux de cancer}.
+- **CritiqueSectionMarker**: marqueur de section de sortie (`###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES`) et structure de bloc associée.
+
+### Success Criteria (Feature L)
+
+- **IHI-L-SC-001**: 100 % des prompts construits contiennent le persona expert (nutrition clinique + cancérologie préventive) et les 5 dimensions de risque (cancérogène, mutagène, neurotoxique, métabolique, inflammatoire).
+- **IHI-L-SC-002**: 100 % des prompts construits exigent la distinction faits établis / incertitudes scientifiques / hypothèses (avec références CIRC/OMS pour les faits établis).
+- **IHI-L-SC-003**: 100 % des prompts construits mentionnent les populations vulnérables élargies (femmes enceintes/allaitantes, enfants, immunodéprimées, antécédents familiaux de cancer) et les garde-fous éthiques (pas de diagnostic, pas de prescription, orientation professionnel de santé).
+- **IHI-L-SC-004**: 100 % des prompts construits préservent le format de sortie strict (4 marqueurs ordonnés, aucun texte avant `###ENFANTS`, 3 blocs obligatoires par section).
+- **IHI-L-SC-005**: 100 % des sorties LLM produites depuis le prompt personnalisé sur un jeu fixe sont parsables par le parseur de sections existant sans régression (4 sections reconnues dans l'ordre).
+- **IHI-L-SC-006**: 100 % des prompts construits préservent la conformité Feature C (aucune incitation à inventer des ingrédients absents, ancrage préservé).
+- **IHI-L-SC-007**: 100 % des exécutions de construction du prompt sont répétables (même entrée → même prompt) sur ≥ 3 exécutions successives.
+- **IHI-L-SC-008**: La conformité sémantique de la sortie au prompt personnalisé (persona expert, hiérarchie faits/incertitudes/hypothèses, populations vulnérables, garde-fous éthiques) est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe d'ingrédients (aligné `IHI-C-FR-006` MVP) ; le format de sortie (4 marqueurs, 3 blocs) reste vérifié par le parseur existant (`IHI-L-SC-005`). Aucun audit automatisé bloquant n'est exigé au MVP.
+
+---
+
+## Feature M — Accès UI à la critique santé (câblage de navigation)
+
+> Origine : intake `/speckit-design` 2026-06-28
+> Intention : rendre la critique santé par population accessible depuis l'application de production. Aujourd'hui `HealthCritiqueScreen` (écran d'entrée avec bouton « Analyser ») n'est monté que dans les tests instrumentés ; il n'est pas enregistré dans le `NavHost` de `MainActivity`. Seul `HealthCritiqueResultScreen` est routé, et il n'est atteignable que via `navigateToResult` émis par `analyze()`, lui-même appelé uniquement depuis `HealthCritiqueScreen`. Le flux critique santé est donc **inaccessible** en production (l'utilisatrice ne voit que le résultat composition/additifs). Cette feature comble le manque prévu par `specs/002-ingredient-health-critique/plan.md` (« Onglet « Critique santé » dans `MainActivity` »).
+> **SUPERSÉDÉ par Feature O (2026-06-28)** : la critique santé doit désormais figurer **directement sur l'écran principal des résultats** (`LlmResultScreen`), avec déclenchement automatique et restitution 100 % inline. Le bouton « Critique santé » (`IHI-M-FR-002`), la route `HealthCritiqueEntry` (`IHI-M-FR-001`), l'écran d'entrée `HealthCritiqueScreen` (`IHI-M-FR-004`) et l'écran de résultat séparé `HealthCritiqueResultScreen` / route `HealthCritiqueResult` sont **retirés** (traçabilité conservée ci-dessous). Les exigences `IHI-M-FR-001` à `IHI-M-FR-008` et `IHI-M-SC-001` à `IHI-M-SC-005` sont **supersédées et retirées** ; se reporter à **Feature O** pour le câblage cible.
+
+### Clarifications (Feature M)
+
+#### Session 2026-06-28
+
+- **Portée** : câblage de navigation uniquement (route + point d'entrée UI) ; **aucune modification** du moteur `HealthCritiqueEngine`, du prompt (`HealthCritiquePromptBuilder`), du parseur (`HealthCritiqueSectionParser`) ou du flux composition.
+- **Écran d'entrée** : `HealthCritiqueScreen` existant (champ lecture seule + bouton « Analyser ») est réutilisé tel quel ; il est monté dans le `NavHost` via une nouvelle route.
+- **Point d'entrée** : un bouton « Critique santé » est exposé depuis l'écran de résultat composition (`LlmResultScreen`) une fois le bilan prêt, afin de respecter la dépendance amont (segment validé synchronisé depuis le scan). Aucun onglet persistant requis au MVP.
+- **Synchronisation du segment** : réutilise le flux existant `cameraViewModel.lastValidatedSegmentForHealth` → `healthCritiqueViewModel.setValidatedSegmentFromScan(...)` (déjà câblé dans `MainActivity`) ; l'écran d'entrée affiche donc la liste prête, en lecture seule.
+- **Recherche d'effets de bord** : `viewModel.analyze()` n'est appelé que depuis `HealthCritiqueScreen` ; l'ajouter à la navigation ne modifie pas les autres routes. La route `HealthCritiqueResult` existe déjà et reste inchangée.
+- **Garde-fou** : le bouton d'entrée est désactivé si aucun segment validé n'est disponible (cohérent avec `InputInvalidReason.NO_VALIDATED_SEGMENT`).
+
+### User Scenarios (Feature M)
+
+#### US-M1 — Atteindre la critique santé depuis le résultat composition (P1)
+
+En tant qu'utilisatrice, après avoir obtenu le bilan de composition d'un produit scanné, je veux un point d'entrée explicite vers la critique santé par population, afin de consulter l'analyse `###ENFANTS` / `###FEMMES_ENCEINTES` / `###ADULTES` / `###PERSONNES_AGEES` qui sinon reste invisible.
+
+**Why this priority**: sans ce point d'entrée, la critique santé (Feature L et spec 002) est totalement inaccessible en production — la feature est inutilisable.
+
+**Independent Test**: naviguer jusqu'au résultat composition, vérifier la présence d'un bouton « Critique santé », le déclencher, et confirmer l'affichage de `HealthCritiqueScreen` (liste en lecture seule + bouton « Analyser »).
+
+**Acceptance Scenarios**:
+
+1. **Given** le résultat composition affiché (`LlmResultScreen`) avec un segment validé disponible, **When** l'utilisatrice consulte l'écran, **Then** un point d'entrée « Critique santé » est visible.
+2. **Given** ce point d'entrée, **When** l'utilisatrice le déclenche, **Then** la navigation atteint `HealthCritiqueScreen` (route enregistrée dans le `NavHost`) et la liste d'ingrédients s'affiche en lecture seule, synchronisée avec le segment validé du scan.
+3. **Given** aucun segment validé disponible, **When** l'utilisatrice est sur le résultat composition, **Then** le point d'entrée « Critique santé » est désactivé (ou masqué) et ne déclenche pas la navigation.
+
+#### US-M2 — Lancer la critique et voir les sections par population (P1)
+
+En tant qu'utilisatrice, depuis `HealthCritiqueScreen`, je veux pouvoir lancer l'analyse (« Analyser ») et atterrir sur l'écran de résultat affichant les sections par population, afin de valider bout-en-bout le flux critique santé.
+
+**Why this priority**: confirme que le câblage complète la chaîne : entrée → `analyze()` → `navigateToResult` → `HealthCritiqueResultScreen` (sections parsées).
+
+**Independent Test**: depuis `HealthCritiqueScreen`, appuyer sur « Analyser » et confirmer la navigation vers `HealthCritiqueResultScreen` puis l'affichage des titres « ENFANTS / FEMMES ENCEINTES / ADULTES / PERSONNES AGEES » (les marqueurs `###` ne s'affichent pas littéralement, par conception du parseur — `IHI-L-SC-005`).
+
+**Acceptance Scenarios**:
+
+1. **Given** `HealthCritiqueScreen` affiché avec un segment validé non vide, **When** l'utilisatrice appuie sur « Analyser », **Then** `viewModel.analyze()` est déclenché et la navigation atteint `HealthCritiqueResult` (`navigateToResult`).
+2. **Given** l'analyse aboutit à un `HealthCritiqueResult.CritiqueReady`, **When** l'écran de résultat s'affiche, **Then** les sections par population sont rendues (titres + corps), conformément à `HealthCritiqueResultScreen`.
+3. **Given** l'analyse aboutit à un `HealthCritiqueResult.InferenceError` ou `InputInvalid`, **When** l'écran de résultat s'affiche, **Then** le message d'erreur est affiché (comportement existant inchangé).
+
+### Edge Cases (Feature M)
+
+- Retour navigation : depuis `HealthCritiqueScreen` ou `HealthCritiqueResultScreen`, le retour (`onBack` / `popBackStack`) ramène au résultat composition sans état cassé.
+- Segment validé devenu vide entre le scan et l'ouverture de la critique : le bouton « Analyser » reste géré par l'existant (`HealthIngredientInputValidator` → `InputInvalid`).
+- Rotation / recréation d'activité : la route et le `ViewModel` survivent (state already handled par `HealthCritiqueViewModel` + `LastHealthAnalysisStore`).
+- Double déclenchement du point d'entrée : navigation standard Compose (pas de double empilement de routes).
+
+### Functional Requirements (Feature M)
+
+- **IHI-M-FR-001**: Le système MUST enregistrer une route de navigation pour `HealthCritiqueScreen` dans le `NavHost` de `MainActivity` (ex. `CameraFlowRoutes.HealthCritiqueEntry`).
+- **IHI-M-FR-002**: Le système MUST exposer un point d'entrée « Critique santé » depuis `LlmResultScreen` (résultat composition) permettant de naviguer vers la route `HealthCritiqueEntry`.
+- **IHI-M-FR-003**: Le système MUST désactiver (ou masquer) le point d'entrée « Critique santé » lorsqu'aucun segment validé n'est disponible (`InputInvalidReason.NO_VALIDATED_SEGMENT`).
+- **IHI-M-FR-004**: Le système MUST réutiliser `HealthCritiqueScreen` existant sans modification de son comportement (champ lecture seule + bouton « Analyser »).
+- **IHI-M-FR-005**: Le système MUST réutiliser le flux de synchronisation existant `lastValidatedSegmentForHealth` → `setValidatedSegmentFromScan(...)` pour alimenter l'écran d'entrée ; aucune nouvelle source de segment.
+- **IHI-M-FR-006**: Le système MUST conserver la route `HealthCritiqueResult` et le flux `analyze()` → `navigateToResult` inchangés (non-régression).
+- **IHI-M-FR-007**: Le système MUST NOT modifier `HealthCritiqueEngine`, `HealthCritiquePromptBuilder`, `HealthCritiqueSectionParser`, ni le flux composition (périmètre navigation stricte).
+- **IHI-M-FR-008**: Le système MUST assurer le retour navigation (`onBack` / `popBackStack`) depuis `HealthCritiqueScreen` vers l'écran précédent sans casser la pile de navigation.
+
+### Key Entities (Feature M)
+
+- **HealthCritiqueEntryRoute**: route de navigation vers `HealthCritiqueScreen` (nouvelle constante dans `CameraFlowRoutes`).
+- **CritiqueSanteEntryTrigger**: point d'entrée UI (bouton) exposé depuis `LlmResultScreen`, activé conditionnellement à la disponibilité d'un segment validé.
+
+### Success Criteria (Feature M)
+
+- **IHI-M-SC-001**: 100 % des parcours « résultat composition → bouton Critique santé » avec un segment validé disponible aboutissent à l'affichage de `HealthCritiqueScreen`.
+- **IHI-M-SC-002**: 100 % des déclenchements du bouton « Analyser » depuis `HealthCritiqueScreen` naviguent vers `HealthCritiqueResultScreen` (route `HealthCritiqueResult`).
+- **IHI-M-SC-003**: 100 % des cas sans segment validé désactivent (ou masquent) le point d'entrée « Critique santé ».
+- **IHI-M-SC-004**: 0 % de régression sur le flux composition (`LlmResultScreen`), le moteur critique, le prompt et le parseur (inchangés).
+- **IHI-M-SC-005**: 100 % des retours navigation depuis `HealthCritiqueScreen` / `HealthCritiqueResultScreen` ramènent à l'écran précédent sans état cassé.
+
+---
+
+## Feature N — Critique santé ciblée par profil utilisateur (prompt adapté + restitution prudence/cartes)
+
+> Origine : intake `/speckit-design` + `/speckit-specify` 2026-06-28
+> Intention : ne plus produire les 4 profils (ENFANTS / FEMMES_ENCEINTES / ADULTES / PERSONNES_AGEES) indifféremment. L'utilisatrice renseigne **son profil** lors de l'Onboarding (`Femme enceinte`, `Enfant`, `Agé`, `Adulte`, `Sportif`) ; le prompt de critique santé est ensuite **adapté pour ne produire que l'analyse la concernant**, en rappelant explicitement le profil ciblé (« Évalué pour vous : Femme enceinte »). La restitution évolue : un **Niveau de prudence** (jauge Faible / Modéré / Élevé + texte court) juste sous les alertes, puis un **détail ingrédient par ingrédient** sous forme de cartes à accordéon limitées aux ingrédients ayant déclenché une vigilance (Modéré / Élevé), avec un bouton « Voir tous les ingrédients analysés » en bas.
+
+### Clarifications (Feature N)
+
+#### Session 2026-06-28
+
+- **Portée** : Feature N modifie le **prompt de critique santé**, le **format de sortie** et la **restitution UI critique** ; elle ne modifie pas le bilan de composition ni les KPI additifs (`additive-risk-insights`), et reste soumise à l'ancrage Feature C (aucun fait étiquette non ancré).
+- **Évolution du format strict Feature L** : Feature L (**IHI-L-FR-009** / **IHI-L-SC-004**) imposait 4 marqueurs ordonnés `###ENFANTS` / `###FEMMES_ENCEINTES` / `###ADULTES` / `###PERSONNES_AGEES`. Feature N **supprime entièrement** ce flux 4-profils (prompt 4-marqueurs, parseur 4-sections, UI 4-sections) et le remplace par une **sortie à profil unique** : un seul marqueur correspondant au profil sélectionné, précédé d'un rappel « Évalué pour vous : <profil> ». **IHI-L-FR-009** et **IHI-L-SC-004** sont **supersédés et retirés** (traçabilité conservée dans cette section) ; les autres exigences Feature L (persona expert, 5 dimensions de risque, hiérarchie faits/incertitudes/hypothèses, populations vulnérables transversales, garde-fous éthiques, rédaction française, disclaimer, seuil « liste très longue ») **restent applicables** au prompt personnalisé Feature N. Aucun mode « comparer tous les profils » n'est conservé.
+- **Nouveau profil « Sportif »** : le jeu de profils passe de 4 à 5 avec l'ajout de **Sportif** (profil non couvert par les 4 marqueurs historiques). Un marqueur canonique est défini pour chaque profil (voir **IHI-N-FR-006**).
+- **Sélection du profil (Onboarding)** : la saisie du profil est effectuée dans l'Onboarding et sa persistance/édition sont du ressort du domaine **`user-guidance-experience`** (**Ref.** UGE) ; le profil est également modifiable dans un écran **« Paramètres / Profil »** (UGE) hors Onboarding. Le domaine `ingredient-health-intelligence` **consomme** le profil sélectionné comme entrée du prompt et de la restitution, sans le stocker lui-même ; la critique suivante utilise le nouveau profil après changement.
+- **Restitution du Niveau de prudence** : la jauge affiche **Faible / Modéré / Élevé** (3 paliers) accompagnée d'un **texte court justificatif** produit par le LLM (ex. « Niveau modéré : présence de phosphate qui peut perturber l'absorption du fer »). Ce niveau est **celui du profil sélectionné**, pas une moyenne des 4 populations. Les « alertes » placées au-dessus du Niveau de prudence désignent les **KPI additifs/risques existants** publiés par le domaine `additive-risk-insights` (juxtaposition régie par **IHI-C-FR-007**) ; Feature N n'introduit **pas** de nouveau bloc d'alertes.
+- **Filtrage des cartes ingrédients** : la restitution ne liste en clair, par défaut, que les ingrédients ayant déclenché une vigilance **Modérée** ou **Élevée** pour le profil sélectionné. Les ingrédients sans vigilance (« RAS ») ne sont pas affichés en clair ; ils restent accessibles via un bouton **« Voir tous les ingrédients analysés »** qui déplie une **liste compacte** (nom + statut de vigilance RAS / Modéré / Élevé) de tous les ingrédients analysés — pas des cartes complètes pour les RAS.
+- **Contenu d'une carte ingrédient** : chaque carte problématique contient a minima : **titre** (marqueur visuel de sévérité + code éventuel tel qu'E-number + nom), **sous-titre type** (ex. « Conservateur — Additif »), **Impact** (formulation courte), **Fait établi** (avec réf. CIRC/OMS le cas échéant), **Nuance** (dépend de la dose / fréquence / cuisson, etc.), **Cible particulièrement** (autres populations concernées, même si non sélectionnées).
+- **Conformité Feature C** : le prompt personnalisé Feature N MUST NOT encourager la production de faits produit non ancrés ; chaque ingrédient mentionné dans une carte MUST être **littéralement ancrable** dans le `ValidatedIngredientSegment` (selon **IHI-C-FR-005**), hors corrections OCR autorisées par **IHI-L-FR-002**.
+- **Validation MVP** : conformité sémantique (ciblage profil unique, rappel « Évalué pour vous », structure des cartes, niveau de prudence) tenue par **relecture humaine + traçabilité** sur un jeu fixe (aligné **IHI-C-FR-006** MVP) ; le format de sortie (marqueur unique + blocs attendus) reste vérifié par le parseur existant étendu Feature N.
+- Q: Comportement en l'absence de profil sélectionné (Onboarding non terminé / profil effacé) ? → A: **Fallback implicite sur le profil par défaut « Adulte »** (profil unique, pas 4-profils) ; la critique est produite pour « Adulte » avec le rappel « Évalué pour vous : Adulte », et l'UI signale visuellement qu'il s'agit du profil par défaut (invitation à personnaliser dans l'Onboarding/paramètres). Aucune critique 4-profils n'est produite (pas de rétropédalage Feature L silencieux).
+- Q: Contenu déployé par le bouton « Voir tous les ingrédients analysés » ? → A: **Liste compacte** (nom + statut de vigilance RAS / Modéré / Élevé) de tous les ingrédients analysés ; pas de cartes complètes pour les ingrédients RAS.
+- Q: Origine des « alertes » affichées au-dessus du Niveau de prudence ? → A: Les « alertes » désignent les **KPI additifs/risques existants** du domaine `additive-risk-insights` (juxtaposition régie par **IHI-C-FR-007**) ; Feature N n'introduit **pas** de nouveau bloc d'alertes, le Niveau de prudence se place juste en dessous de ces KPI.
+- Q: Sortie 4-profils : conservée ou supprimée ? → A: **Supprimée entièrement** (prompt 4-marqueurs, parseur 4-sections, UI 4-sections) ; seul le mode profil unique reste. Aucun mode « comparer tous les profils » n'est conservé. **IHI-L-FR-009** / **IHI-L-SC-004** supersédés et retirés (traçabilité en spec).
+- Q: Profil modifiable hors Onboarding ? → A: **Oui, dans un écran « Paramètres / Profil »** (UGE) en plus de l'Onboarding ; la critique suivante utilise le nouveau profil après changement.
+
+### User Scenarios (Feature N)
+
+#### US-N1 — Profil renseigné lors de l'Onboarding (P1)
+
+En tant que nouvelle utilisatrice, lors de l'Onboarding je veux renseigner **mon profil** parmi `Femme enceinte`, `Enfant`, `Agé`, `Adulte`, `Sportif`, afin que les analyses ultérieures ne concernent que moi.
+
+**Why this priority**: sans profil sélectionné, le ciblage du prompt et le rappel « Évalué pour vous » sont impossibles — la feature entière est bloquée.
+
+**Independent Test**: démarrer l'app la première fois, parcourir l'Onboarding, choisir un profil, et vérifier qu'il est persisté et repris comme entrée de la critique santé.
+
+**Acceptance Scenarios**:
+
+1. **Given** une première ouverture de l'app, **When** l'utilisatrice atteint l'étape Onboarding, **Then** elle peut sélectionner **un et un seul** profil parmi `Femme enceinte`, `Enfant`, `Agé`, `Adulte`, `Sportif`.
+2. **Given** un profil sélectionné, **When** l'utilisatrice termine l'Onboarding, **Then** le profil est persisté (stockage UGE) et reste disponible pour les analyses suivantes sans re-saisie.
+3. **Given** l'app rouverte après fermeture, **When** l'utilisatrice déclenche une critique santé, **Then** le profil précédemment choisi est réutilisé (persistance).
+
+#### US-N2 — Prompt adapté au profil et rappel « Évalué pour vous » (P1)
+
+En tant qu'utilisatrice dont le profil est « Femme enceinte », je veux que l'analyse ne produise **que** la critique me concernant, et qu'elle rappelle explicitement « Évalué pour vous : Femme enceinte », afin de ne pas lire 3 sections qui ne me concernent pas.
+
+**Why this priority**: cœur de l'intention produit décrite ; supprime le bruit des 3 profils non pertinents et personnalise la sortie.
+
+**Independent Test**: avec un profil donné, inspecter le prompt construit (un seul marqueur de profil, rappel du profil) et la sortie LLM (rappel « Évalué pour vous : <profil> » + une seule section).
+
+**Acceptance Scenarios**:
+
+1. **Given** un profil sélectionné (ex. « Femme enceinte »), **When** le prompt de critique santé est construit, **Then** il exige **uniquement** le marqueur canonique du profil sélectionné (ex. `###FEMME_ENCEINTE`) et **aucun** des autres marqueurs de profil.
+2. **Given** le même prompt, **When** on inspecte le format de sortie exigé, **Then** il exige un **rappel explicite** du profil ciblé en tête, de la forme « Évalué pour vous : <profil> » (libellé français équivalent accepté).
+3. **Given** une analyse produite depuis ce prompt sur un jeu fixe, **When** on lit la sortie, **Then** elle contient **une seule** section de critique (celle du profil sélectionné), précédée du rappel « Évalué pour vous : <profil> ».
+
+#### US-N3 — Niveau de prudence visible en haut de la critique (P1)
+
+En tant qu'utilisatrice, juste sous les alertes je veux voir un **Niveau de prudence** (jauge Faible / Modéré / Élevé) accompagné d'un texte court, afin de saisir en 3–10 secondes l'ordre de vigilance pour **mon** profil.
+
+**Why this priority**: réduit la charge cognitive d'entrée de lecture ; c'est le signal prudence principal du profil sélectionné.
+
+**Independent Test**: produire une critique pour un profil donné et vérifier la présence de la jauge (3 paliers) + d'un texte court justificatif, sous les alertes et au-dessus du détail ingrédient.
+
+**Acceptance Scenarios**:
+
+1. **Given** une critique réussie pour le profil sélectionné, **When** l'écran de résultat s'affiche, **Then** un **Niveau de prudence** est visible juste sous les **alertes existantes** (KPI additifs/risques `additive-risk-insights`), avant le détail ingrédient.
+2. **Given** ce niveau, **When** l'utilisatrice le consulte, **Then** il est restitué sous forme d'une **jauge à 3 paliers** (Faible / Modéré / Élevé) avec le palier actif mis en évidence, accompagné d'un **texte court justificatif** produit pour le profil sélectionné.
+3. **Given** plusieurs profils auraient eu des niveaux différents, **When** le niveau est affiché, **Then** il reflète **uniquement** le niveau du profil sélectionné (pas une moyenne des profils).
+
+#### US-N4 — Détail ingrédient par ingrédient sous forme de cartes (P1)
+
+En tant qu'utilisatrice curieuse (ou confrontée à un produit à vigilance), je veux scroller dans un **détail ingrédient par ingrédient** sous forme de cartes à accordéon, limité aux ingrédients problématiques, afin de comprendre en 10 s et + ce qui me concerne.
+
+**Why this priority**: supporte la profondeur d'analyse là où le niveau de prudence est synthétique.
+
+**Independent Test**: produire une critique avec au moins un ingrédient à vigilance Modéré/Élevé et vérifier qu'une carte s'affiche pour celui-ci (titre, type, Impact, Fait établi, Nuance, Cible particulièrement) ; qu'aucune carte « RAS » n'est visible par défaut ; et qu'un bouton « Voir tous les ingrédients analysés » est présent en bas.
+
+**Acceptance Scenarios**:
+
+1. **Given** une critique réussie pour le profil sélectionné, **When** l'utilisatrice scrolle sous le Niveau de prudence, **Then** seuls les ingrédients ayant déclenché une vigilance **Modérée** ou **Élevée** sont affichés en clair, sous forme de cartes repliables (accordéon).
+2. **Given** une carte d'un ingrédient problématique, **When** l'utilisatrice l'ouvre, **Then** elle contient a minima : titre (marqueur de sévérité + code éventuel + nom), sous-titre type, **Impact**, **Fait établi**, **Nuance**, **Cible particulièrement**.
+3. **Given** des ingrédients sans vigilance pour le profil sélectionné, **When** la restitution par défaut s'affiche, **Then** ils ne sont **pas** listés en clair (pas de « Farine de blé : RAS »).
+4. **Given** l'utilisatrice souhaite la liste complète, **When** elle atteint le bas de la restitution, **Then** un bouton **« Voir tous les ingrédients analysés »** est disponible et déplie une **liste compacte** (nom + statut de vigilance RAS / Modéré / Élevé) de tous les ingrédients analysés, y compris ceux sans vigilance.
+
+### Edge Cases (Feature N)
+
+- **Profil non encore sélectionné** (Onboarding skip / non terminé / profil effacé) : le système MUST se rabattre sur le **profil par défaut « Adulte »** (profil unique) ; la critique est produite pour « Adulte » avec le rappel « Évalué pour vous : Adulte », et l'UI signale visuellement qu'il s'agit du profil par défaut (invitation à personnaliser). Le système MUST NOT produire une critique 4-profils par défaut (rétropédalage Feature L silencieux interdit).
+- **Changement de profil en cours de session** : l'utilisatrice peut modifier son profil dans l'écran « Paramètres / Profil » (UGE) hors Onboarding ; la critique suivante MUST cibler le **nouveau** profil et rappeler le nouveau libellé ; la critique déjà affichée n'est pas recalculée automatiquement sauf action explicite.
+- **Profil « Sportif »** : n'a pas de marqueur historique ; un marqueur canonique `###SPORTIF` MUST être défini et le prompt doit traiter le profil sportif comme un profil à part entière (vigilances spécifiques : apports énergétiques, sucres rapides, sel, compléments, etc.) sans diagnostic ni prescription.
+- **Liste très longue** : la synthèse des risques majeurs en tête de section 2 (**IHI-L-FR-012**) reste applicable ; elle est produite **pour le profil sélectionné uniquement**.
+- **Aucun ingrédient à vigilance (Modéré/Élevé)** : la restitution indique clairement l'absence d'ingrédient problématique pour le profil sélectionné (niveau Faible affiché) ; le bouton « Voir tous les ingrédients analysés » reste disponible.
+- **Terme ambigu / opacité** : un ingrédient opaque peut faire l'objet d'une carte si son opacité déclenche une vigilance ; la carte indique l'opacité comme Nuance (cohérent **IHI-L-FR-006**).
+- **Demande d'avis médical** : garde-fou éthique **IHI-L-FR-007** inchangé ; le refus poli et l'orientation vers un professionnel de santé restent exigés, sans rompre le format de sortie ciblé.
+- **Ancrage Feature C** : un ingrédient mentionné dans une carte MUST être ancré dans le `ValidatedIngredientSegment` (selon **IHI-C-FR-005**) ; un échec d'ancrage suit **IHI-C-FR-003** (pas de succès avec carte non ancrée).
+
+### Functional Requirements (Feature N)
+
+- **IHI-N-FR-001**: Le système MUST consommer le **profil utilisateur sélectionné** (parmi `Femme enceinte`, `Enfant`, `Agé`, `Adulte`, `Sportif`) comme entrée du prompt de critique santé et de la restitution. La saisie/persistance du profil est du ressort du domaine `user-guidance-experience` ; IHI ne fait que **consommer** cette entrée.
+- **IHI-N-FR-002**: Le système MUST adapter le prompt de critique santé pour exiger **uniquement** la production de la section correspondant au profil sélectionné ; le prompt MUST NOT demander les sections des autres profils.
+- **IHI-N-FR-003**: Le système MUST exiger dans le prompt un **rappel explicite** du profil ciblé en tête de sortie, de la forme « Évalué pour vous : <profil> » (libellé français équivalent accepté sous réserve d'équivalence claire).
+- **IHI-N-FR-004**: Le système MUST préserver les exigences Feature L non format-strict : persona expert (**IHI-L-FR-001**), dimensions de risque (**IHI-L-FR-003**), hiérarchie faits/incertitudes/hypothèses (**IHI-L-FR-004**), contextualisation de la dose (**IHI-L-FR-005**), signalement d'opacité (**IHI-L-FR-006**), garde-fous éthiques (**IHI-L-FR-007**), populations vulnérables transversales (**IHI-L-FR-008**), rédaction française + disclaimer (**IHI-L-FR-011**), seuil « liste très longue » (**IHI-L-FR-012**).
+- **IHI-N-FR-005**: Le système MUST préserver la conformité Feature C (**IHI-C-FR-001** à **IHI-C-FR-007**) : aucun fait produit non ancré ; chaque ingrédient mentionné dans une carte MUST être ancré dans le `ValidatedIngredientSegment`.
+- **IHI-N-FR-006**: Le système MUST définir un **marqueur canonique unique** par profil : `###FEMME_ENCEINTE`, `###ENFANT`, `###PERSONNE_AGEE`, `###ADULTE`, `###SPORTIF`. Le prompt exige **uniquement** le marqueur du profil sélectionné, et **aucun texte de critique** avant le rappel « Évalué pour vous : <profil> ».
+- **IHI-N-FR-007**: Le système MUST exiger dans le prompt un bloc **Niveau de prudence** (palier parmi **Faible / Modéré / Élevé**) **pour le profil sélectionné**, accompagné d'un **texte court justificatif** prudent basé sur les doses probables et les risques à long terme.
+- **IHI-N-FR-008**: Le système MUST exiger dans le prompt un **détail ingrédient par ingrédient** structuré en cartes, où chaque carte problématique contient a minima : **titre** (sévérité + code éventuel + nom), **sous-titre type** (ex. « Conservateur — Additif »), **Impact**, **Fait établi** (avec réf. CIRC/OMS le cas échéant), **Nuance** (dose/fréquence/cuisson/etc.), **Cible particulièrement** (autres populations concernées).
+- **IHI-N-FR-009**: Le système MUST restituer le **Niveau de prudence** juste sous les **alertes existantes** (KPI additifs/risques publiés par `additive-risk-insights`, juxtaposition régie par **IHI-C-FR-007**), avant le détail ingrédient, sous forme d'une **jauge à 3 paliers** (Faible / Modéré / Élevé) avec le palier actif mis en évidence et le **texte court justificatif** du LLM. Feature N n'introduit pas de nouveau bloc d'alertes.
+- **IHI-N-FR-010**: Le système MUST restituer par défaut **uniquement** les cartes des ingrédients ayant déclenché une vigilance **Modérée** ou **Élevée** pour le profil sélectionné ; les ingrédients sans vigilance ne sont **pas** affichés en clair dans la restitution par défaut.
+- **IHI-N-FR-011**: Le système MUST exposer un bouton **« Voir tous les ingrédients analysés »** en bas de la restitution, permettant de déplier une **liste compacte** (nom + statut de vigilance RAS / Modéré / Élevé) de tous les ingrédients analysés (y compris ceux sans vigilance pour le profil) ; les ingrédients RAS ne font pas l'objet de cartes complètes.
+- **IHI-N-FR-012**: Le système MUST, en l'absence de profil sélectionné (Onboarding non terminé / profil effacé), se rabattre sur le **profil par défaut « Adulte »** (profil unique) et produire la critique pour « Adulte » avec le rappel « Évalué pour vous : Adulte » ; l'UI MUST signaler visuellement qu'il s'agit du profil par défaut (invitation à personnaliser). Le système MUST NOT produire silencieusement une critique 4-profils (pas de rétropédalage Feature L implicite).
+- **IHI-N-FR-013**: Le système MUST étendre le parseur de sections pour reconnaître le **marqueur unique du profil sélectionné** et les blocs associés (rappel de profil, Niveau de prudence, cartes ingrédients) ; le support du format 4-marqueurs strict (**IHI-L-FR-009**) est **retiré** (supersédé par Feature N — traçabilité conservée en spec). Le parseur MUST NOT accepter de sortie 4-profils ; il MUST rejeter comme `non-analysable-response` toute sortie 4-marqueurs non conforme au format profil unique.
+- **IHI-N-FR-014**: Le système MUST permettre la **répétabilité** du prompt construit (même segment validé + même profil → même prompt) pour les tests unitaires et la non-régression du contrat de critique.
+- **IHI-N-FR-015**: Le système MUST matérialiser l'adaptation du prompt comme un **contenu intégré au code** (cohérent **IHI-L-FR-016**) ; il MUST NOT introduire de configuration externe modifiable sans recompilation au périmètre Feature N.
+- **IHI-N-FR-016**: Le système MUST limiter Feature N au **prompt de critique santé** et à sa **restitution** ; le prompt du bilan de composition MUST conserver son propre contrat (cohérent **IHI-L-FR-017**).
+
+### Key Entities (Feature N)
+
+- **UserProfile**: profil sélectionné par l'utilisatrice, parmi {`Femme enceinte`, `Enfant`, `Agé`, `Adulte`, `Sportif`} ; consommé par IHI, saisi et persisté par `user-guidance-experience`.
+- **ProfileCritiqueMarker**: marqueur canonique de section pour le profil sélectionné (`###FEMME_ENCEINTE`, `###ENFANT`, `###PERSONNE_AGEE`, `###ADULTE`, `###SPORTIF`).
+- **EvaluatedForHeader**: rappel explicite « Évalué pour vous : <profil> » en tête de sortie.
+- **PrudenceLevel**: niveau de prudence du profil sélectionné parmi {Faible, Modéré, Élevé} + texte court justificatif.
+- **IngredientRiskCard**: carte d'un ingrédient à vigilance (titre, type, Impact, Fait établi, Nuance, Cible particulièrement) ; ancrage Feature C requis.
+- **FullIngredientListToggle**: action « Voir tous les ingrédients analysés » dépliable en bas de restitution, exposant une liste compacte (nom + statut de vigilance) de tous les ingrédients analysés.
+
+### Success Criteria (Feature N)
+
+- **IHI-N-SC-001**: 100 % des prompts construits avec un profil sélectionné exigent **uniquement** le marqueur canonique du profil sélectionné et **aucun** des autres marqueurs.
+- **IHI-N-SC-002**: 100 % des prompts construits exigent le rappel « Évalué pour vous : <profil> » en tête de sortie.
+- **IHI-N-SC-003**: 100 % des sorties LLM produites depuis le prompt personnalisé sur un jeu fixe contiennent **une seule** section de critique (profil sélectionné) précédée du rappel « Évalué pour vous : <profil> ».
+- **IHI-N-SC-004**: 100 % des restitutions affichent un **Niveau de prudence** (jauge Faible/Modéré/Élevé + texte court) juste sous les alertes, reflétant uniquement le profil sélectionné.
+- **IHI-N-SC-005**: 100 % des restitutions par défaut n'affichent en clair que les cartes des ingrédients à vigilance **Modérée/Élevée** ; 0 % affichent des cartes « RAS » en clair par défaut.
+- **IHI-N-SC-006**: 100 % des restitutions exposent le bouton **« Voir tous les ingrédients analysés »** en bas, déployant une **liste compacte** (nom + statut de vigilance) de tous les ingrédients analysés.
+- **IHI-N-SC-007**: 100 % des cartes d'ingrédients problématiques contiennent les champs a minima (titre, type, Impact, Fait établi, Nuance, Cible particulièrement) et chaque ingrédient est ancré dans le `ValidatedIngredientSegment` (Feature C).
+- **IHI-N-SC-008**: 100 % des cas « profil non sélectionné » déclenchent un **fallback implicite sur le profil par défaut « Adulte »** (profil unique, rappel « Évalué pour vous : Adulte » + signal visuel « profil par défaut ») ; 0 % produisent une critique 4-profils silencieuse.
+- **IHI-N-SC-009**: 100 % des sorties LLM produites depuis le prompt personnalisé Feature N sont parsables par le parseur étendu (marqueur unique + blocs attendus) ; 100 % des sorties 4-marqueurs non conformes au format profil unique sont rejetées (pas de support 4-profils résiduel).
+- **IHI-N-SC-010**: 100 % des exécutions de construction du prompt sont répétables (même segment + même profil → même prompt) sur ≥ 3 exécutions successives.
+- **IHI-N-SC-011**: 100 % des prompts construits préservent la conformité Feature C (aucune incitation à inventer des ingrédients absents, ancrage préservé) et les garde-fous éthiques Feature L (pas de diagnostic, pas de prescription).
+- **IHI-N-SC-012**: La conformité sémantique au prompt personnalisé Feature N (ciblage profil unique, rappel « Évalué pour vous », structure des cartes, niveau de prudence) est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné **IHI-C-FR-006** MVP) ; le format de sortie (marqueur unique + blocs) reste vérifié par le parseur étendu (**IHI-N-SC-009**). Aucun audit automatisé bloquant n'est exigé au MVP.
+
+---
+
+## Feature O — Critique santé intégrée à l'écran principal des résultats
+
+> Origine : intake `/speckit-design` + `/speckit-specify` 2026-06-28
+> Intention : la critique santé par profil (Feature N) doit être restituée **directement sur l'écran principal des résultats** (`LlmResultScreen`), en lieu et place du bouton « Critique santé » actuel (Feature M) qui naviguait vers un écran d'entrée séparé (`HealthCritiqueScreen`) puis un écran de résultat séparé (`HealthCritiqueResultScreen`). Le déclenchement est **automatique** dès que le bilan de composition est classé succès et qu'un segment validé est disponible. La restitution est **100 % inline** : les écrans d'entrée/résultat séparés et la route `HealthCritiqueEntry` sont supprimés.
+
+### Clarifications (Feature O)
+
+#### Session 2026-06-28
+
+- **Portée** : Feature O modifie le **câblage de navigation** et la **destination de restitution** de la critique santé (écran principal `LlmResultScreen` au lieu d'écrans séparés) ainsi que le **mode de déclenchement** (automatique). Elle ne modifie pas le moteur `HealthCritiqueEngine`, le prompt (`HealthCritiquePromptBuilder` — Feature L/N), le parseur (`HealthCritiqueSectionParser`) ni le flux composition.
+- **Déclenchement (clarify)** : **Option A — automatique** dès que le bilan composition est classé succès (`StreamingBilanState.Complete`) **et** qu'un segment validé est disponible (`lastValidatedSegmentForHealth` non vide) ; aucune action utilisateur requise (pas de bouton « Analyser », pas de navigation).
+- **Écrans séparés (clarify)** : **Option A — suppression** : l'écran d'entrée `HealthCritiqueScreen`, la route `HealthCritiqueEntry`, l'écran de résultat séparé `HealthCritiqueResultScreen` et la route `HealthCritiqueResult` sont **retirés** ; la restitution (rappel profil, avertissements, jauge de prudence, cartes ingrédients, liste complète, disclaimers, actions copier) est rendue **inline** sur `LlmResultScreen`.
+- **Non-régression Feature N** : les exigences de restitution Feature N (`IHI-N-FR-006` à `IHI-N-FR-012`) restent applicables ; seule la « destination écran » change (inline sur `LlmResultScreen` au lieu de `HealthCritiqueResultScreen`). Le rappel « Évalué pour vous : <profil> », la jauge 3 paliers, le filtrage des cartes (Modéré/Élevé), le bouton « Voir tous les ingrédients analysés » et le fallback profil par défaut « Adulte » sont préservés.
+- **Supersession Feature M** : `IHI-M-FR-001` à `IHI-M-FR-008` et `IHI-M-SC-001` à `IHI-M-SC-005` sont **supersédés et retirés** (traçabilité conservée en section Feature M). Le bouton « Critique santé » (`IHI-M-FR-002`, testTag `llm_result_critique_sante`) et la route `HealthCritiqueEntry` (`IHI-M-FR-001`) sont retirés.
+- **Ordonnancement écran résultat** : sous le bilan composition (et la pastille kcal Feature K / les KPI additifs juxtaposés `additive-risk-insights` via `IHI-C-FR-007`), la section critique inline se place **en continuité**, sans casser l'ordre existant. Détail de placement visuel laissé au plan d'implémentation (Ref. UGE).
+- **États inline** : les états `en cours` (loading + streaming texte), `erreur` (`InferenceError` / `InputInvalid`) et `prête` (`CritiqueReady`) de `HealthCritiqueViewModel` MUST être rendus inline dans la section critique de `LlmResultScreen`, sans navigation.
+- **Persistance** : la consultation du dernier résultat critique (`LastHealthAnalysisStore`) est conservée et ne dépend plus d'un écran séparé.
+
+### User Scenarios (Feature O)
+
+#### US-O1 — Voir la critique santé sur l'écran principal des résultats (P1)
+
+En tant qu'utilisatrice, une fois le bilan de composition terminé, je veux voir la critique santé par profil **directement sur le même écran**, afin de ne pas avoir à appuyer sur un bouton ni à naviguer pour y accéder.
+
+**Why this priority** : cœur de l'intention produit ; sans restitution inline, la critique reste derrière une navigation séparée (Feature M supersédée).
+
+**Independent Test** : compléter un scan → bilan composition succès → vérifier que la section « Critique santé » (rappel « Évalué pour vous : <profil> » + jauge + cartes) s'affiche sur `LlmResultScreen` **sans aucune action utilisateur ni navigation**.
+
+**Acceptance Scenarios**:
+
+1. **Given** le bilan de composition classé succès (`StreamingBilanState.Complete`) avec un segment validé disponible, **When** `LlmResultScreen` s'affiche, **Then** une section « Critique santé » est rendue inline, en continuité sous le bilan composition / pastille kcal / KPI additifs, sans navigation vers un autre écran.
+2. **Given** la section critique inline affichée, **When** l'utilisatrice la consulte, **Then** elle contient le rappel « Évalué pour vous : <profil> » (cohérent `IHI-N-FR-003`), la jauge de prudence 3 paliers + texte court (`IHI-N-FR-009`), les cartes des ingrédients à vigilance Modérée/Élevée (`IHI-N-FR-010`) et le bouton « Voir tous les ingrédients analysés » (`IHI-N-FR-011`).
+3. **Given** la section critique inline, **When** l'utilisatrice cherche un point d'entrée séparé, **Then** aucun bouton « Critique santé » (testTag `llm_result_critique_sante`) n'est présent, et aucune route `HealthCritiqueEntry` / écran `HealthCritiqueScreen` séparé n'existe.
+
+#### US-O2 — Déclenchement automatique sans action (P1)
+
+En tant qu'utilisatrice, je veux que la critique santé se lance **automatiquement** dès que le bilan composition est prêt et qu'un segment validé est disponible, afin de recevoir l'analyse sans étape supplémentaire.
+
+**Why this priority** : sans déclenchement automatique, l'utilisatrice doit explicitement lancer la critique (friction) — contradictoire avec l'attente « présente sur l'écran principal ».
+
+**Independent Test** : compléter un scan produisant un bilan composition succès + segment validé, et vérifier que `HealthCritiqueViewModel.analyze()` est déclenché sans interaction utilisateur (la section critique passe en état `en cours` puis `prête` inline).
+
+**Acceptance Scenarios**:
+
+1. **Given** le bilan composition passe à `Complete` et un segment validé est disponible, **When** cet état est atteint, **Then** l'analyse de critique santé est déclenchée automatiquement (état `en cours` visible inline : loading + streaming texte).
+2. **Given** l'analyse critique aboutit à un `CritiqueReady`, **When** le résultat est disponible, **Then** la section critique inline affiche le contenu prêt (rappel + jauge + cartes + liste complète) sans action utilisateur.
+3. **Given** le bilan composition est encore en `Streaming` (pas `Complete`), **When** `LlmResultScreen` est affiché, **Then** la critique santé **n'est pas** déclenchée automatiquement (attente de la fin du bilan).
+
+#### US-O3 — États d'erreur et de chargement rendus inline (P2)
+
+En tant qu'utilisatrice, si la critique santé échoue ou est en cours, je veux le voir **à l'emplacement de la critique sur l'écran principal**, sans que cela ne casse le bilan composition déjà affiché.
+
+**Why this priority** : garantit la robustesse du rendu inline et la non-régression du bilan composition.
+
+**Independent Test** : simuler une erreur d'inférence critique (runtime indisponible) et vérifier que le message d'erreur s'affiche dans la section critique inline sans masquer casser le bilan composition ; simuler une latence et vérifier l'état `en cours` (loading + streaming) inline.
+
+**Acceptance Scenarios**:
+
+1. **Given** la critique en cours d'inférence, **When** l'état `isLoading` est actif, **Then** la section critique inline affiche un indicateur de chargement + le texte streaming (cohérent `HealthCritiqueResultScreen` existant), sans navigation.
+2. **Given** l'analyse critique aboutit à `InferenceError` ou `InputInvalid`, **When** l'état est rendu, **Then** le message d'erreur s'affiche inline dans la section critique, et le bilan composition (et KPI additifs) reste visible et intact au-dessus.
+3. **Given** une erreur de critique, **When** l'utilisatrice consulte l'écran, **Then** le bouton « Retour » de `LlmResultScreen` reste opérationnel (retour au scan).
+
+#### US-O4 — Suppression de la navigation séparée (P1)
+
+En tant qu'utilisatrice, je veux que le flux critique santé ne passe plus par un écran d'entrée ni un écran de résultat séparés, afin que l'expérience reste continue sur l'écran principal de résultats.
+
+**Why this priority** : concrétise la suppression du câblage Feature M et évite la duplication de surfaces UI.
+
+**Independent Test** : vérifier l'absence des routes `HealthCritiqueEntry` et `HealthCritiqueResult` dans le `NavHost` de `MainActivity`, l'absence de l'écran `HealthCritiqueScreen` (entrée) et de `HealthCritiqueResultScreen` (rendu séparé), et la présence du rendu critique inline sur `LlmResultScreen`.
+
+**Acceptance Scenarios**:
+
+1. **Given** le `NavHost` de `MainActivity`, **When** on inspecte les routes, **Then** les routes `HealthCritiqueEntry` et `HealthCritiqueResult` sont absentes (supersession `IHI-M-FR-001` / `IHI-M-FR-006`).
+2. **Given** le code source, **When** on recherche les écrans séparés, **Then** `HealthCritiqueScreen` (entrée avec bouton « Analyser ») et `HealthCritiqueResultScreen` (écran de restitution séparé) sont retirés ; la restitution est inline sur `LlmResultScreen`.
+3. **Given** un parcours de retour depuis `LlmResultScreen`, **When** l'utilisatrice appuie sur « Retour », **Then** le retour ramène au scan (pile de navigation simplifiée, sans écran critique intermédiaire).
+
+### Edge Cases (Feature O)
+
+- **Bilan composition en `Streaming`** : la critique MUST NOT se déclencher (attente `Complete`).
+- **Bilan composition en `Error`** : la critique MUST NOT se déclencher (pas de bilan succès) ; la section critique inline n'est pas affichée (ou état neutre), le message d'erreur composition reste visible.
+- **Segment validé vide au moment du `Complete`** : la critique MUST NOT se déclencher (cohérent `InputInvalidReason.NO_VALIDATED_SEGMENT`) ; la section critique inline affiche un état neutre / message.
+- **Re-`Complete` (re-déclenchement du bilan)** : idempotence — pas de double inférence critique (garde par état du `HealthCritiqueViewModel`).
+- **Critique en cours puis retour utilisateur** : le retour ramène au scan ; le streaming critique est annulé/terminé proprement (pas de fuite d'inférence).
+- **Rotation / recréation d'activité** : le `HealthCritiqueViewModel` et `LastHealthAnalysisStore` survivent ; le rendu inline se reconstruit dans le même état.
+- **Profil non sélectionné (fallback)** : cohérent `IHI-N-FR-012` — fallback implicite « Adulte » + signal visuel « profil par défaut » rendus inline.
+- **Ancrage Feature C** : inchangé ; le retrait des écrans séparés ne modifie pas l'ancrage (`IHI-C-FR-001` à `IHI-C-FR-007`).
+
+### Functional Requirements (Feature O)
+
+- **IHI-O-FR-001**: Le système MUST déclencher **automatiquement** l'analyse de critique santé dès que le bilan de composition est classé **succès** (`StreamingBilanState.Complete`) **et** qu'un segment validé est disponible (`lastValidatedSegmentForHealth` non vide) ; aucune action utilisateur requise.
+- **IHI-O-FR-002**: Le système MUST restituer la critique santé **directement à l'intérieur** de l'écran principal des résultats (`LlmResultScreen`), en continuité sous le bilan composition / pastille kcal / KPI additifs juxtaposés, **sans navigation** vers un écran séparé.
+- **IHI-O-FR-003**: Le système MUST **supprimer** le bouton « Critique santé » (`onCritiqueSante` / testTag `llm_result_critique_sante`) de `LlmResultScreen` (supersession `IHI-M-FR-002`).
+- **IHI-O-FR-004**: Le système MUST **supprimer** la route de navigation `HealthCritiqueEntry` du `NavHost` de `MainActivity` (supersession `IHI-M-FR-001`) ainsi que l'écran d'entrée séparé `HealthCritiqueScreen` (supersession `IHI-M-FR-004`).
+- **IHI-O-FR-005**: Le système MUST **supprimer** l'écran de résultat séparé `HealthCritiqueResultScreen` et la route `HealthCritiqueResult` ; la restitution de la critique (rappel profil, avertissements, jauge de prudence, cartes ingrédients, liste complète, disclaimers, actions copier) est rendue **inline** sur `LlmResultScreen` (cohérent Feature N : `IHI-N-FR-006` à `IHI-N-FR-011`).
+- **IHI-O-FR-006**: Le système MUST rendre inline les **états** de la critique : `en cours` (loading + streaming texte), `erreur` (`InferenceError` / `InputInvalid`) et `prête` (`CritiqueReady`) — sans navigation ; ces états sont présentés dans la section critique de `LlmResultScreen`.
+- **IHI-O-FR-007**: Le système MUST **conserver** `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N) et `HealthCritiqueSectionParser` **inchangés** (périmètre restitution + déclenchement uniquement) ; la conformité Feature C (`IHI-C-FR-001` à `IHI-C-FR-007`) et les garde-fous Feature L/N restent applicables.
+- **IHI-O-FR-008**: Le système MUST **conserver la consommation du profil** via `UserProfileProvider` (Feature N / UGE Feature I) et le rappel « Évalué pour vous : <profil> » (`IHI-N-FR-003`) dans le rendu inline, y compris le fallback « Adulte » + signal visuel « profil par défaut » (`IHI-N-FR-012`).
+- **IHI-O-FR-009**: ~~Le système MUST **conserver** les actions « Copier la réponse » et « Copier le prompt » au niveau de la section critique inline~~ **SUPPRIMÉ** : les actions « Copier la réponse » et « Copier le prompt » sont **retirées** de la section critique inline (décision produit post-livraison Feature O).
+- **IHI-O-FR-010**: Le système MUST **ne pas déclencher** la critique automatiquement lorsque le bilan composition est en `Error` ou lorsque le segment validé est vide au moment du `Complete` (cohérent `InputInvalidReason.NO_VALIDATED_SEGMENT`) ; la section critique n'est pas affichée ou affiche un état neutre.
+- **IHI-O-FR-011**: Le système MUST **conserver** la persistance / consultation du dernier résultat critique (`LastHealthAnalysisStore`) **sans dépendre d'un écran séparé** (cohérent Feature B persistance).
+- **IHI-O-FR-012**: Le système MUST assurer la **non-régression** du bilan composition (`LlmResultScreen`) et des KPI additifs juxtaposés (`additive-risk-insights`, `IHI-C-FR-007`) ; l'inline de la critique ne casse pas l'ordonnancement existant (bilan → pastille kcal → KPI additifs → critique).
+- **IHI-O-FR-013**: Le système MUST garantir l'**idempotence** du déclenchement automatique : un même `Complete` ne déclenche pas plusieurs inférences critique (garde par l'état du `HealthCritiqueViewModel`).
+- **IHI-O-FR-014**: Le système MUST assurer le **retour navigation** depuis `LlmResultScreen` (« Retour » / `popBackStack`) vers le scan, sans écran critique intermédiaire (pile de navigation simplifiée).
+
+### Key Entities (Feature O)
+
+- **InlineCritiqueSection**: section de `LlmResultScreen` rendant la critique santé inline (états `en cours` / `erreur` / `prête`), en continuité sous le bilan composition / pastille kcal / KPI additifs.
+- **CritiqueAutoTrigger**: règle de déclenchement automatique de la critique (condition : `StreamingBilanState.Complete` + segment validé non vide), idempotente.
+- *(Superseded, retiré)* **HealthCritiqueEntryRoute** (`IHI-M-FR-001`), **CritiqueSanteEntryTrigger** (`IHI-M-FR-002`) — traçabilité conservée en section Feature M.
+
+### Success Criteria (Feature O)
+
+- **IHI-O-SC-001**: 100 % des parcours « bilan composition succès + segment validé disponible » déclenchent **automatiquement** la critique santé sans action utilisateur.
+- **IHI-O-SC-002**: 100 % des critiques prêtes sont rendues **inline** sur `LlmResultScreen` (rappel « Évalué pour vous : <profil> » + jauge 3 paliers + cartes Modéré/Élevé + bouton « Voir tous les ingrédients analysés » + disclaimers), sans navigation.
+- **IHI-O-SC-003**: 0 % des parcours exposent encore le bouton « Critique santé » (testTag `llm_result_critique_sante` supprimé), la route `HealthCritiqueEntry`, l'écran `HealthCritiqueScreen` ou l'écran `HealthCritiqueResultScreen` / route `HealthCritiqueResult`.
+- **IHI-O-SC-004**: 100 % des cas d'erreur de critique (`InferenceError` / `InputInvalid`) sont rendus **inline** sans casser le bilan composition ni les KPI additifs affichés au-dessus.
+- **IHI-O-SC-005**: 0 % de régression sur le flux composition (`LlmResultScreen`), les KPI additifs juxtaposés (`additive-risk-insights`), le moteur `HealthCritiqueEngine`, le prompt (`HealthCritiquePromptBuilder`) et le parseur (`HealthCritiqueSectionParser`) — inchangés.
+- **IHI-O-SC-006**: 100 % des cas « bilan composition en `Error` » ou « segment validé vide au `Complete` » ne déclenchent **pas** la critique automatiquement.
+- **IHI-O-SC-007**: 100 % des retours navigation depuis `LlmResultScreen` ramènent au scan sans écran critique intermédiaire.
+- **IHI-O-SC-008**: 100 % des déclenchements automatiques sont **idempotents** (un `Complete` → au plus une inférence critique) sur ≥ 3 exécutions successives.
+
+---
+
 ## Cross-domain Notes
 
 - Consomme le segment validé de `ingredient-normalization-validation` (source de vérité pour l’ancrage — Feature C).
 - Utilise le gateway de `local-llm-runtime` pour l'inférence.
-- L'orchestration UX est gérée par `user-guidance-experience` (**Ref.** pastille kcal en tête d’écran résultat — **UGE-A-FR-022**, Feature K).
+- L'orchestration UX est gérée par `user-guidance-experience` (**Ref.** pastille kcal en tête d’écran résultat — **UGE-A-FR-022**, Feature K ; **Ref.** sélection du profil utilisateur lors de l'Onboarding et persistance du profil — Feature N).
 - Les KPI additifs détaillés sont du ressort de `additive-risk-insights` ; leur juxtaposition à une analyse LLM succès est régie par **IHI-C-FR-007** (attribution explicite + ancrage littéral des mentions dans le segment).
 
 ## Source Mapping
@@ -320,6 +777,10 @@ En tant qu’utilisatrice, je ne veux pas qu’une estimation soit présentée c
 - `specs/016-test-llm-mock/` (Feature A)
 - Intake `/speckit-design` 2026-05-13 (Feature C)
 - Intake `/speckit-design` + `/speckit-specify` 2026-05-13 (Feature K)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature L)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature M)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature N)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature O — critique santé intégrée à l'écran principal des résultats ; supersede Feature M)
 
 ## Assumptions
 
@@ -331,3 +792,7 @@ En tant qu’utilisatrice, je ne veux pas qu’une estimation soit présentée c
 - Un **contrat de read-model** (ou équivalent) avec `additive-risk-insights` est disponible pour permettre l’attribution explicite visée par **IHI-C-FR-007** ; à défaut, l’enrichissement additif ne s’affiche pas en juxtaposition d’un succès LLM.
 - Au **MVP**, la conformité à **IHI-C-FR-006** est démontrable par **relecture humaine** et traçabilité ; des garde-fous automatisés supplémentaires relèvent du plan d’évolution hors obligation minimale.
 - Pour **Feature K**, la **source** exacte du champ modèle et la **règle d’arrondi** vers l’entier affiché relèvent du plan d’implémentation ; les **bornes d’affichage** **1–1100** kcal/100 g et les contraintes **IHI-K-FR-004** / **IHI-K-FR-006** sont désormais fixées en spec.
+- Pour **Feature L**, le prompt personnalisé est un **remplacement en dur versionné** dans le builder (pas d’externalisation ni de registre) ; la personnalisation est **limitée au prompt de critique santé** (le bilan de composition garde son propre contrat) ; le seuil « liste très longue » est défini en **nombre d’ingrédients** (valeur exacte au plan) ; la conformité sémantique au prompt est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C), le format restant vérifié par le parseur existant.
+- Pour **Feature M**, le correctif est strictement un **câblage de navigation** (route `HealthCritiqueEntry` + bouton dans `LlmResultScreen`) ; `HealthCritiqueScreen` existant est réutilisé sans modification ; la synchronisation du segment repose sur le flux existant `lastValidatedSegmentForHealth` ; aucune modification du moteur, du prompt, du parseur ou du flux composition.
+- Pour **Feature N**, la sélection et la persistance du profil utilisateur sont du ressort de `user-guidance-experience` (saisie lors de l'Onboarding + édition dans un écran « Paramètres / Profil ») ; IHI **consomme** le profil. En l'absence de profil sélectionné, IHI se rabat sur le **profil par défaut « Adulte »** (profil unique, pas 4-profils) avec un signal visuel « profil par défaut ». Le format 4-marqueurs strict Feature L (**IHI-L-FR-009** / **IHI-L-SC-004**) est **supersédé et retiré** (flux 4-profils supprimé entièrement) au profit d'une sortie à **profil unique** (marqueur canonique par profil, dont `###SPORTIF` nouvellement introduit) — traçabilité conservée en spec. Les exigences Feature L non format-strict (persona, dimensions de risque, hiérarchie des preuves, populations vulnérables transversales, garde-fous éthiques, seuil « liste très longue », rédaction française, disclaimer) restent applicables. La restitution affiche un **Niveau de prudence** (jauge 3 paliers + texte court) juste sous les KPI additifs/risques existants (`additive-risk-insights`, **IHI-C-FR-007**), puis des **cartes ingrédients** limitées aux vigilances Modéré/Élevé, avec bouton « Voir tous les ingrédients analysés » déployant une **liste compacte** (nom + statut de vigilance). La conformité sémantique est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C).
+- Pour **Feature O**, la critique santé est **intégrée à l'écran principal des résultats** (`LlmResultScreen`) avec **déclenchement automatique** (bilan composition `Complete` + segment validé disponible) et **restitution 100 % inline** ; les écrans séparés `HealthCritiqueScreen` (entrée) et `HealthCritiqueResultScreen` (résultat), ainsi que les routes `HealthCritiqueEntry` / `HealthCritiqueResult`, sont **supprimés** (supersession Feature M, traçabilité conservée). Le moteur `HealthCritiqueEngine`, le prompt builder (Feature L/N) et le parseur sont **inchangés** ; la conformité Feature C et les garde-fous Feature L/N restent applicables. Le déclenchement automatique d'une seconde inférence LLM est accepté (état `en cours` streaming rendu inline ; l'inférence critique est déléguée à `HybridGemma4LocalGateway.inferStreaming` — même chemin LiteRT-LM que la composition — pour éviter l'`IllegalStateException` de cycle de vie conversation/backend observée avec un runner dédié). Les actions « Copier la réponse » / « Copier le prompt » sont **retirées** de la section critique inline (IHI-O-FR-009 supersédé) ; la persistance (`LastHealthAnalysisStore`) est conservée. L'ordonnancement de l'écran résultat (bilan → pastille kcal → KPI additifs → critique inline) est préservé (Ref. UGE).

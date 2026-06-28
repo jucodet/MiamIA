@@ -1,0 +1,16 @@
+[
+  { "id": "GLUTEN", "regulatory_name": "cereales contenant du gluten", "aliases": ["ble", "seigle", "orge", "avoine", "epeautre", "kamut", "gluten"] },
+  { "id": "CRUSTACES", "regulatory_name": "crustaces", "aliases": ["crevette", "crabe", "homard", "langoustine"] },
+  { "id": "OEUFS", "regulatory_name": "oeufs", "aliases": ["oeuf", "ovoproduits"] },
+  { "id": "POISSONS", "regulatory_name": "poissons", "aliases": ["poisson"] },
+  { "id": "ARACHIDES", "regulatory_name": "arachides", "aliases": ["arachide", "cacahuete", "cacahuetes"] },
+  { "id": "SOJA", "regulatory_name": "soja", "aliases": ["lecithine de soja", "lecithines de soja"] },
+  { "id": "LAIT", "regulatory_name": "lait", "aliases": ["lait ecreme", "lait entier", "proteines de lait", "lactoserum"] },
+  { "id": "FRUITS_A_COQUE", "regulatory_name": "fruits a coque", "aliases": ["amande", "noisette", "noix", "cajou", "pecan", "bresil", "pistache", "macadamia"] },
+  { "id": "CELERI", "regulatory_name": "celeri", "aliases": ["celeri-rave"] },
+  { "id": "MOUTARDE", "regulatory_name": "moutarde", "aliases": ["graines de moutarde"] },
+  { "id": "SESAME", "regulatory_name": "sesame", "aliases": ["graines de sesame"] },
+  { "id": "SULFITES", "regulatory_name": "sulfites", "aliases": ["dioxide de soufre", "so2"] },
+  { "id": "LUPIN", "regulatory_name": "lupin", "aliases": ["farine de lupin"] },
+  { "id": "MOLLUSQUES", "regulatory_name": "mollusques", "aliases": ["moule", "huitre", "encornet", "calamar"] }
+]

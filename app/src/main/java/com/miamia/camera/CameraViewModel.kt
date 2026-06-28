@@ -28,6 +28,8 @@ import com.miamia.ingredients.ExtractedIngredientMapper
 import com.miamia.ingredients.RetryScanActionHandler
 import com.miamia.ingredients.ScanFailureMessageBuilder
 import com.miamia.permissions.CameraPermissionHandler
+import com.miamia.profile.MutableUserProfileProvider
+import com.miamia.profile.PersistentUserProfileProvider
 import com.miamia.recognition.IngredientRecognitionCoordinator
 import com.miamia.recognition.ScanFailureClassifier
 import com.miamia.gemma4local.Gemma4LocalAvailabilityChecker
@@ -40,6 +42,7 @@ import com.miamia.welcome.WelcomeMessageProvider
 import com.miamia.welcome.WelcomeMessageSelector
 import com.miamia.welcome.WelcomeMessageUiState
 import com.miamia.welcome.toUiState
+import com.miamia.healthcritique.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -68,8 +71,19 @@ class CameraViewModel(
         provider = WelcomeMessageProvider(application.applicationContext),
         selector = WelcomeMessageSelector(),
         logger = WelcomeDisplayLogger()
-    )
+    ),
+    private val userProfileProvider: MutableUserProfileProvider =
+        PersistentUserProfileProvider(application.applicationContext),
 ) : AndroidViewModel(application) {
+
+    /**
+     * Profil utilisateur sélectionné sur l'écran de capture (Feature I, 2026-06-28).
+     * Initialisé à `provider.current()` (défaut « Adulte » UGE-I-FR-002) puis mis à jour
+     * par [selectProfile]. Partagé avec la critique santé via le même provider persisté.
+     */
+    private val _selectedProfile = MutableStateFlow(userProfileProvider.current())
+    val selectedProfile: StateFlow<UserProfile> = _selectedProfile.asStateFlow()
+
 
     private val _scanState = MutableStateFlow<ScanState>(ScanState.CameraReady)
     val scanState: StateFlow<ScanState> = _scanState.asStateFlow()
@@ -152,6 +166,12 @@ class CameraViewModel(
             onPermissionDenied()
             return
         }
+        // Préserve une analyse en cours : reseter l'état de scan / la session d'aperçu ici
+        // interromprait le streaming Gemma et renverrait l'UI à l'écran de capture lorsque
+        // l'activité est recréée (changement de config, retour depuis l'arrière-plan) pendant
+        // l'inférence. La caméra n'est pas requise tant que le bilan composition n'est pas terminé.
+        if (_scanState.value is ScanState.CompositionAnalyzing) return
+        if (_streamingBilan.value is StreamingBilanState.Streaming) return
         bindJob?.cancel()
         captureController.unbind()
         _previewSession.value += 1
@@ -194,8 +214,22 @@ class CameraViewModel(
     fun canCapturePhoto(): Boolean {
         if (inFlightScan) return false
         if (_scanState.value is ScanState.CompositionAnalyzing) return false
-        return _scanState.value == ScanState.PreviewActive
+        if (_scanState.value != ScanState.PreviewActive) return false
+        // UGE-I-FR-005/006 : la capture requiert un profil valide. Par construction
+        // (_selectedProfile issu de l'énumération + repli Adulte du provider), cet état
+        // est toujours valide — la branche « profil invalide » est défensive et inaccessible.
+        return _selectedProfile.value in UserProfile.values()
     }
+
+    /**
+     * Sélectionne un profil sur l'écran de capture (Feature I). Persiste via le provider
+     * partagé et met à jour l'état UI. La prochaine critique santé sera ciblée pour ce profil.
+     */
+    fun selectProfile(profile: UserProfile) {
+        userProfileProvider.setProfile(profile)
+        _selectedProfile.value = profile
+    }
+
 
     private fun navigateToResultScreen() {
         val signal = CameraLlmResultNavigation(body = "", isError = false)
@@ -432,6 +466,7 @@ class CameraViewModel(
                             bilanPrepared,
                             rawText,
                             outcome.rawModelOutput,
+                            outcome.backend,
                         )
                     ) {
                         is AnalyzeCompositionResult.BilanSuccess -> {
@@ -439,7 +474,8 @@ class CameraViewModel(
                             _streamingBilan.value = StreamingBilanState.Complete(
                                 bilan = v.bilan,
                                 rawTranscript = rawText,
-                                inferenceTimeMs = inferenceTimeMs
+                                inferenceTimeMs = inferenceTimeMs,
+                                backend = v.backend,
                             )
                             if (!_captureRouteActive.value) {
                                 val kpi = withContext(Dispatchers.Default) {
@@ -454,7 +490,8 @@ class CameraViewModel(
                                     bilan = v.bilan,
                                     rawTranscript = rawText,
                                     itemsPreview = itemsPreview,
-                                    inferenceTimeMs = inferenceTimeMs
+                                    inferenceTimeMs = inferenceTimeMs,
+                                    backend = v.backend,
                                 )
                             }
                         }
@@ -550,6 +587,7 @@ class CameraViewModel(
             application: Application,
             coordinator: IngredientRecognitionCoordinator?,
             compositionEngine: CompositionAnalysisEngine? = null,
+            userProfileProvider: MutableUserProfileProvider? = null,
         ): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -559,6 +597,8 @@ class CameraViewModel(
                         application,
                         coordinator,
                         compositionEngine,
+                        userProfileProvider = userProfileProvider
+                            ?: PersistentUserProfileProvider(application.applicationContext),
                     ) as T
                 }
             }

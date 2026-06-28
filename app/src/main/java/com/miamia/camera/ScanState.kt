@@ -2,6 +2,7 @@ package com.miamia.camera
 
 import com.miamia.composition.CompositionBilan
 import com.miamia.composition.GemmaErrorCode
+import com.miamia.gemma4local.model.BackendExecution
 
 sealed class ScanState {
     /** Permission OK, en attente d’attache surface / redémarrage preview. */
@@ -30,7 +31,8 @@ sealed class ScanState {
         val bilan: CompositionBilan,
         val rawTranscript: String,
         val itemsPreview: List<String>,
-        val inferenceTimeMs: Long = 0L
+        val inferenceTimeMs: Long = 0L,
+        val backend: BackendExecution = BackendExecution.INDETERMINATE,
     ) : ScanState()
 
     /** Gemma absent ou exécution impossible (spec 009 US3). */

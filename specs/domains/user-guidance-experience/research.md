@@ -205,3 +205,45 @@ Aucun NEEDS CLARIFICATION résiduel pour Feature F.
   - **Texte alternatif « prêt »** : rejeté — l’exigence est l’absence de ligne imposée à cet emplacement pour l’état prêt.
 
 Aucun NEEDS CLARIFICATION résiduel pour Feature G.
+
+---
+
+## Feature I — Sélection du profil sur l'écran de capture (2026-06-28)
+
+### I-Decision 1 : Mécanisme de persistance du profil
+
+- **Decision** : persister le profil via `SharedPreferences` (clé `user_profile`, valeur = `UserProfile.name`) dans une impl `PersistentUserProfileProvider` (package `com.miamia.profile`) implémentant le contrat `UserProfileProvider` (Feature N). Lecture synchrone `current()` ; écriture `setProfile(profile)`. Pas de backend, pas de DataStore (YAGNI — une seule clé).
+- **Rationale** : poids minimal, API stable, lecture synchrone compatible avec `current()` ; aligned avec le stockage local existant (`LastHealthAnalysisStore` utilise déjà SharedPreferences).
+- **Alternatives considered** : DataStore Preferences (rejeté — sur-engineering pour une clé) ; Room (rejeté — persistance simple d'une préférence) ; mémoire seule (rejeté — non persisté entre sessions, US-I3 non satisfaite).
+
+### I-Decision 2 : Contrat mutable + partage provider capture↔critique
+
+- **Decision** : introduire `MutableUserProfileProvider : UserProfileProvider` (ajoute `setProfile(UserProfile)`) côté UGE. Une **instance unique** `PersistentUserProfileProvider` est créée dans `MainActivity.prepareApplicationUi` et **partagée** : injectée dans `CameraViewModel` (écriture via `setProfile` lors de la sélection) ET dans `HealthCritiqueViewModel.factory` (lecture `current()` au moment de `analyze()`). `HealthCritiqueViewModel.factory` accepte désormais un `UserProfileProvider` paramètre (défaut `DefaultUserProfileProvider()`).
+- **Rationale** : une seule source de vérité du profil ; la critique lit la valeur la plus récente au moment de l'analyse ; respecte la frontière DDD (UGE persiste, IHI consomme via le contrat publié).
+- **Alternatives considered** : deux instances séparées synchronisées par Flow (rejeté — complexité, risque de désync) ; passage du profil par argument de navigation capture→critique (rejeté — couplage navigation + valeur figée au moment de la navigation, moins réactive qu'un provider partagé) ; `DefaultUserProfileProvider.override` en mémoire (rejeté — non persisté).
+
+### I-Decision 3 : Gate de capture (« profil requis avant photo »)
+
+- **Decision** : le profil courant est **toujours valide** par construction (défaut « Adulte » au premier lancement + repli Adulte en cas de profil corrompu — `PersistentUserProfileProvider.current()` ne retourne jamais une valeur inconnue). La commande de capture reste activée selon les conditions existantes (`PreviewActive`, pas de scan en cours). L'exigence « profil requis avant photo » (UGE-I-FR-005) est **satisfaite par l'invariant de défaut** : il n'existe pas d'état « aucun profil valide » accessible. L'edge case FR-006 (« capture désactivée si aucun profil valide ») est **irréaccessible par conception** (repli Adulte) — la branche est documentée comme garde-fou défensif plutôt qu'état produit atteignable.
+- **Rationale** : évite toute friction (le défaut Adulte autorise la capture immédiate) tout en garantissant que toute critique est associée à un profil valide ; simplicité (constitution V).
+- **Alternatives considered** : introduire un état « profil non choisi » avec capture désactivée + message (rejeté — contredit le défaut Adulte explicite de l'input utilisateur et ajoute une friction inutile) ; exiger une action explicite « confirmer le profil » avant la 1re capture (rejeté — friction, le défaut Adulte suffit).
+
+### I-Decision 4 : Repli profil corrompu
+
+- **Decision** : `PersistentUserProfileProvider.current()` lit `UserProfile.name` persisté ; si la valeur est absente ou ne correspond à aucune entrée de l'énumération (corruption / version future), retourner `UserProfile.DEFAULT` (Adulte) sans lever d'erreur. L'écriture d'un profil inconnu est ignorée.
+- **Rationale** : robustesse (UGE-I-FR-008) ; jamais de crash ni de blocage capture.
+- **Alternatives considered** : lever une exception / afficher une erreur (rejeté — UX dégradée pour un cas rare) ; retourner null (rejeté — le contrat `UserProfileProvider.current()` est non-null).
+
+### I-Decision 5 : Supersession écran « Paramètres / Profil »
+
+- **Decision** : la sélection vit **sur l'écran de capture** (sélecteur persistant visible). Aucun écran « Paramètres / Profil » distinct n'est introduit (UGE-I-FR-011). Cela supersede l'hypothèse Feature N (clarify Q5) d'un écran paramètres dédié.
+- **Rationale** : l'input utilisateur place explicitement la sélection sur l'écran de prise de photo ; un écran paramètres serait sur-architecture pour le besoin actuel (YAGNI).
+- **Alternatives considered** : écran « Paramètres / Profil » séparé en plus du sélecteur capture (rejeté — hors périmètre Feature I, Feature N superseded) ; sélecteur uniquement dans un menu overflow (rejeté — moins découvrable que sur l'écran de capture).
+
+### I-Decision 6 : Emplacement du sélecteur sur l'écran de capture
+
+- **Decision** : afficher le sélecteur de profil **en haut de l'écran de capture** (sous l'indicateur MediaPipe), visible dans tous les états de scan (et non seulement en `PreviewActive`), afin qu'il reste accessible/visible avant et entre les captures. Implémentation UI : un menu déroulant Material3 (`ExposedDropdownMenuBox` ou `SegmentedButton` selon disponibilité) listant les 5 profils, test tag `capture_profile_selector`.
+- **Rationale** : visibilité permanente (UGE-I-FR-003) + modification libre avant capture (UGE-I-FR-004) ; indépendant de l'état caméra (UGE-I-FR-012).
+- **Alternatives considered** : sélecteur uniquement en `PreviewActive` (rejeté — non visible dans les états d'erreur/indisponibilité, contredit FR-012) ; sélecteur en bas sous la bande de capture (rejeté — risque de chevauchement avec l'aperçu / la bande d'action).
+
+Aucun NEEDS CLARIFICATION résiduel pour Feature I.

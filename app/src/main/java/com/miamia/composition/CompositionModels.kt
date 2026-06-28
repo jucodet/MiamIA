@@ -1,5 +1,7 @@
 package com.miamia.composition
 
+import com.miamia.gemma4local.model.BackendExecution
+
 enum class GemmaErrorCode {
     GEMMA_NOT_FOUND,
     GEMMA_LOAD_FAILED,
@@ -32,6 +34,7 @@ sealed class AnalyzeCompositionResult {
     data class BilanSuccess(
         val bilan: CompositionBilan,
         val rawModelOutput: String = "",
+        val backend: BackendExecution = BackendExecution.INDETERMINATE,
     ) : AnalyzeCompositionResult()
 
     data class GemmaError(

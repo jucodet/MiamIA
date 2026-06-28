@@ -56,6 +56,8 @@ import com.miamia.camera.BilanResultCard
 import com.miamia.camera.CameraViewModel
 import com.miamia.camera.StreamingBilanState
 import com.miamia.camera.StreamingSection
+import com.miamia.healthcritique.HealthCritiqueViewModel
+import com.miamia.healthcritique.InlineCritiqueSection
 import com.miamia.ui.shared.AnimatedWhisk
 import com.miamia.ui.shared.CategoryChips
 import com.miamia.ui.shared.WAITING_PHRASES
@@ -66,9 +68,25 @@ import kotlinx.coroutines.delay
 fun LlmResultScreen(
     viewModel: CameraViewModel,
     onBack: () -> Unit,
+    healthCritiqueViewModel: HealthCritiqueViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val streamingState by viewModel.streamingBilan.collectAsState()
+    val validatedSegment by viewModel.lastValidatedSegmentForHealth.collectAsState()
+
+    // Feature O — déclenchement automatique de la critique santé dès que le bilan
+    // composition est classé succès (Complete) ET qu'un segment validé est disponible.
+    // Idempotent via l'état du HealthCritiqueViewModel (IHI-O-FR-001 / IHI-O-FR-013).
+    val critiqueViewModel = healthCritiqueViewModel
+    if (critiqueViewModel != null) {
+        LaunchedEffect(streamingState, validatedSegment) {
+            if (streamingState is StreamingBilanState.Complete &&
+                !validatedSegment.isNullOrBlank()
+            ) {
+                critiqueViewModel.analyze()
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -102,8 +120,12 @@ fun LlmResultScreen(
                         additiveKpi = null,
                         showRaw = showRaw,
                         onToggleRaw = { showRaw = !showRaw },
-                        inferenceTimeMs = state.inferenceTimeMs
+                        inferenceTimeMs = state.inferenceTimeMs,
+                        backend = state.backend
                     )
+                    // Feature O — section critique inline (en continuité sous le bilan,
+                    // pastille kcal et KPI additifs juxtaposés). IHI-O-FR-002 / IHI-O-FR-012.
+                    critiqueViewModel?.let { InlineCritiqueSection(viewModel = it) }
                 }
 
                 is StreamingBilanState.Error -> {
