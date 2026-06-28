@@ -179,3 +179,50 @@ Les « inconnues » techniques ont été résolues par la spec + session **clari
 - **Decision** : conformité sémantique (ciblage profil unique, rappel « Évalué pour vous », structure des cartes, niveau de prudence) tenue par **relecture humaine + traçabilité** sur un jeu fixe (aligné `IHI-C-FR-006` MVP) ; le format de sortie (marqueur unique + blocs) est vérifié par le parseur étendu (tests JVM `IHI-N-SC-009`).
 - **Rationale** : la conformité sémantique sur texte libre n'est pas fiablement automatisable au MVP ; le format, lui, est contractuel et parsable.
 - **Alternatives considered** : audit automatisé bloquant sur chaque sortie (rejeté au MVP — reporté post-MVP).
+
+---
+
+## 13. Critique santé intégrée à l'écran principal des résultats (Feature O)
+
+### 13.1 Déclenchement automatique (clarify 2026-06-28 — Option A)
+
+- **Decision** : la critique santé est déclenchée **automatiquement** dès que `CameraViewModel.streamingBilan` passe à `StreamingBilanState.Complete` **et** que `lastValidatedSegmentForHealth` est non vide. Implémentation via `LaunchedEffect(streamingBilan, validatedSegment)` dans `LlmResultScreen` appelant `healthCritiqueViewModel.analyze()` ; aucune action utilisateur, aucun bouton, aucune navigation. Le bilan composition est rendu immédiatement (non-bloquant) ; la critique s'affiche en streaming inline.
+- **Rationale** : aligne l'UX sur l'attente produit (« présente sur l'écran principal ») ; supprime la friction du bouton (Feature M supersédée) ; la seconde inférence est non-bloquante donc n'impacte pas la perception du bilan.
+- **Alternatives considered** : bouton sur place « Analyser la critique » (rejeté — friction) ; streaming différé après scroll (rejeté — complexité, valeur faible).
+
+### 13.2 Suppression des écrans/route séparés (clarify 2026-06-28 — Option A)
+
+- **Decision** : supprimer `HealthCritiqueScreen.kt` (entrée + bouton « Analyser »), `HealthCritiqueResultScreen.kt` (écran de restitution séparé), la route `CameraFlowRoutes.HealthCritiqueEntry` et la route `CameraFlowRoutes.HealthCritiqueResult` + leurs entrées `composable(...)` dans le `NavHost` de `MainActivity`. Le callback `onCritiqueSante` de `LlmResultScreen` est retiré. La restitution est **100 % inline** sur `LlmResultScreen`.
+- **Rationale** : évite la duplication de surfaces UI (Feature M supersédée) ; pile de navigation simplifiée (retour direct résultat → scan) ; cohérent avec le déclenchement automatique (plus besoin d'écran d'entrée).
+- **Alternatives considered** : conserver les écrans séparés en plus du rendu inline (rejeté — duplication, confusion UX).
+
+### 13.3 Extraction des composables de restitution
+
+- **Decision** : les composables de restitution de `HealthCritiqueResultScreen` (`CritiqueProfileContent`, `PrudenceGauge`, `IngredientRiskCardItem`, `FullIngredientListToggle`, et les actions « Copier la réponse » / « Copier le prompt ») sont **extraits** vers une section inline de `LlmResultScreen` (ou un composable partagé `InlineCritiqueSection` dans le module `result`/`healthcritique`). La logique de `HealthCritiqueViewModel` (états `ui`/`streamingText`/`isLoading`/`result`, `analyze()`) est **consommée** par `LlmResultScreen` via le ViewModel injecté. `navigateToResult` (SharedFlow) devient **no-op** ou est retiré (plus de navigation vers `HealthCritiqueResult`).
+- **Rationale** : réutilisation des composables éprouvés (non-régression de la restitution Feature N) ; le moteur/parseur/prompt restent inchangés.
+- **Alternatives considered** : ré-écrire les composables dans `LlmResultScreen` (rejeté — duplication, DRY) ; conserver `HealthCritiqueResultScreen` comme composable embedded sans route (rejeté — clarif Option A = suppression).
+
+### 13.4 Idempotence et annulation
+
+- **Decision** : le `LaunchedEffect` d'auto-trigger est gardé par l'état du `HealthCritiqueViewModel` (un seul `analyze()` par `Complete`) — idempotence (`IHI-O-FR-013`). Au retour (`onBack` / `popBackStack`), le job d'inférence en cours est **annulé proprement** (coroutine scope du ViewModel / `viewModelStore` cleared) — pas de fuite d'inférence (`IHI-O-FR-014`, edge case).
+- **Rationale** : évite les doubles inférences (coût LLM) et les fuites (battery/perf) ; cohérent constitution IV.
+- **Alternatives considered** : laisser tourner l'inférence en arrière-plan au retour (rejeté — fuite, UX confusion).
+
+### 13.5 États inline et non-déclenchement
+
+- **Decision** : les états `en cours` (loading + `streamingText`), `erreur` (`InferenceError` / `InputInvalid`), et `prête` (`CritiqueReady`) sont rendus **inline** dans la section critique de `LlmResultScreen`. La critique **n'est pas déclenchée** si le bilan est en `Error` ou si le segment validé est vide au `Complete` (section critique masquée / état neutre — `IHI-O-FR-010`).
+- **Rationale** : robustesse du rendu inline ; non-régression du bilan composition (l'erreur critique ne casse pas le bilan affiché au-dessus).
+- **Alternatives considered** : afficher un message d'erreur critique bloquant (rejeté — le bilan reste consultable).
+
+### 13.6 Persistance et actions copier
+
+- **Decision** : `LastHealthAnalysisStore` est **conservé** (persistance du dernier résultat critique) et consommé inline (rotation/process death) sans dépendre d'un écran séparé (`IHI-O-FR-011`). Les actions « Copier la réponse » et « Copier le prompt » sont conservées au niveau de la section critique inline (`IHI-O-FR-009`).
+- **Rationale** : non-régression de la persistance Feature B ; les actions copier restent utiles sur l'écran principal.
+- **Alternatives considered** : supprimer la persistance (rejeté — perte non-régression) ; déplacer les actions copier dans un menu global (rejeté — hors périmètre, friction).
+
+### 13.7 Non-régression et ordonnancement
+
+- **Decision** : l'ordonnancement de `LlmResultScreen` est préservé — bilan composition → pastille kcal (Feature K) → KPI additifs juxtaposés (`additive-risk-insights`, `IHI-C-FR-007`) → section critique inline (`IHI-O-FR-012`). `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N), `HealthCritiqueSectionParser` et le flux composition sont **inchangés** (`IHI-O-FR-007`).
+- **Rationale** : respect des frontières DDD (constitution VI) ; Feature O = câblage + restitution, pas de logique métier nouvelle.
+- **Alternatives considered** : réordonner l'écran (rejeté — hors scope, impact UX non spécifié).
+

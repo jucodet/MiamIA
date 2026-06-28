@@ -2,7 +2,7 @@
 
 **Domain Context**: `ingredient-health-intelligence`
 **Created**: 2026-05-06
-**Last Modified**: 2026-06-28 (Feature N — critique ciblée par profil utilisateur : prompt adapté + restitution prudence/cartes ingrédients)
+**Last Modified**: 2026-06-28 (Feature O — critique santé intégrée à l'écran principal des résultats : déclenchement automatique + restitution inline, supersede Feature M)
 **Status**: Draft
 
 ## Purpose
@@ -427,6 +427,7 @@ En tant qu'utilisatrice, je veux que la personnalisation du prompt ne casse pas 
 
 > Origine : intake `/speckit-design` 2026-06-28
 > Intention : rendre la critique santé par population accessible depuis l'application de production. Aujourd'hui `HealthCritiqueScreen` (écran d'entrée avec bouton « Analyser ») n'est monté que dans les tests instrumentés ; il n'est pas enregistré dans le `NavHost` de `MainActivity`. Seul `HealthCritiqueResultScreen` est routé, et il n'est atteignable que via `navigateToResult` émis par `analyze()`, lui-même appelé uniquement depuis `HealthCritiqueScreen`. Le flux critique santé est donc **inaccessible** en production (l'utilisatrice ne voit que le résultat composition/additifs). Cette feature comble le manque prévu par `specs/002-ingredient-health-critique/plan.md` (« Onglet « Critique santé » dans `MainActivity` »).
+> **SUPERSÉDÉ par Feature O (2026-06-28)** : la critique santé doit désormais figurer **directement sur l'écran principal des résultats** (`LlmResultScreen`), avec déclenchement automatique et restitution 100 % inline. Le bouton « Critique santé » (`IHI-M-FR-002`), la route `HealthCritiqueEntry` (`IHI-M-FR-001`), l'écran d'entrée `HealthCritiqueScreen` (`IHI-M-FR-004`) et l'écran de résultat séparé `HealthCritiqueResultScreen` / route `HealthCritiqueResult` sont **retirés** (traçabilité conservée ci-dessous). Les exigences `IHI-M-FR-001` à `IHI-M-FR-008` et `IHI-M-SC-001` à `IHI-M-SC-005` sont **supersédées et retirées** ; se reporter à **Feature O** pour le câblage cible.
 
 ### Clarifications (Feature M)
 
@@ -641,6 +642,129 @@ En tant qu'utilisatrice curieuse (ou confrontée à un produit à vigilance), je
 
 ---
 
+## Feature O — Critique santé intégrée à l'écran principal des résultats
+
+> Origine : intake `/speckit-design` + `/speckit-specify` 2026-06-28
+> Intention : la critique santé par profil (Feature N) doit être restituée **directement sur l'écran principal des résultats** (`LlmResultScreen`), en lieu et place du bouton « Critique santé » actuel (Feature M) qui naviguait vers un écran d'entrée séparé (`HealthCritiqueScreen`) puis un écran de résultat séparé (`HealthCritiqueResultScreen`). Le déclenchement est **automatique** dès que le bilan de composition est classé succès et qu'un segment validé est disponible. La restitution est **100 % inline** : les écrans d'entrée/résultat séparés et la route `HealthCritiqueEntry` sont supprimés.
+
+### Clarifications (Feature O)
+
+#### Session 2026-06-28
+
+- **Portée** : Feature O modifie le **câblage de navigation** et la **destination de restitution** de la critique santé (écran principal `LlmResultScreen` au lieu d'écrans séparés) ainsi que le **mode de déclenchement** (automatique). Elle ne modifie pas le moteur `HealthCritiqueEngine`, le prompt (`HealthCritiquePromptBuilder` — Feature L/N), le parseur (`HealthCritiqueSectionParser`) ni le flux composition.
+- **Déclenchement (clarify)** : **Option A — automatique** dès que le bilan composition est classé succès (`StreamingBilanState.Complete`) **et** qu'un segment validé est disponible (`lastValidatedSegmentForHealth` non vide) ; aucune action utilisateur requise (pas de bouton « Analyser », pas de navigation).
+- **Écrans séparés (clarify)** : **Option A — suppression** : l'écran d'entrée `HealthCritiqueScreen`, la route `HealthCritiqueEntry`, l'écran de résultat séparé `HealthCritiqueResultScreen` et la route `HealthCritiqueResult` sont **retirés** ; la restitution (rappel profil, avertissements, jauge de prudence, cartes ingrédients, liste complète, disclaimers, actions copier) est rendue **inline** sur `LlmResultScreen`.
+- **Non-régression Feature N** : les exigences de restitution Feature N (`IHI-N-FR-006` à `IHI-N-FR-012`) restent applicables ; seule la « destination écran » change (inline sur `LlmResultScreen` au lieu de `HealthCritiqueResultScreen`). Le rappel « Évalué pour vous : <profil> », la jauge 3 paliers, le filtrage des cartes (Modéré/Élevé), le bouton « Voir tous les ingrédients analysés » et le fallback profil par défaut « Adulte » sont préservés.
+- **Supersession Feature M** : `IHI-M-FR-001` à `IHI-M-FR-008` et `IHI-M-SC-001` à `IHI-M-SC-005` sont **supersédés et retirés** (traçabilité conservée en section Feature M). Le bouton « Critique santé » (`IHI-M-FR-002`, testTag `llm_result_critique_sante`) et la route `HealthCritiqueEntry` (`IHI-M-FR-001`) sont retirés.
+- **Ordonnancement écran résultat** : sous le bilan composition (et la pastille kcal Feature K / les KPI additifs juxtaposés `additive-risk-insights` via `IHI-C-FR-007`), la section critique inline se place **en continuité**, sans casser l'ordre existant. Détail de placement visuel laissé au plan d'implémentation (Ref. UGE).
+- **États inline** : les états `en cours` (loading + streaming texte), `erreur` (`InferenceError` / `InputInvalid`) et `prête` (`CritiqueReady`) de `HealthCritiqueViewModel` MUST être rendus inline dans la section critique de `LlmResultScreen`, sans navigation.
+- **Persistance** : la consultation du dernier résultat critique (`LastHealthAnalysisStore`) est conservée et ne dépend plus d'un écran séparé.
+
+### User Scenarios (Feature O)
+
+#### US-O1 — Voir la critique santé sur l'écran principal des résultats (P1)
+
+En tant qu'utilisatrice, une fois le bilan de composition terminé, je veux voir la critique santé par profil **directement sur le même écran**, afin de ne pas avoir à appuyer sur un bouton ni à naviguer pour y accéder.
+
+**Why this priority** : cœur de l'intention produit ; sans restitution inline, la critique reste derrière une navigation séparée (Feature M supersédée).
+
+**Independent Test** : compléter un scan → bilan composition succès → vérifier que la section « Critique santé » (rappel « Évalué pour vous : <profil> » + jauge + cartes) s'affiche sur `LlmResultScreen` **sans aucune action utilisateur ni navigation**.
+
+**Acceptance Scenarios**:
+
+1. **Given** le bilan de composition classé succès (`StreamingBilanState.Complete`) avec un segment validé disponible, **When** `LlmResultScreen` s'affiche, **Then** une section « Critique santé » est rendue inline, en continuité sous le bilan composition / pastille kcal / KPI additifs, sans navigation vers un autre écran.
+2. **Given** la section critique inline affichée, **When** l'utilisatrice la consulte, **Then** elle contient le rappel « Évalué pour vous : <profil> » (cohérent `IHI-N-FR-003`), la jauge de prudence 3 paliers + texte court (`IHI-N-FR-009`), les cartes des ingrédients à vigilance Modérée/Élevée (`IHI-N-FR-010`) et le bouton « Voir tous les ingrédients analysés » (`IHI-N-FR-011`).
+3. **Given** la section critique inline, **When** l'utilisatrice cherche un point d'entrée séparé, **Then** aucun bouton « Critique santé » (testTag `llm_result_critique_sante`) n'est présent, et aucune route `HealthCritiqueEntry` / écran `HealthCritiqueScreen` séparé n'existe.
+
+#### US-O2 — Déclenchement automatique sans action (P1)
+
+En tant qu'utilisatrice, je veux que la critique santé se lance **automatiquement** dès que le bilan composition est prêt et qu'un segment validé est disponible, afin de recevoir l'analyse sans étape supplémentaire.
+
+**Why this priority** : sans déclenchement automatique, l'utilisatrice doit explicitement lancer la critique (friction) — contradictoire avec l'attente « présente sur l'écran principal ».
+
+**Independent Test** : compléter un scan produisant un bilan composition succès + segment validé, et vérifier que `HealthCritiqueViewModel.analyze()` est déclenché sans interaction utilisateur (la section critique passe en état `en cours` puis `prête` inline).
+
+**Acceptance Scenarios**:
+
+1. **Given** le bilan composition passe à `Complete` et un segment validé est disponible, **When** cet état est atteint, **Then** l'analyse de critique santé est déclenchée automatiquement (état `en cours` visible inline : loading + streaming texte).
+2. **Given** l'analyse critique aboutit à un `CritiqueReady`, **When** le résultat est disponible, **Then** la section critique inline affiche le contenu prêt (rappel + jauge + cartes + liste complète) sans action utilisateur.
+3. **Given** le bilan composition est encore en `Streaming` (pas `Complete`), **When** `LlmResultScreen` est affiché, **Then** la critique santé **n'est pas** déclenchée automatiquement (attente de la fin du bilan).
+
+#### US-O3 — États d'erreur et de chargement rendus inline (P2)
+
+En tant qu'utilisatrice, si la critique santé échoue ou est en cours, je veux le voir **à l'emplacement de la critique sur l'écran principal**, sans que cela ne casse le bilan composition déjà affiché.
+
+**Why this priority** : garantit la robustesse du rendu inline et la non-régression du bilan composition.
+
+**Independent Test** : simuler une erreur d'inférence critique (runtime indisponible) et vérifier que le message d'erreur s'affiche dans la section critique inline sans masquer casser le bilan composition ; simuler une latence et vérifier l'état `en cours` (loading + streaming) inline.
+
+**Acceptance Scenarios**:
+
+1. **Given** la critique en cours d'inférence, **When** l'état `isLoading` est actif, **Then** la section critique inline affiche un indicateur de chargement + le texte streaming (cohérent `HealthCritiqueResultScreen` existant), sans navigation.
+2. **Given** l'analyse critique aboutit à `InferenceError` ou `InputInvalid`, **When** l'état est rendu, **Then** le message d'erreur s'affiche inline dans la section critique, et le bilan composition (et KPI additifs) reste visible et intact au-dessus.
+3. **Given** une erreur de critique, **When** l'utilisatrice consulte l'écran, **Then** le bouton « Retour » de `LlmResultScreen` reste opérationnel (retour au scan).
+
+#### US-O4 — Suppression de la navigation séparée (P1)
+
+En tant qu'utilisatrice, je veux que le flux critique santé ne passe plus par un écran d'entrée ni un écran de résultat séparés, afin que l'expérience reste continue sur l'écran principal de résultats.
+
+**Why this priority** : concrétise la suppression du câblage Feature M et évite la duplication de surfaces UI.
+
+**Independent Test** : vérifier l'absence des routes `HealthCritiqueEntry` et `HealthCritiqueResult` dans le `NavHost` de `MainActivity`, l'absence de l'écran `HealthCritiqueScreen` (entrée) et de `HealthCritiqueResultScreen` (rendu séparé), et la présence du rendu critique inline sur `LlmResultScreen`.
+
+**Acceptance Scenarios**:
+
+1. **Given** le `NavHost` de `MainActivity`, **When** on inspecte les routes, **Then** les routes `HealthCritiqueEntry` et `HealthCritiqueResult` sont absentes (supersession `IHI-M-FR-001` / `IHI-M-FR-006`).
+2. **Given** le code source, **When** on recherche les écrans séparés, **Then** `HealthCritiqueScreen` (entrée avec bouton « Analyser ») et `HealthCritiqueResultScreen` (écran de restitution séparé) sont retirés ; la restitution est inline sur `LlmResultScreen`.
+3. **Given** un parcours de retour depuis `LlmResultScreen`, **When** l'utilisatrice appuie sur « Retour », **Then** le retour ramène au scan (pile de navigation simplifiée, sans écran critique intermédiaire).
+
+### Edge Cases (Feature O)
+
+- **Bilan composition en `Streaming`** : la critique MUST NOT se déclencher (attente `Complete`).
+- **Bilan composition en `Error`** : la critique MUST NOT se déclencher (pas de bilan succès) ; la section critique inline n'est pas affichée (ou état neutre), le message d'erreur composition reste visible.
+- **Segment validé vide au moment du `Complete`** : la critique MUST NOT se déclencher (cohérent `InputInvalidReason.NO_VALIDATED_SEGMENT`) ; la section critique inline affiche un état neutre / message.
+- **Re-`Complete` (re-déclenchement du bilan)** : idempotence — pas de double inférence critique (garde par état du `HealthCritiqueViewModel`).
+- **Critique en cours puis retour utilisateur** : le retour ramène au scan ; le streaming critique est annulé/terminé proprement (pas de fuite d'inférence).
+- **Rotation / recréation d'activité** : le `HealthCritiqueViewModel` et `LastHealthAnalysisStore` survivent ; le rendu inline se reconstruit dans le même état.
+- **Profil non sélectionné (fallback)** : cohérent `IHI-N-FR-012` — fallback implicite « Adulte » + signal visuel « profil par défaut » rendus inline.
+- **Ancrage Feature C** : inchangé ; le retrait des écrans séparés ne modifie pas l'ancrage (`IHI-C-FR-001` à `IHI-C-FR-007`).
+
+### Functional Requirements (Feature O)
+
+- **IHI-O-FR-001**: Le système MUST déclencher **automatiquement** l'analyse de critique santé dès que le bilan de composition est classé **succès** (`StreamingBilanState.Complete`) **et** qu'un segment validé est disponible (`lastValidatedSegmentForHealth` non vide) ; aucune action utilisateur requise.
+- **IHI-O-FR-002**: Le système MUST restituer la critique santé **directement à l'intérieur** de l'écran principal des résultats (`LlmResultScreen`), en continuité sous le bilan composition / pastille kcal / KPI additifs juxtaposés, **sans navigation** vers un écran séparé.
+- **IHI-O-FR-003**: Le système MUST **supprimer** le bouton « Critique santé » (`onCritiqueSante` / testTag `llm_result_critique_sante`) de `LlmResultScreen` (supersession `IHI-M-FR-002`).
+- **IHI-O-FR-004**: Le système MUST **supprimer** la route de navigation `HealthCritiqueEntry` du `NavHost` de `MainActivity` (supersession `IHI-M-FR-001`) ainsi que l'écran d'entrée séparé `HealthCritiqueScreen` (supersession `IHI-M-FR-004`).
+- **IHI-O-FR-005**: Le système MUST **supprimer** l'écran de résultat séparé `HealthCritiqueResultScreen` et la route `HealthCritiqueResult` ; la restitution de la critique (rappel profil, avertissements, jauge de prudence, cartes ingrédients, liste complète, disclaimers, actions copier) est rendue **inline** sur `LlmResultScreen` (cohérent Feature N : `IHI-N-FR-006` à `IHI-N-FR-011`).
+- **IHI-O-FR-006**: Le système MUST rendre inline les **états** de la critique : `en cours` (loading + streaming texte), `erreur` (`InferenceError` / `InputInvalid`) et `prête` (`CritiqueReady`) — sans navigation ; ces états sont présentés dans la section critique de `LlmResultScreen`.
+- **IHI-O-FR-007**: Le système MUST **conserver** `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N) et `HealthCritiqueSectionParser` **inchangés** (périmètre restitution + déclenchement uniquement) ; la conformité Feature C (`IHI-C-FR-001` à `IHI-C-FR-007`) et les garde-fous Feature L/N restent applicables.
+- **IHI-O-FR-008**: Le système MUST **conserver la consommation du profil** via `UserProfileProvider` (Feature N / UGE Feature I) et le rappel « Évalué pour vous : <profil> » (`IHI-N-FR-003`) dans le rendu inline, y compris le fallback « Adulte » + signal visuel « profil par défaut » (`IHI-N-FR-012`).
+- **IHI-O-FR-009**: Le système MUST **conserver** les actions « Copier la réponse » et « Copier le prompt » au niveau de la section critique inline (cohérent `HealthCritiqueResultScreen` existant).
+- **IHI-O-FR-010**: Le système MUST **ne pas déclencher** la critique automatiquement lorsque le bilan composition est en `Error` ou lorsque le segment validé est vide au moment du `Complete` (cohérent `InputInvalidReason.NO_VALIDATED_SEGMENT`) ; la section critique n'est pas affichée ou affiche un état neutre.
+- **IHI-O-FR-011**: Le système MUST **conserver** la persistance / consultation du dernier résultat critique (`LastHealthAnalysisStore`) **sans dépendre d'un écran séparé** (cohérent Feature B persistance).
+- **IHI-O-FR-012**: Le système MUST assurer la **non-régression** du bilan composition (`LlmResultScreen`) et des KPI additifs juxtaposés (`additive-risk-insights`, `IHI-C-FR-007`) ; l'inline de la critique ne casse pas l'ordonnancement existant (bilan → pastille kcal → KPI additifs → critique).
+- **IHI-O-FR-013**: Le système MUST garantir l'**idempotence** du déclenchement automatique : un même `Complete` ne déclenche pas plusieurs inférences critique (garde par l'état du `HealthCritiqueViewModel`).
+- **IHI-O-FR-014**: Le système MUST assurer le **retour navigation** depuis `LlmResultScreen` (« Retour » / `popBackStack`) vers le scan, sans écran critique intermédiaire (pile de navigation simplifiée).
+
+### Key Entities (Feature O)
+
+- **InlineCritiqueSection**: section de `LlmResultScreen` rendant la critique santé inline (états `en cours` / `erreur` / `prête`), en continuité sous le bilan composition / pastille kcal / KPI additifs.
+- **CritiqueAutoTrigger**: règle de déclenchement automatique de la critique (condition : `StreamingBilanState.Complete` + segment validé non vide), idempotente.
+- *(Superseded, retiré)* **HealthCritiqueEntryRoute** (`IHI-M-FR-001`), **CritiqueSanteEntryTrigger** (`IHI-M-FR-002`) — traçabilité conservée en section Feature M.
+
+### Success Criteria (Feature O)
+
+- **IHI-O-SC-001**: 100 % des parcours « bilan composition succès + segment validé disponible » déclenchent **automatiquement** la critique santé sans action utilisateur.
+- **IHI-O-SC-002**: 100 % des critiques prêtes sont rendues **inline** sur `LlmResultScreen` (rappel « Évalué pour vous : <profil> » + jauge 3 paliers + cartes Modéré/Élevé + bouton « Voir tous les ingrédients analysés » + disclaimers), sans navigation.
+- **IHI-O-SC-003**: 0 % des parcours exposent encore le bouton « Critique santé » (testTag `llm_result_critique_sante` supprimé), la route `HealthCritiqueEntry`, l'écran `HealthCritiqueScreen` ou l'écran `HealthCritiqueResultScreen` / route `HealthCritiqueResult`.
+- **IHI-O-SC-004**: 100 % des cas d'erreur de critique (`InferenceError` / `InputInvalid`) sont rendus **inline** sans casser le bilan composition ni les KPI additifs affichés au-dessus.
+- **IHI-O-SC-005**: 0 % de régression sur le flux composition (`LlmResultScreen`), les KPI additifs juxtaposés (`additive-risk-insights`), le moteur `HealthCritiqueEngine`, le prompt (`HealthCritiquePromptBuilder`) et le parseur (`HealthCritiqueSectionParser`) — inchangés.
+- **IHI-O-SC-006**: 100 % des cas « bilan composition en `Error` » ou « segment validé vide au `Complete` » ne déclenchent **pas** la critique automatiquement.
+- **IHI-O-SC-007**: 100 % des retours navigation depuis `LlmResultScreen` ramènent au scan sans écran critique intermédiaire.
+- **IHI-O-SC-008**: 100 % des déclenchements automatiques sont **idempotents** (un `Complete` → au plus une inférence critique) sur ≥ 3 exécutions successives.
+
+---
+
 ## Cross-domain Notes
 
 - Consomme le segment validé de `ingredient-normalization-validation` (source de vérité pour l’ancrage — Feature C).
@@ -656,6 +780,7 @@ En tant qu'utilisatrice curieuse (ou confrontée à un produit à vigilance), je
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature L)
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature M)
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature N)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature O — critique santé intégrée à l'écran principal des résultats ; supersede Feature M)
 
 ## Assumptions
 
@@ -670,3 +795,4 @@ En tant qu'utilisatrice curieuse (ou confrontée à un produit à vigilance), je
 - Pour **Feature L**, le prompt personnalisé est un **remplacement en dur versionné** dans le builder (pas d’externalisation ni de registre) ; la personnalisation est **limitée au prompt de critique santé** (le bilan de composition garde son propre contrat) ; le seuil « liste très longue » est défini en **nombre d’ingrédients** (valeur exacte au plan) ; la conformité sémantique au prompt est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C), le format restant vérifié par le parseur existant.
 - Pour **Feature M**, le correctif est strictement un **câblage de navigation** (route `HealthCritiqueEntry` + bouton dans `LlmResultScreen`) ; `HealthCritiqueScreen` existant est réutilisé sans modification ; la synchronisation du segment repose sur le flux existant `lastValidatedSegmentForHealth` ; aucune modification du moteur, du prompt, du parseur ou du flux composition.
 - Pour **Feature N**, la sélection et la persistance du profil utilisateur sont du ressort de `user-guidance-experience` (saisie lors de l'Onboarding + édition dans un écran « Paramètres / Profil ») ; IHI **consomme** le profil. En l'absence de profil sélectionné, IHI se rabat sur le **profil par défaut « Adulte »** (profil unique, pas 4-profils) avec un signal visuel « profil par défaut ». Le format 4-marqueurs strict Feature L (**IHI-L-FR-009** / **IHI-L-SC-004**) est **supersédé et retiré** (flux 4-profils supprimé entièrement) au profit d'une sortie à **profil unique** (marqueur canonique par profil, dont `###SPORTIF` nouvellement introduit) — traçabilité conservée en spec. Les exigences Feature L non format-strict (persona, dimensions de risque, hiérarchie des preuves, populations vulnérables transversales, garde-fous éthiques, seuil « liste très longue », rédaction française, disclaimer) restent applicables. La restitution affiche un **Niveau de prudence** (jauge 3 paliers + texte court) juste sous les KPI additifs/risques existants (`additive-risk-insights`, **IHI-C-FR-007**), puis des **cartes ingrédients** limitées aux vigilances Modéré/Élevé, avec bouton « Voir tous les ingrédients analysés » déployant une **liste compacte** (nom + statut de vigilance). La conformité sémantique est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C).
+- Pour **Feature O**, la critique santé est **intégrée à l'écran principal des résultats** (`LlmResultScreen`) avec **déclenchement automatique** (bilan composition `Complete` + segment validé disponible) et **restitution 100 % inline** ; les écrans séparés `HealthCritiqueScreen` (entrée) et `HealthCritiqueResultScreen` (résultat), ainsi que les routes `HealthCritiqueEntry` / `HealthCritiqueResult`, sont **supprimés** (supersession Feature M, traçabilité conservée). Le moteur `HealthCritiqueEngine`, le prompt builder (Feature L/N) et le parseur sont **inchangés** ; la conformité Feature C et les garde-fous Feature L/N restent applicables. Le déclenchement automatique d'une seconde inférence LLM est accepté (état `en cours` streaming rendu inline). Les actions « Copier la réponse » / « Copier le prompt » et la persistance (`LastHealthAnalysisStore`) sont conservées au niveau de la section critique inline. L'ordonnancement de l'écran résultat (bilan → pastille kcal → KPI additifs → critique inline) est préservé (Ref. UGE).

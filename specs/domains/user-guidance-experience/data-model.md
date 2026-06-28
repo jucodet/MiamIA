@@ -157,3 +157,51 @@ Sans embranchement vers confirmation segment pour OCR `success`/`partial` admiss
 - **INV-G-1** : Aucun composable avec tag `ingredients_framing_tag_chip` en production sur l’écran capture.
 - **INV-G-2** : Aucune occurrence UI de la chaîne exacte « Caméra prête — vous pouvez scanner ».
 - **INV-G-3** : Les états transitoires (`PreviewInitializing`, `Capturing`, `Analyzing`) peuvent conserver des libellés d’état utiles ; ils ne MUST pas réintroduire INV-G-1 ni INV-G-2.
+
+---
+
+## Addendum Feature I — Sélection du profil sur l'écran de capture (2026-06-28)
+
+### Entités / Value Objects
+
+- **`UserProfile`** *(enum — Published Language publiée par `ingredient-health-intelligence`, Feature N)*
+  - Valeurs : `FEMME_ENCEINTE`, `ENFANT`, `PERSONNE_AGEE`, `ADULTE`, `SPORTIF` ; `DEFAULT = ADULTE`.
+  - UGE **consomme** cette énumération sans la redéfinir (frontière DDD).
+
+- **`UserProfileProvider`** *(interface — contrat de consommation, publiée par IHI Feature N)*
+  - `fun current(): UserProfile` — profil courant (non-null).
+
+- **`MutableUserProfileProvider`** *(interface UGE — étend `UserProfileProvider`)*
+  - `fun setProfile(profile: UserProfile)` — persiste le profil sélectionné.
+  - Rationale : UGE a besoin d'écrire (sélection capture) tandis qu'IHI ne fait que lire ; séparation lecture/écriture propre.
+
+- **`PersistentUserProfileProvider`** *(impl UGE — `MutableUserProfileProvider`)*
+  - Stockage : `SharedPreferences` (clé `user_profile`, valeur = `UserProfile.name`).
+  - `current()` : lit le nom persisté, résout via `UserProfile.valueOf(...)` ; **repli `UserProfile.DEFAULT`** si absent/inconnu (corruption) — UGE-I-FR-008.
+  - `setProfile(profile)` : écrit `profile.name` ; idempotent.
+
+### Read model (UI, Feature I)
+
+- **`SelectedProfile`** *(conceptuel — exposé par `CameraViewModel`)*
+  - `profile: UserProfile` — profil courant affiché sur le sélecteur de l'écran de capture.
+  - Source : `MutableUserProfileProvider.current()` au démarrage ; mis à jour par `selectProfile(profile)`.
+
+### Transitions d'état (Feature I)
+
+```text
+[lancement] → current() = Adulte (défaut) ou profil persisté
+                │
+                ▼
+   sélecteur capture : profile = Adulte | Femme enceinte | Enfant | Agé | Sportif
+                │  (selectProfile → setProfile → persistence)
+                ▼
+   capture autorisée (profil toujours valide) → critique ciblée via provider
+```
+
+### Invariants (Feature I)
+
+- **INV-I-1** : `PersistentUserProfileProvider.current()` MUST NOT retourner `null` ni une valeur hors énumération (repli `DEFAULT`).
+- **INV-I-2** : Le profil courant exposé sur l'écran de capture MUST refléter `provider.current()` au démarrage et après chaque `selectProfile`.
+- **INV-I-3** : Une instance unique de `PersistentUserProfileProvider` MUST être partagée entre `CameraViewModel` (écriture) et `HealthCritiqueViewModel` (lecture) afin que la critique lise le profil sélectionné.
+- **INV-I-4** : Le sélecteur de profil MUST proposer exactement les 5 profils de `UserProfile` (aucun ajout/retrait côté UGE).
+- **INV-I-5** : Aucun écran « Paramètres / Profil » distinct n'est introduit (UGE-I-FR-011 — supersession Feature N clarify Q5).

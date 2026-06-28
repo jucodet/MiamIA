@@ -147,3 +147,49 @@
 ./gradlew :app:connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.miamia.onboarding.ModelDownloadWaitingAcceptanceTest
 ```
+
+---
+
+## Addendum Feature I — Sélection du profil sur l'écran de capture (2026-06-28)
+
+### Parcours I1 — Défaut Adulte (premier lancement)
+
+1. Réinstaller l'app (ou effacer les données) de façon à vider les préférences.
+2. Aller à l'écran de capture (onboarding modèle prêt).
+3. **Attendu** : le sélecteur de profil affiche « Adulte » (valeur par défaut). La capture est autorisée sans action préalable.
+
+### Parcours I2 — Sélection puis capture
+
+1. Sur l'écran de capture, ouvrir le sélecteur de profil (`capture_profile_selector`).
+2. Choisir « Femme enceinte » (`capture_profile_option_FEMME_ENCEINTE`).
+3. **Attendu** : le sélecteur affiche « Femme enceinte » ; la valeur est persistée.
+4. Prendre une photo d'une étiquette d'ingrédients ; laisser l'analyse se terminer.
+5. Aller à la critique santé et lancer l'analyse.
+6. **Attendu** : la critique affiche l'en-tête « Évalué pour vous : Femme enceinte » (Feature N), avec un niveau de prudence et les cartes ingrédients ciblées.
+
+### Parcours I3 — Persistance entre sessions
+
+1. Sélectionner « Enfant » sur l'écran de capture (parcours I2).
+2. Tuer l'app et la relancer ; retourner à l'écran de capture.
+3. **Attendu** : le sélecteur affiche « Enfant » (profil persisté). La prochaine critique sera ciblée « Enfant ».
+
+### Parcours I4 — Repli profil corrompu
+
+1. (Test automatisé) Injecter une valeur invalide dans la clé `user_profile` des préférences (ex. « INCONNU »).
+2. Lancer l'app et aller à l'écran de capture.
+3. **Attendu** : le sélecteur affiche « Adulte » (repli `DEFAULT`), aucune crash, la capture reste autorisée.
+
+### Parcours I5 — Modification avant nouvelle capture
+
+1. Après une analyse (parcours I2), revenir à l'écran de capture (« Nouveau scan »).
+2. Changer le profil de « Femme enceinte » à « Sportif ».
+3. Prendre une nouvelle photo et lancer la critique.
+4. **Attendu** : la nouvelle critique est ciblée « Sportif ».
+
+### Commandes (locales)
+
+```bash
+./gradlew :app:testDebugUnitTest --tests "com.miamia.profile.PersistentUserProfileProviderTest"
+```
+
+> Parcours UI I1/I2/I3/I5 : vérification manuelle (ou AndroidTest à venir) sur l'écran de capture.

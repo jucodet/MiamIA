@@ -146,3 +146,33 @@
 - `app/src/test/java/com/miamia/healthcritique/UserProfileTest.kt`
 - `app/src/test/java/com/miamia/healthcritique/HealthCritiqueProfilePromptTest.kt`
 - `app/src/test/java/com/miamia/healthcritique/HealthCritiqueSectionParserTest.kt`
+
+---
+
+## Feature O — Critique santé intégrée à l'écran principal des résultats (2026-06-28)
+
+### Parcours manuel (auto-trigger + restitution inline — `IHI-O-SC-001`..`008`)
+
+1. Scanner un produit → bilan composition succès (`StreamingBilanState.Complete`) avec segment validé disponible.
+2. Vérifier que **la section « Critique santé » s'affiche directement sur `LlmResultScreen`**, en continuité sous le bilan / pastille kcal / KPI additifs, **sans aucune action utilisateur ni navigation** (`IHI-O-SC-001`/`002`).
+3. Vérifier l'absence du bouton « Critique santé » (test tag `llm_result_critique_sante` supprimé) et l'absence de route `HealthCritiqueEntry` / `HealthCritiqueResult` (`IHI-O-SC-003`).
+4. Vérifier que la critique passe par l'état `en cours` (loading + streaming texte) puis `prête` (rappel « Évalué pour vous : <profil> » + jauge 3 paliers + cartes Modéré/Élevé + bouton « Voir tous les ingrédients analysés ») inline.
+5. Simuler une erreur d'inférence critique (runtime indisponible) : le message d'erreur s'affiche **inline** dans la section critique, le bilan composition reste intact au-dessus (`IHI-O-SC-004`).
+6. Simuler un bilan composition en `Error` : la critique **n'est pas déclenchée** ; la section critique est absente / neutre (`IHI-O-SC-006`).
+7. Simuler un segment validé vide au `Complete` : la critique n'est pas déclenchée.
+8. Appuyer sur « Retour » : retour direct au scan (pas d'écran critique intermédiaire) ; l'inférence en cours est annulée proprement (`IHI-O-SC-007`).
+9. Re-scanner le même produit : un seul `Complete` → une seule inférence critique (idempotence — `IHI-O-SC-008`).
+10. Vérifier les actions « Copier la réponse » / « Copier le prompt » au niveau de la section critique inline.
+11. Non-régression : flux composition, KPI additifs juxtaposés, moteur/prompt/parseur inchangés (`IHI-O-SC-005`).
+
+### Fichiers utiles (Feature O)
+
+- `app/src/main/java/com/miamia/result/LlmResultScreen.kt`
+- `app/src/main/java/com/miamia/MainActivity.kt`
+- `app/src/main/java/com/miamia/navigation/CameraFlowRoutes.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueViewModel.kt`
+- (supprimés) `app/src/main/java/com/miamia/healthcritique/HealthCritiqueScreen.kt`
+- (supprimés) `app/src/main/java/com/miamia/healthcritique/HealthCritiqueResultScreen.kt`
+- `app/src/androidTest/java/com/miamia/result/LlmResultScreenUiTest.kt`
+- `app/src/androidTest/java/com/miamia/healthcritique/HealthCritiqueReadOnlySegmentAndroidTest.kt`
+- `app/src/androidTest/java/com/miamia/healthcritique/HealthCritiquePersistenceAndroidTest.kt`

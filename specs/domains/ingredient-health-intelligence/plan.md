@@ -1,7 +1,7 @@
 # Implementation Plan: ingredient-health-intelligence
 
 **Domain**: `specs/domains/ingredient-health-intelligence` | **Spec**: [spec.md](./spec.md)
-**Dernière feature planifiée**: Feature N — critique ciblée par profil utilisateur (2026-06-28)
+**Dernière feature planifiée**: Feature O — critique santé intégrée à l'écran principal des résultats (2026-06-28)
 
 > Plan cumulatif par feature. Sections historiques conservées pour traçabilité (constitution I).
 
@@ -361,3 +361,92 @@ Voir [research.md](./research.md) §12 (décisions clarify 2026-06-28 : fallback
 ### Phase 2 — Livraison (Feature N)
 
 Tâches exécutables dans [tasks.md](./tasks.md) (section Feature N).
+
+---
+
+## Feature O — Critique santé intégrée à l'écran principal des résultats (2026-06-28)
+
+**Branch**: `016-launch-splash-screen` (branche courante domaine) | **Date**: 2026-06-28
+**Input**: spec.md Feature O + **clarify** 2026-06-28 (2 décisions : déclenchement **automatique** au `Complete` + segment validé ; **suppression** des écrans/route séparés `HealthCritiqueScreen` / `HealthCritiqueEntry` / `HealthCritiqueResultScreen` / `HealthCritiqueResult`)
+
+### Summary
+
+La **Feature O** supersède la Feature M : la critique santé par profil (Feature N) n'est plus atteinte via un bouton naviguant vers un écran d'entrée séparé, mais **rendue directement sur l'écran principal des résultats** (`LlmResultScreen`), en continuité sous le bilan composition / pastille kcal / KPI additifs juxtaposés. Le déclenchement est **automatique** dès que le bilan composition est classé `Complete` et qu'un segment validé est disponible (`lastValidatedSegmentForHealth` non vide). Les écrans séparés `HealthCritiqueScreen` (entrée) et `HealthCritiqueResultScreen` (résultat), ainsi que les routes `HealthCritiqueEntry` et `HealthCritiqueResult`, sont **supprimés** ; la restitution (rappel « Évalué pour vous », avertissements, jauge de prudence, cartes filtrées, « Voir tous les ingrédients analysés », disclaimers, actions copier) est rendue **inline** sur `LlmResultScreen`. Les états `en cours` (loading + streaming), `erreur` (`InferenceError` / `InputInvalid`) et `prête` (`CritiqueReady`) du `HealthCritiqueViewModel` sont rendus inline. `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N) et `HealthCritiqueSectionParser` sont **inchangés** ; conformité Feature C et garde-fous Feature L/N préservés.
+
+### Technical Context
+
+**Language/Version**: Kotlin 2.x, Jetpack Compose, Navigation Compose
+**Primary Dependencies**: `LlmResultScreen`, `MainActivity` (NavHost), `CameraFlowRoutes`, `HealthCritiqueViewModel` (états + `analyze()` + `ui`/`streamingText`/`navigateToResult`), `CameraViewModel.lastValidatedSegmentForHealth` + `streamingBilan` (`StreamingBilanState.Complete`), `HealthCritiqueResultScreen` (composables de restitution à réutiliser/extraire en inline), `LastHealthAnalysisStore`
+**Storage**: `LastHealthAnalysisStore` (conservé, sans écran séparé)
+**Testing**: tests instrumentés existants (`LlmResultScreenUiTest`, `HealthCritiqueReadOnlySegmentAndroidTest`, `HealthCritiquePersistenceAndroidTest`) à adapter ; parcours quickstart Feature O
+**Target Platform**: Application Android (module `app`)
+**Project Type**: mobile-app monolithique
+**Performance Goals**: la critique est une seconde inférence LLM (jusqu'au timeout Feature A 180 s) ; rendu **non-bloquant** (bilan composition affiché immédiatement, critique en streaming inline). Pas de nouvel objectif chiffré ; non-régression latence bilan.
+**Constraints**: Constitution ATDD ; non-régression flux composition + KPI additifs juxtaposés (`IHI-C-FR-007`) ; idempotence du déclenchement automatique (`IHI-O-FR-013`) ; annulation propre au retour (pas de fuite d'inférence) ; moteur/prompt/parseur inchangés
+**Scale/Scope**: `LlmResultScreen.kt`, `MainActivity.kt` (NavHost), `CameraFlowRoutes.kt`, extraction de composables restitution depuis `HealthCritiqueResultScreen.kt`, suppression `HealthCritiqueScreen.kt` + `HealthCritiqueResultScreen.kt` + routes, tests instrumentés, docs domaine
+
+### Constitution Check (Feature O)
+
+| Principe | Statut |
+|----------|--------|
+| I. Qualité / traçabilité | OK — spec Feature O + clarify → parcours quickstart + tests instrumentés → code ; supersession Feature M tracée en spec/plan/contract |
+| II. ATDD | OK — parcours quickstart Feature O (auto-trigger, restitution inline, états erreur/chargement, suppression navigation) + tests instrumentés adaptés |
+| III. UX | OK — suppression friction (bouton + navigation) ; feedback immédiat (streaming inline) ; états vides/erreurs soignés inline |
+| IV. Performance | OK — seconde inférence non-bloquante (streaming inline) ; bilan composition rendu sans attendre la critique |
+| V. Simplicité | OK — suppression de 2 écrans + 2 routes + 1 bouton (réduction de surfaces) ; réutilisation des composables de restitution existants |
+| VI. DDD | OK — périmètre IHI (critique santé + restitution) ; moteur/prompt/parseur/composition inchangés ; UGE non modifié (Ref. ordonnancement écran résultat) |
+
+**Post-design** : inchangé.
+
+### Project Structure (Feature O)
+
+#### Documentation (this feature)
+
+```text
+specs/domains/ingredient-health-intelligence/
+├── plan.md (section Feature O)
+├── research.md (§13 Feature O)
+├── data-model.md (entités Feature O)
+├── quickstart.md (parcours Feature O)
+├── contracts/
+│   └── critique-inline-restitution-contract.md   # NOUVEAU (supersede critique-sante-navigation-contract.md)
+└── tasks.md (section Feature O)
+```
+
+#### Source Code (repository root)
+
+```text
+app/src/main/java/com/miamia/result/LlmResultScreen.kt        # section critique inline + auto-trigger (collecte streamingBilan/segment)
+app/src/main/java/com/miamia/MainActivity.kt                  # NavHost : retirer HealthCritiqueEntry/HealthCritiqueResult ; injecter HealthCritiqueViewModel dans LlmResultScreen ; auto-trigger wiring
+app/src/main/java/com/miamia/navigation/CameraFlowRoutes.kt   # retirer HealthCritiqueEntry + HealthCritiqueResult
+app/src/main/java/com/miamia/healthcritique/
+├── HealthCritiqueScreen.kt          # SUPPRIMÉ
+├── HealthCritiqueResultScreen.kt    # SUPPRIMÉ (composables de restitution extraits vers LlmResultScreen ou module partagé)
+└── HealthCritiqueViewModel.kt       # inchangé (expose analyze/ui/streamingText/navigateToResult) ; navigateToResult devient no-op ou est retiré
+
+app/src/androidTest/java/com/miamia/healthcritique/   # tests adaptés (retrait navigation, ajout auto-trigger inline)
+```
+
+**Structure Decision** : retrait de 2 écrans séparés + 2 routes + 1 bouton ; extraction des composables de restitution (`CritiqueProfileContent`, `PrudenceGauge`, `IngredientRiskCardItem`, `FullIngredientListToggle`) vers une section inline de `LlmResultScreen` (ou un composable partagé `InlineCritiqueSection`) ; déclenchement automatique via `LaunchedEffect(streamingBilan)` observant `Complete` + segment validé. `HealthCritiqueEngine` / `HealthCritiquePromptBuilder` / `HealthCritiqueSectionParser` / flux composition **inchangés**.
+
+### Complexity Tracking
+
+> Aucune violation constitutionnelle à justifier.
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| — | — | — |
+
+### Phase 0 — Recherche (Feature O)
+
+Voir [research.md](./research.md) §13 (décisions clarify 2026-06-28 : déclenchement automatique, suppression écrans/route séparés, extraction composables restitution, idempotence, annulation, non-régression).
+
+### Phase 1 — Design (Feature O)
+
+- [data-model.md](./data-model.md) : entités Feature O — `InlineCritiqueSection`, `CritiqueAutoTrigger` ; retrait (superseded) `HealthCritiqueEntryRoute`, `CritiqueSanteEntryTrigger`.
+- [contracts/critique-inline-restitution-contract.md](./contracts/critique-inline-restitution-contract.md) : contrat de restitution inline + auto-trigger (supersede `critique-sante-navigation-contract.md`).
+- [quickstart.md](./quickstart.md) : parcours manuel Feature O (auto-trigger au Complete, restitution inline, états erreur/chargement, suppression navigation, non-régression composition).
+
+### Phase 2 — Livraison (Feature O)
+
+Tâches exécutables dans [tasks.md](./tasks.md) (section Feature O).

@@ -1,7 +1,7 @@
 # Tasks: ingredient-health-intelligence
 
 **Domain**: `specs/domains/ingredient-health-intelligence/`
-**Dernière feature**: Feature N — critique ciblée par profil utilisateur (2026-06-28)
+**Dernière feature**: Feature O — critique santé intégrée à l'écran principal des résultats (2026-06-28)
 
 > Tâches cumulatives par feature. Section historique Feature K conservée pour traçabilité (constitution I).
 
@@ -430,3 +430,122 @@ T301 → T302 [US-N1] ──┐
 ## Suggested MVP scope (Feature N)
 
 - **T301–T306** = US-N1 + US-N2 complètes (contrat profil + prompt ciblé + rappel « Évalué pour vous »).
+
+---
+
+## Feature O — Critique santé intégrée à l'écran principal des résultats (2026-06-28)
+
+**Input**: `specs/domains/ingredient-health-intelligence/` (plan.md Feature O, spec.md Feature O, research.md §13, data-model.md Feature O, `contracts/critique-inline-restitution-contract.md`)
+**Prerequisites**: spec Feature O + clarify 2026-06-28 (2 décisions : déclenchement automatique + suppression écrans/route séparés) intégré en spec ; Feature N implémentée (restitution profil + cartes + jauge).
+
+**Tests**: ATDD — tests instrumentés adaptés + parcours quickstart Feature O (auto-trigger, restitution inline, états erreur/chargement, suppression navigation, non-régression composition).
+
+## Format
+
+`- [ ] Tnnn [P?] [USOn?] Description avec chemin fichier`
+
+## Dependency graph (Feature O)
+
+```text
+T401 → T402 [US-O1] → T403 [US-O2] → T404 [US-O2] → T405 [US-O3] → T406 [US-O4] → T407 [P] → T408 [P]
+```
+
+## Phase 1: Setup (Feature O)
+
+**Purpose**: confirmer l'alignement spec/contract ↔ code existant (Feature M à superséder + Feature N à réutiliser).
+
+- [X] T401 Lire `specs/domains/ingredient-health-intelligence/spec.md` (Feature O, **IHI-O-FR-001**..**014**), `contracts/critique-inline-restitution-contract.md`, et `app/src/main/java/com/miamia/result/LlmResultScreen.kt` + `app/src/main/java/com/miamia/MainActivity.kt` (section `NavHost`) + `app/src/main/java/com/miamia/navigation/CameraFlowRoutes.kt` + `app/src/main/java/com/miamia/healthcritique/HealthCritiqueResultScreen.kt` + `HealthCritiqueViewModel.kt` pour confirmer : bouton `llm_result_critique_sante` + routes `HealthCritiqueEntry`/`HealthCritiqueResult` + écrans séparés à supprimer ; composables de restitution (`CritiqueProfileContent`, `PrudenceGauge`, `IngredientRiskCardItem`, `FullIngredientListToggle`) à extraire ; états ViewModel (`ui`, `streamingText`, `isLoading`, `result`, `analyze()`).
+
+---
+
+## Phase 2: Foundational (Feature O)
+
+**Purpose**: préparer la section critique inline (extraction des composables de restitution) avant le câblage auto-trigger.
+
+- [X] T402 [US-O1] Extraire les composables de restitution de `app/src/main/java/com/miamia/healthcritique/HealthCritiqueResultScreen.kt` (`CritiqueProfileContent`, `PrudenceGauge`, `IngredientRiskCardItem`, `FieldLine`, `FullIngredientListToggle`, et les actions « Copier la réponse » / « Copier le prompt » via `HealthCritiqueClipboard`) vers un composable partagé `InlineCritiqueSection` (ex. `app/src/main/java/com/miamia/healthcritique/InlineCritiqueSection.kt` ou module `result`) consommant `HealthCritiqueViewModel` (collecte `ui` + `streamingText`) — restitution 100 % inline, aucune navigation (`IHI-O-FR-002`/`005`/`006`).
+
+**Checkpoint**: composable `InlineCritiqueSection` réutilisable, rendant les états `en cours` / `erreur` / `prête` (rappel + jauge + cartes filtrées + « Voir tous » + disclaimers + actions copier).
+
+---
+
+## Phase 3: User Story O1 — Voir la critique santé sur l'écran principal (P1) 🎯 MVP
+
+**Goal**: la section « Critique santé » s'affiche inline sur `LlmResultScreen`, en continuité sous le bilan composition / pastille kcal / KPI additifs, sans bouton ni navigation.
+
+**Independent test**: parcours quickstart étapes 1–3 — bilan `Complete` + segment validé → section critique visible inline sur `LlmResultScreen` ; aucun bouton `llm_result_critique_sante` ; aucune route `HealthCritiqueEntry`/`HealthCritiqueResult`.
+
+### Implementation for US-O1
+
+- [X] T403 [US-O1] Intégrer `InlineCritiqueSection(viewModel = healthCritiqueViewModel, modifier = ...)` dans `app/src/main/java/com/miamia/result/LlmResultScreen.kt`, en continuité sous `BilanResultCard` (état `Complete`), en ordonnancement : bilan → pastille kcal → KPI additifs juxtaposés → section critique inline (`IHI-O-FR-002`/`012`). Supprimer le bouton « Critique santé » (callback `onCritiqueSante`, test tag `llm_result_critique_sante`, `critiqueEnabled`) — `IHI-O-FR-003` (supersede `IHI-M-FR-002`). Injecter `HealthCritiqueViewModel` en paramètre de `LlmResultScreen` (à la place de `onCritiqueSante`).
+
+**Checkpoint**: US-O1 vert — section critique inline rendue (état `prête` si ViewModel déjà peuplé) ; bouton supprimé.
+
+---
+
+## Phase 4: User Story O2 — Déclenchement automatique (P1)
+
+**Goal**: la critique se lance automatiquement au `Complete` + segment validé disponible, sans action utilisateur.
+
+**Independent test**: parcours quickstart étapes 1–2 + 9 — `analyze()` déclenché automatiquement ; état `en cours` puis `prête` inline ; idempotence (un `Complete` → une inférence).
+
+### Implementation for US-O2
+
+- [X] T404 [US-O2] Ajouter le déclenchement automatique dans `app/src/main/java/com/miamia/result/LlmResultScreen.kt` via `LaunchedEffect(streamingBilan, validatedSegment)` : si `streamingBilan is StreamingBilanState.Complete` **et** `validatedSegment` non null/non vide → `healthCritiqueViewModel.analyze()` (`IHI-O-FR-001`). Garder l'idempotence via l'état du ViewModel (pas de double `analyze()` pour un même `Complete` — `IHI-O-FR-013`). Ne pas déclencher si `Error` ou segment vide (`IHI-O-FR-010`).
+- [X] T405 [US-O2] Câbler l'injection du `HealthCritiqueViewModel` et la synchronisation du segment dans `app/src/main/java/com/miamia/MainActivity.kt` : passer `healthCritiqueViewModel` à `LlmResultScreen` dans `composable(CameraFlowRoutes.LlmResult)` ; conserver le `LaunchedEffect` existant `lastValidatedSegmentForHealth → setValidatedSegmentFromScan(...)` (`IHI-O-FR-008`). Retirer le `LaunchedEffect(healthCritiqueViewModel)` qui collectait `navigateToResult` (plus de navigation vers `HealthCritiqueResult`).
+
+**Checkpoint**: US-O2 vert — auto-trigger au `Complete` + segment ; streaming inline ; idempotent.
+
+---
+
+## Phase 5: User Story O3 — États d'erreur et de chargement inline (P2)
+
+**Goal**: les états `en cours` / `erreur` sont rendus inline sans casser le bilan composition.
+
+**Independent test**: parcours quickstart étapes 5–7 — erreur d'inférence rendue inline (bilan intact au-dessus) ; bilan `Error` ou segment vide → critique non déclenchée.
+
+### Implementation for US-O3
+
+- [X] T406 [US-O3] Vérifier dans `app/src/main/java/com/miamia/healthcritique/InlineCritiqueSection.kt` (extrait en T402) que les états `isLoading` + `streamingText` (en cours), `InferenceError` / `InputInvalid` (erreur) sont rendus inline ; que l'erreur critique n'affecte pas le bilan composition affiché au-dessus dans `LlmResultScreen.kt` (`IHI-O-FR-006`). Compléter si besoin (ex. masquer la section critique si pas de segment / bilan `Error`).
+
+**Checkpoint**: US-O3 vert — états inline robustes ; bilan composition intact en cas d'erreur critique.
+
+---
+
+## Phase 6: User Story O4 — Suppression de la navigation séparée (P1)
+
+**Goal**: retrait des écrans/route séparés ; pile de navigation simplifiée ; retour direct au scan.
+
+**Independent test**: parcours quickstart étapes 3 + 8 — aucune route `HealthCritiqueEntry`/`HealthCritiqueResult` ; `HealthCritiqueScreen` / `HealthCritiqueResultScreen` supprimés ; « Retour » ramène au scan.
+
+### Implementation for US-O4
+
+- [X] T407 [US-O4] Supprimer les routes et entrées `NavHost` dans `app/src/main/java/com/miamia/navigation/CameraFlowRoutes.kt` (retirer `HealthCritiqueEntry` et `HealthCritiqueResult`) et dans `app/src/main/java/com/miamia/MainActivity.kt` (retirer `composable(HealthCritiqueEntry)` et `composable(HealthCritiqueResult)`) (`IHI-O-FR-004`/`005`, supersede `IHI-M-FR-001`/`006`). Supprimer les fichiers `app/src/main/java/com/miamia/healthcritique/HealthCritiqueScreen.kt` et `app/src/main/java/com/miamia/healthcritique/HealthCritiqueResultScreen.kt` (leurs composables de restitution ont été extraits en T402) (`IHI-O-FR-004`/`005`). Retirer l'import/usage de `navigateToResult` dans `HealthCritiqueViewModel.kt` si devenu mort (ou marquer no-op). S'assurer que `onBack` / `popBackStack` depuis `LlmResultScreen` ramène au scan sans écran intermédiaire (`IHI-O-FR-014`).
+
+**Checkpoint**: US-O4 vert — navigation séparée supprimée ; retour direct au scan.
+
+---
+
+## Phase 7: Polish & documentation domaine (Feature O)
+
+- [X] T408 [P] Vérifier la cohérence doc domaine (grep sous `specs/domains/ingredient-health-intelligence/`) : `plan.md` Feature O, `research.md` §13, `data-model.md` Feature O, `contracts/critique-inline-restitution-contract.md`, `quickstart.md` Feature O alignés ; `contracts/critique-sante-navigation-contract.md` marqué **SUPERSÉDÉ** ; exécuter le parcours quickstart Feature O. Adapter les tests instrumentés existants (`LlmResultScreenUiTest.kt`, `HealthCritiqueReadOnlySegmentAndroidTest.kt`, `HealthCritiquePersistenceAndroidTest.kt`) au nouveau câblage inline (auto-trigger, suppression navigation) ; confirmer qu'aucune référence active à `HealthCritiqueScreen` / `HealthCritiqueEntry` / `HealthCritiqueResult` / `onCritiqueSante` ne subsiste dans le code de production.
+
+---
+
+## Parallel execution (Feature O)
+
+- **T402** (extraction `InlineCritiqueSection`) puis **T403** (`LlmResultScreen`) → séquentiel (T403 dépend du composable extrait).
+- **T404** + **T405** éditent `LlmResultScreen.kt` / `MainActivity.kt` (fichiers distincts) mais T405 dépend de l'injection introduite par T403/T404 → séquentiel.
+- **T406** (vérification/complétion `InlineCritiqueSection`) après T402.
+- **T407** (suppression routes/écrans) après T403 (le bouton doit déjà être retiré) ; édite `CameraFlowRoutes.kt` + `MainActivity.kt` + suppressions fichiers → séquentiel.
+- **T408** (polish/tests/doc) après T407 → parallèle [P] sur doc vs tests instrumentés.
+
+## Implementation strategy (Feature O)
+
+- MVP = **T401–T405** (extraction + section inline + auto-trigger + injection) ; US-O1 + US-O2 démontrables et testables indépendamment (parcours quickstart étapes 1–2 + 9).
+- Incrémental : US-O3 (T406, états inline robustes) puis US-O4 (T407, suppression navigation) s'ajoutent sans casser US-O1/O2.
+- Non-régression critique : `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N), `HealthCritiqueSectionParser`, flux composition, KPI additifs juxtaposés (`IHI-C-FR-007`) **inchangés** (`IHI-O-FR-007` / `IHI-O-SC-005`).
+- Supersession : Feature M (`IHI-M-FR-001`..`008`, `IHI-M-SC-001`..`005`) **retirée** — traçabilité en spec/plan/contract.
+
+## Suggested MVP scope (Feature O)
+
+- **T401–T405** = US-O1 + US-O2 complètes (section critique inline sur `LlmResultScreen` + déclenchement automatique).

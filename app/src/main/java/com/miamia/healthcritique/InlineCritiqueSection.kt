@@ -6,12 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -19,10 +17,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,142 +32,126 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+/**
+ * Section de critique santé rendue **inline** sur l'écran principal des résultats
+ * (`LlmResultScreen`) — Feature O (supersede Feature M).
+ *
+ * Rend les états `en cours` / `erreur` / `prête` du [HealthCritiqueViewModel] sans navigation.
+ * Aucun bouton « Retour » (géré par l'écran hôte). Conserve les actions
+ * « Copier la réponse » / « Copier le prompt » (`IHI-O-FR-009`).
+ */
 @Composable
-fun HealthCritiqueResultScreen(
+fun InlineCritiqueSection(
     viewModel: HealthCritiqueViewModel,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.ui.collectAsState()
     val streamingText by viewModel.streamingText.collectAsState()
-    val scrollState = rememberScrollState()
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
 
-    LaunchedEffect(streamingText) {
-        scrollState.animateScrollTo(scrollState.maxValue)
-    }
-
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("inline_critique_section"),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Text(
+            text = "Critique santé",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.testTag("health_result_title"),
+        )
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .fillMaxWidth()
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = "Critique santé",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.testTag("health_result_title"),
-            )
+            when {
+                state.result != null -> {
+                    when (val r = state.result) {
+                        is HealthCritiqueResult.InputInvalid -> Text(
+                            text = r.message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("health_result_error"),
+                        )
 
-            Column(
+                        is HealthCritiqueResult.InferenceError -> Text(
+                            text = r.message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.testTag("health_result_error"),
+                        )
+
+                        is HealthCritiqueResult.CritiqueReady -> CritiqueProfileContent(
+                            result = r,
+                            state = state,
+                        )
+
+                        null -> Unit
+                    }
+                }
+
+                state.isLoading -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.testTag("health_result_loading"),
+                        )
+                        Text(
+                            text = "Analyse en cours…",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    AnimatedVisibility(
+                        visible = streamingText.isNotBlank(),
+                        enter = androidx.compose.animation.fadeIn(),
+                    ) {
+                        Text(
+                            text = streamingText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("health_result_streaming_text"),
+                        )
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Button(
+                onClick = {
+                    val r = state.result as? HealthCritiqueResult.CritiqueReady
+                    val payload = r?.llmRawText ?: ""
+                    HealthCritiqueClipboard.copyPlainText(context, "critique_sante", payload)
+                },
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .testTag("health_result_copy"),
             ) {
-                when {
-                    state.result != null -> {
-                        when (val r = state.result) {
-                            is HealthCritiqueResult.InputInvalid -> {
-                                Text(
-                                    text = r.message,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.testTag("health_result_error"),
-                                )
-                            }
-
-                            is HealthCritiqueResult.InferenceError -> {
-                                Text(
-                                    text = r.message,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.testTag("health_result_error"),
-                                )
-                            }
-
-                            is HealthCritiqueResult.CritiqueReady -> CritiqueProfileContent(
-                                result = r,
-                                state = state,
-                            )
-
-                            null -> Unit
-                        }
-                    }
-
-                    state.isLoading -> {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.testTag("health_result_loading"),
-                            )
-                            Text(
-                                text = "Analyse en cours…",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                        AnimatedVisibility(
-                            visible = streamingText.isNotBlank(),
-                            enter = androidx.compose.animation.fadeIn(),
-                        ) {
-                            Text(
-                                text = streamingText,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("health_result_streaming_text"),
-                            )
-                        }
-                    }
-                }
+                Text("Copier la réponse")
             }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Button(
-                    onClick = {
-                        val r = state.result as? HealthCritiqueResult.CritiqueReady
-                        val payload = r?.llmRawText ?: ""
-                        HealthCritiqueClipboard.copyPlainText(context, "critique_sante", payload)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("health_result_copy"),
-                ) {
-                    Text("Copier la réponse")
-                }
-                OutlinedButton(
-                    onClick = {
-                        HealthCritiqueClipboard.copyPlainText(
-                            context,
-                            "prompt_critique",
-                            state.lastSystemPrompt,
-                        )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("health_result_copy_prompt"),
-                ) {
-                    Text("Copier le prompt")
-                }
-            }
-
-            Button(
-                onClick = onBack,
+            OutlinedButton(
+                onClick = {
+                    HealthCritiqueClipboard.copyPlainText(
+                        context,
+                        "prompt_critique",
+                        state.lastSystemPrompt,
+                    )
+                },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("health_result_back"),
+                    .weight(1f)
+                    .testTag("health_result_copy_prompt"),
             ) {
-                Text("Retour")
+                Text("Copier le prompt")
             }
         }
     }

@@ -2,10 +2,10 @@
 
 **Domain Context**: `user-guidance-experience`
 **Created**: 2026-05-06
-**Last Modified**: 2026-05-13 (Feature H — splash lancement ; cohérence Feature A / B ; **UGE-A-FR-022** pastille kcal inchangée)
+**Last Modified**: 2026-06-28 (Feature I — sélection du profil utilisateur sur l'écran de capture, défaut Adulte, requise avant photo)
 **Status**: Draft
 
-**Dernière entrée utilisateur (intake)** : « Rajoute un splash screen qui s'affiche pendant quelques secondes avant d'afficher le 1er écran. Ce splash doit montrer un beau logo de marmite style dessin animé southpark, et le logo "MiamIA" en police southpark également. Les couleurs doivent être dans le thème de l'application, pastel. »
+**Dernière entrée utilisateur (intake)** : « la sélection du profil de l'utilisateur doit être faite sur l'écran de prise de photo, elle est réglée par défaut sur "Adulte" et doit être renseignée avant la prise de photo »
 
 ## Purpose
 
@@ -579,6 +579,120 @@ En tant qu'utilisatrice, je veux que le splash soit visuellement marquant et lis
 
 ---
 
+---
+
+## Feature I — Sélection du profil utilisateur sur l'écran de capture (défaut Adulte, requise avant photo)
+
+> Input (intake 2026-06-28) : la sélection du profil utilisateur doit se faire sur l'écran de prise de photo ; profil par défaut « Adulte » ; le profil MUST être renseigné avant la prise de photo.
+>
+> **Relation inter-domaines** : `ingredient-health-intelligence` (Feature N) **consomme** le profil via un contrat `UserProfile` / `UserProfileProvider` (5 profils : Femme enceinte, Enfant, Agé, Adulte, Sportif ; défaut Adulte). Feature I (UGE) fournit l'**implémentation persistée** de `UserProfileProvider` + l'UI de sélection sur l'écran de capture.
+>
+> **Supersession** : la sélection du profil vit désormais **sur l'écran de capture** (Feature I), ce qui **supersède** l'hypothèse Feature N (clarify Q5) d'un écran séparé « Paramètres / Profil ». L'écran de capture devient le point de sélection canonique du profil ; un écran « Paramètres / Profil » distinct est hors périmètre Feature I.
+
+### User Scenarios (Feature I)
+
+#### US-I1 — Voir et confirmer son profil sur l'écran de capture (P1) 🎯 MVP
+
+En tant qu'utilisatrice, sur l'écran de prise de photo, je veux voir le profil actuellement sélectionné (par défaut « Adulte ») et pouvoir le changer parmi les 5 profils proposés, avant de prendre la photo.
+
+**Why this priority** : sans profil sélectionné, la critique santé (Feature N) ne peut pas être ciblée ; le défaut « Adulte » garantit une valeur immédiate tout en permettant la personnalisation.
+
+**Independent Test** : sur l'écran de capture, le profil courant est visible et affiche « Adulte » au premier lancement ; l'utilisatrice peut sélectionner un autre profil (ex. « Femme enceinte ») qui s'affiche alors comme profil courant.
+
+**Acceptance Scenarios**:
+
+1. **Given** l'écran de capture au premier lancement, **When** l'utilisatrice regarde la zone de sélection de profil, **Then** le profil affiché est « Adulte » (défaut).
+2. **Given** la zone de sélection de profil sur l'écran de capture, **When** l'utilisatrice ouvre le sélecteur et choisit « Femme enceinte », **Then** le profil courant affiché devient « Femme enceinte ».
+3. **Given** un profil sélectionné « Sportif », **When** l'utilisatrice revient à l'écran de capture, **Then** le profil affiché reste « Sportif » (cohérence intra-session).
+4. **Given** le sélecteur de profil, **When** l'utilisatrice consulte les options, **Then** exactement 5 profils sont proposés : Femme enceinte, Enfant, Agé, Adulte, Sportif.
+
+#### US-I2 — Profil requis avant la prise de photo (P1)
+
+En tant qu'utilisatrice, je veux que la prise de photo soit possible uniquement une fois un profil renseigné, afin que la critique santé soit toujours ciblée pour un profil valide.
+
+**Why this priority** : garantit l'invariant Feature N (critique toujours associée à un profil) ; le défaut « Adulte » évite tout blocage frustrant.
+
+**Independent Test** : la commande de capture est activée dès qu'un profil est sélectionné (par défaut Adulte dès le premier lancement) ; il n'existe pas d'état « aucun profil » permettant la capture.
+
+**Acceptance Scenarios**:
+
+1. **Given** l'écran de capture au premier lancement, **When** l'utilisatrice observe la commande de capture, **Then** celle-ci est activée car le profil par défaut « Adulte » est déjà renseigné.
+2. **Given** un état où aucun profil n'est valide (cas d'erreur / profil corrompu), **When** l'utilisatrice tente de capturer, **Then** la capture est désactivée et un message invite à sélectionner un profil.
+3. **Given** un profil sélectionné « Enfant », **When** l'utilisatrice prend la photo, **Then** l'analyse enchaîne avec le profil « Enfant » comme profil cible de la critique (consommé via `UserProfileProvider`).
+
+#### US-I3 — Persistance du profil entre sessions (P2)
+
+En tant qu'utilisatrice, je veux que le profil choisi soit mémorisé entre les lancements de l'application, afin de ne pas avoir à le re-sélectionner à chaque fois.
+
+**Why this priority** : confort ; le défaut Adulte reste fonctionnel sans cela, mais la persistance réduit la friction pour les profils non-Adulte.
+
+**Independent Test** : sélectionner « Femme enceinte », quitter et relancer l'app à froid ; l'écran de capture affiche « Femme enceinte ».
+
+**Acceptance Scenarios**:
+
+1. **Given** un profil sélectionné « Agé » et persisté, **When** l'utilisatrice relance l'application à froid, **Then** l'écran de capture affiche « Agé » comme profil courant.
+2. **Given** un premier lancement sans profil préalablement persisté, **When** l'écran de capture s'affiche, **Then** le profil courant est « Adulte » (défaut) jusqu'à choix explicite.
+
+#### US-I4 — Modifier le profil avant une nouvelle capture (P2)
+
+En tant qu'utilisatrice, je veux pouvoir changer de profil à tout moment sur l'écran de capture avant une nouvelle prise, afin que la critique suivante soit ciblée pour le bon profil.
+
+**Why this priority** : flexibilité (changement de contexte : grossesse, enfant, sportif) ; cohérent avec la sélection sur l'écran de capture.
+
+**Independent Test** : capturer avec « Adulte », revenir à l'écran de capture, sélectionner « Sportif », capturer à nouveau ; la seconde critique est ciblée « Sportif ».
+
+**Acceptance Scenarios**:
+
+1. **Given** un profil courant « Adulte » après une première analyse, **When** l'utilisatrice sélectionne « Sportif » puis prend une nouvelle photo, **Then** la critique suivante est ciblée « Sportif ».
+2. **Given** un changement de profil en cours de session, **When** l'utilisatrice consulte le profil courant, **Then** l'affichage reflète immédiatement le nouveau profil.
+
+### Edge Cases (Feature I)
+
+- Profil persisté illisible / corrompu : le système MUST retomber sur « Adulte » (défaut) sans planter, et la capture reste possible (US-I2).
+- Modification du profil pendant qu'une analyse est déjà en cours : la critique en cours conserve le profil avec lequel elle a été lancée ; le nouveau profil s'applique à la capture suivante (pas de modification rétroactive).
+- Sélection du profil avant disponibilité de la caméra (permission refusée / caméra indisponible) : le profil reste sélectionnable et persisté ; la capture reste désactivée pour cause caméra, indépendamment du profil.
+- Conflit de périmètre avec un écran « Paramètres / Profil » : Feature I place la sélection sur l'écran de capture ; aucun écran paramètres distinct n'est introduit (supersession de l'hypothèse Feature N).
+
+### Functional Requirements (Feature I)
+
+- **UGE-I-FR-001** : Le système MUST exposer, sur l'écran de prise de photo, un contrôle de sélection du profil utilisateur proposant exactement 5 profils : Femme enceinte, Enfant, Agé, Adulte, Sportif.
+- **UGE-I-FR-002** : Le système MUST initialiser le profil courant à « Adulte » par défaut au premier lancement (aucun profil préalablement persisté).
+- **UGE-I-FR-003** : Le système MUST afficher en permanence, sur l'écran de capture, le profil actuellement sélectionné.
+- **UGE-I-FR-004** : Le système MUST permettre à l'utilisatrice de changer le profil sélectionné directement depuis l'écran de capture, à tout moment avant une prise.
+- **UGE-I-FR-005** : Le système MUST exiger qu'un profil valide soit renseigné pour activer la commande de capture ; le défaut « Adulte » satisfait cette exigence dès le premier lancement.
+- **UGE-I-FR-006** : Le système MUST désactiver la commande de capture si, pour quelque raison que ce soit, aucun profil valide n'est disponible (cas d'erreur), avec un message invitant à sélectionner un profil.
+- **UGE-I-FR-007** : Le système MUST persister le profil sélectionné entre les lancements de l'application (au-delà de la session courante).
+- **UGE-I-FR-008** : Le système MUST, en cas de profil persisté illisible ou corrompu, retomber sur « Adulte » (défaut) sans interruption de service.
+- **UGE-I-FR-009** : Le système MUST publier le profil courant via le contrat `UserProfileProvider` défini par `ingredient-health-intelligence` (Feature N), afin que la critique santé soit ciblée pour le profil sélectionné.
+- **UGE-I-FR-010** : Le système MUST NOT modifier rétroactivement le profil d'une critique déjà lancée : un changement de profil ne s'applique qu'à la capture suivante.
+- **UGE-I-FR-011** : Le système MUST NOT introduire d'écran « Paramètres / Profil » distinct dans le périmètre Feature I (la sélection vit sur l'écran de capture — supersession de l'hypothèse Feature N clarify Q5).
+- **UGE-I-FR-012** : La sélection du profil MUST rester indépendante de l'état de disponibilité de la caméra (le profil est sélectionnable et persisté même si la caméra est indisponible ou la permission refusée).
+
+### Key Entities (Feature I)
+
+- **Profil utilisateur** : valeur parmi l'ensemble fermé {Femme enceinte, Enfant, Agé, Adulte, Sportif} ; définie et publiée par `ingredient-health-intelligence` (Published Language `UserProfile`) ; défaut Adulte.
+- **Profil courant** : profil sélectionné à un instant t, affiché sur l'écran de capture, persisté entre sessions, exposé via `UserProfileProvider`.
+- **Sélecteur de profil (capture)** : contrôle UI de l'écran de capture permettant la consultation et le changement du profil courant.
+
+### Success Criteria (Feature I)
+
+- **UGE-I-SC-001** : Sur 3 lancements à froid consécutifs sans profil préalable, l'écran de capture affiche systématiquement « Adulte » comme profil courant et la commande de capture est activée.
+- **UGE-I-SC-002** : Après sélection de « Femme enceinte » puis relance à froid, l'écran de capture affiche « Femme enceinte » (persistance vérifiée).
+- **UGE-I-SC-003** : Une capture lancée avec un profil donné produit une critique santé explicitement ciblée pour ce profil (rappel « Évalué pour vous : <profil> » — cohérent avec IHI-N-FR-003 / IHI-N-SC-001).
+- **UGE-I-SC-004** : Aucun état « capture possible sans profil valide » n'est observé (le défaut Adulte couvre le parcours nominal ; le cas d'erreur désactive la capture avec message).
+- **UGE-I-SC-005** : En cas de profil persisté corrompu, l'app retombe sur « Adulte » sans crash et la capture reste disponible (vérifié par parcours de corruption volontaire).
+- **UGE-I-SC-006** : Un changement de profil en cours de session est reflété immédiatement sur l'écran de capture et s'applique à la capture suivante, sans affecter une analyse déjà en cours.
+
+### Hypothèses (Feature I)
+
+- L'ensemble des profils et le contrat `UserProfile` / `UserProfileProvider` sont définis par `ingredient-health-intelligence` (Feature N) ; UGE fournit l'implémentation persistée et l'UI, sans redéfinir l'énumération.
+- « Adulte » est le profil par défaut neutre/général utilisé au premier lancement et en cas de repli.
+- La persistance du profil s'appuie sur le stockage local existant de l'app (pas de backend) ; détail technique laissé au plan.
+- La sélection du profil sur l'écran de capture supersède l'hypothèse Feature N d'un écran « Paramètres / Profil » distinct ; ce dernier reste possible dans une feature ultérieure mais n'est pas requis par Feature I.
+- Le contrôle de sélection est conçu pour une friction minimale (le défaut Adulte n'oblige aucune action pour capturer).
+
+---
+
 ## Cross-domain Notes
 
 - Le segment ingrédients n'est pas déterminé ici : délégation à `ingredient-normalization-validation`.
@@ -586,6 +700,7 @@ En tant qu'utilisatrice, je veux que le splash soit visuellement marquant et lis
 - Le runtime LLM local (chargement modèle, inférence) est du ressort de `local-llm-runtime`.
 - La capture OCR est du ressort de `capture-recognition`.
 - Les KPI additifs sont du ressort de `additive-risk-insights`.
+- La sélection/persistance du profil utilisateur (Feature I) est possédée par UGE ; l'énumération des profils et le contrat `UserProfileProvider` sont publiés par `ingredient-health-intelligence` (Feature N, Published Language). UGE publie l'implémentation persistée consommée par la critique santé.
 
 ## Source Mapping
 
@@ -593,6 +708,7 @@ En tant qu'utilisatrice, je veux que le splash soit visuellement marquant et lis
 - `specs/018-llm-download-onboarding/` (Feature B)
 - `specs/012-home-layout-mediapipe-status/` (Feature C — home)
 - Intake `/speckit-design` + `/speckit-specify` 2026-05-13 (pastille kcal — **UGE-A-FR-022** ; ref. `specs/domains/ingredient-health-intelligence/spec.md` Feature K)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature I — sélection profil sur l'écran de capture ; ref. `specs/domains/ingredient-health-intelligence/spec.md` Feature N — contrat `UserProfile`/`UserProfileProvider`)
 
 ## Assumptions
 

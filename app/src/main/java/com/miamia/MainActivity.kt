@@ -38,11 +38,10 @@ import com.miamia.gemma4local.Gemma4LocalMetricsLogger
 import com.miamia.gemma4local.GemmaModelImportManager
 import com.miamia.gemma4local.Gemma4LocalRequestMapper
 import com.miamia.gemma4local.HybridGemma4LocalGateway
-import com.miamia.healthcritique.HealthCritiqueResultScreen
-import com.miamia.healthcritique.HealthCritiqueScreen
 import com.miamia.healthcritique.HealthCritiqueViewModel
 import com.miamia.home.HomeSpecPriorityResolver
 import com.miamia.permissions.CameraPermissionHandler
+import com.miamia.profile.PersistentUserProfileProvider
 import com.miamia.recognition.AiEdgeGalleryRecognizer
 import com.miamia.recognition.DeviceAiCapabilityDetector
 import com.miamia.recognition.IngredientExtractionPipeline
@@ -180,11 +179,6 @@ class MainActivity : ComponentActivity() {
                             cameraNavController.navigate(CameraFlowRoutes.LlmResult)
                         }
                     }
-                    LaunchedEffect(healthCritiqueViewModel) {
-                        healthCritiqueViewModel.navigateToResult.collect {
-                            cameraNavController.navigate(CameraFlowRoutes.HealthCritiqueResult)
-                        }
-                    }
                     LaunchedEffect(onboardingState) {
                         when (onboardingState) {
                             is LlmModelReadinessState.Ready -> {
@@ -266,18 +260,7 @@ class MainActivity : ComponentActivity() {
                             LlmResultScreen(
                                 viewModel = cameraViewModel,
                                 onBack = { cameraNavController.popBackStack() },
-                                onCritiqueSante = {
-                                    cameraNavController.navigate(CameraFlowRoutes.HealthCritiqueEntry)
-                                }
-                            )
-                        }
-                        composable(CameraFlowRoutes.HealthCritiqueEntry) {
-                            HealthCritiqueScreen(viewModel = healthCritiqueViewModel)
-                        }
-                        composable(CameraFlowRoutes.HealthCritiqueResult) {
-                            HealthCritiqueResultScreen(
-                                viewModel = healthCritiqueViewModel,
-                                onBack = { cameraNavController.popBackStack() },
+                                healthCritiqueViewModel = healthCritiqueViewModel,
                             )
                         }
                     }
@@ -315,17 +298,20 @@ class MainActivity : ComponentActivity() {
             gateway = localGateway
         )
         val compositionEngine = Gemma4LocalCompositionEngine(localClient)
+        // Feature I — provider de profil partagé capture (écriture) ↔ critique santé (lecture).
+        val userProfileProvider = PersistentUserProfileProvider(applicationContext)
         cameraViewModel = ViewModelProvider(
             this@MainActivity,
             CameraViewModel.factory(
                 application,
                 coordinator,
-                compositionEngine
+                compositionEngine,
+                userProfileProvider = userProfileProvider,
             )
         )[CameraViewModel::class.java]
         healthCritiqueViewModel = ViewModelProvider(
             this@MainActivity,
-            HealthCritiqueViewModel.factory(applicationContext)
+            HealthCritiqueViewModel.factory(applicationContext, userProfileProvider)
         )[HealthCritiqueViewModel::class.java]
         cameraViewModel.onLoginSucceeded()
         if (permissionHandler.hasCameraPermission(this@MainActivity)) {

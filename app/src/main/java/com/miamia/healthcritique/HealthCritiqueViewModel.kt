@@ -5,11 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import android.content.Context
 import com.miamia.BuildConfig
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -36,9 +33,6 @@ class HealthCritiqueViewModel(
 
     private val _streamingText = MutableStateFlow("")
     val streamingText: StateFlow<String> = _streamingText.asStateFlow()
-
-    private val _navigateToResult = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val navigateToResult: SharedFlow<Unit> = _navigateToResult.asSharedFlow()
 
     /** Segment validé courant (null = pas encore de bilan prêt côté scan). */
     private var validatedSegmentFromScan: String? = null
@@ -80,7 +74,6 @@ class HealthCritiqueViewModel(
                 isDefaultProfile = profile == UserProfile.DEFAULT,
             )
         }
-        _navigateToResult.tryEmit(Unit)
         viewModelScope.launch {
             val outcome = engine.analyze(
                 ingredientText = segmentSnapshot,
@@ -108,7 +101,15 @@ class HealthCritiqueViewModel(
     }
 
     companion object {
-        fun factory(context: Context): ViewModelProvider.Factory =
+        /**
+         * Factory de production. [userProfileProvider] est injecté par l'orchestration UGE
+         * (Feature I) afin que la critique lise le profil sélectionné sur l'écran de capture.
+         * Défaut : [DefaultUserProfileProvider] (compatibilité tests IHI existants).
+         */
+        fun factory(
+            context: Context,
+            userProfileProvider: UserProfileProvider = DefaultUserProfileProvider(),
+        ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -116,7 +117,6 @@ class HealthCritiqueViewModel(
                     val store = LastHealthAnalysisStore(app)
                     val runner = LiteRtHealthCritiqueRunner(app)
                     val promptBuilder = HealthCritiquePromptBuilder()
-                    val userProfileProvider = DefaultUserProfileProvider()
                     val engine = HealthCritiqueEngine(
                         promptBuilder = promptBuilder,
                         llmRunner = runner,

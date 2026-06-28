@@ -1,5 +1,7 @@
 # Contrat — navigation vers la critique santé (Feature M)
 
+> **SUPERSÉDÉ par `critique-inline-restitution-contract.md` (Feature O, 2026-06-28)** : la critique santé est désormais rendue **inline sur `LlmResultScreen`** avec déclenchement automatique ; la route `HealthCritiqueEntry`, le bouton « Critique santé » et l'écran d'entrée `HealthCritiqueScreen` sont **supprimés**. Ce contrat est conservé pour traçabilité (constitution I) ; ne pas utiliser pour l'implémentation courante.
+
 ## Portée
 
 - Câblage de navigation rendant `HealthCritiqueScreen` accessible en production.

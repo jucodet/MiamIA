@@ -142,3 +142,34 @@
 - Chaque `IngredientRiskCard.nom` / `FullIngredientStatutEntry.nom` MUST être ancrable dans le segment (Feature C / `IHI-N-FR-005`).
 - En l'absence de profil (`UserProfileProvider.current()` → `DEFAULT`), `isDefaultProfile = true` et rappel « Évalué pour vous : Adulte » (`IHI-N-FR-012` / `IHI-N-SC-008`).
 - La restitution UI n'affiche en clair que les `IngredientRiskCard` (vigilance Modérée/Élevée) ; le bouton « Voir tous les ingrédients analysés » déploie `fullIngredientList` (`IHI-N-FR-010`/`011`, `IHI-N-SC-005`/`006`).
+
+---
+
+## Feature O — Critique santé intégrée à l'écran principal des résultats
+
+### Entités (Feature O)
+
+- `InlineCritiqueSection` *(section de `LlmResultScreen` rendant la critique inline)*
+  - Rend les états `en cours` / `erreur` / `prête` du `HealthCritiqueViewModel` (collecte `ui` + `streamingText`), en continuité sous le bilan composition / pastille kcal / KPI additifs juxtaposés.
+  - Composables de restitution réutilisés depuis `HealthCritiqueResultScreen` : `CritiqueProfileContent`, `PrudenceGauge`, `IngredientRiskCardItem` (filtré Modéré/Élevé), `FullIngredientListToggle`, actions « Copier la réponse » / « Copier le prompt ».
+  - Invariant : aucune navigation ; aucune route séparée ; restitution 100 % inline (`IHI-O-FR-002` / `IHI-O-FR-005`).
+
+- `CritiqueAutoTrigger` *(règle de déclenchement automatique — `IHI-O-FR-001`)*
+  - Condition : `streamingBilan == StreamingBilanState.Complete` **et** `lastValidatedSegmentForHealth` non vide.
+  - Mécanisme : `LaunchedEffect(streamingBilan, validatedSegment)` → `healthCritiqueViewModel.analyze()`.
+  - Invariant : idempotent (un seul `analyze()` par `Complete` — `IHI-O-FR-013`) ; annulation propre au retour (`IHI-O-FR-014`) ; non-déclenchement si bilan `Error` ou segment vide (`IHI-O-FR-010`).
+
+### Entités retirées (supersede Feature M)
+
+- `HealthCritiqueEntryRoute` *(ancienne constante `CameraFlowRoutes.HealthCritiqueEntry`)* — **supprimé** (`IHI-O-FR-004`, supersede `IHI-M-FR-001`).
+- `CritiqueSanteEntryTrigger` *(ancien bouton « Critique santé » de `LlmResultScreen`)* — **supprimé** (`IHI-O-FR-003`, supersede `IHI-M-FR-002`).
+- `HealthCritiqueScreen` (écran d'entrée) + `HealthCritiqueResultScreen` (écran de restitution séparé) + route `HealthCritiqueResult` — **supprimés** (`IHI-O-FR-004` / `IHI-O-FR-005`).
+
+## Validation rules (Feature O)
+
+- `LlmResultScreen` MUST déclencher `healthCritiqueViewModel.analyze()` automatiquement quand `streamingBilan == Complete` + segment validé non vide (`IHI-O-FR-001` / `IHI-O-SC-001`).
+- `LlmResultScreen` MUST rendre les états `en cours` / `erreur` / `prête` **inline** ; `InferenceError`/`InputInvalid` ne casse pas le bilan composition affiché (`IHI-O-FR-006` / `IHI-O-SC-004`).
+- Le `NavHost` de `MainActivity` MUST NOT contenir `HealthCritiqueEntry` ni `HealthCritiqueResult` ; `LlmResultScreen` MUST NOT contenir le bouton `llm_result_critique_sante` (`IHI-O-FR-003`/`004`/`005`, `IHI-O-SC-003`).
+- `HealthCritiqueEngine`, `HealthCritiquePromptBuilder`, `HealthCritiqueSectionParser` MUST être inchangés (`IHI-O-FR-007` / `IHI-O-SC-005`).
+- Un même `Complete` MUST déclencher au plus une inférence critique (`IHI-O-FR-013` / `IHI-O-SC-008`).
+- `LastHealthAnalysisStore` MUST être conservé sans écran séparé (`IHI-O-FR-011`).
