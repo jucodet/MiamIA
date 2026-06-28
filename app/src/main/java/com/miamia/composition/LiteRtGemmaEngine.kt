@@ -9,6 +9,7 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
+import com.miamia.gemma4local.model.BackendExecution
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.runBlocking
@@ -48,6 +49,7 @@ class LiteRtGemmaEngine(
     private val inferenceLock = Any()
     private var retainedEngine: Engine? = null
     private var retainedModelAbsolutePath: String? = null
+    private var retainedBackend: BackendExecution? = null
 
     override suspend fun analyze(
         rawText: String,
@@ -137,6 +139,7 @@ class LiteRtGemmaEngine(
         retainedEngine?.close()
         retainedEngine = null
         retainedModelAbsolutePath = null
+        retainedBackend = null
     }
 
     private fun litertLmBackendChain(): List<Backend> {
@@ -164,7 +167,12 @@ class LiteRtGemmaEngine(
         val warm = retainedEngine
         if (warm != null && retainedModelAbsolutePath == path) {
             try {
-                return runInferenceOnEngine(warm, rawText, onStreamPartial)
+                return runInferenceOnEngine(
+                    warm,
+                    rawText,
+                    onStreamPartial,
+                    retainedBackend ?: BackendExecution.INDETERMINATE
+                )
             } catch (_: Exception) {
                 disposeRetainedLocked()
             }
@@ -193,6 +201,7 @@ class LiteRtGemmaEngine(
         rawText: String,
         onStreamPartial: ((String) -> Unit)?
     ): AnalyzeCompositionResult {
+        val mappedBackend = BackendExecution.from(backend)
         val engineConfig = EngineConfig(
             modelPath = modelFile.absolutePath,
             backend = backend,
@@ -201,12 +210,13 @@ class LiteRtGemmaEngine(
         val engine = Engine(engineConfig)
         return try {
             engine.initialize()
-            when (val result = runInferenceOnEngine(engine, rawText, onStreamPartial)) {
+            when (val result = runInferenceOnEngine(engine, rawText, onStreamPartial, mappedBackend)) {
                 is AnalyzeCompositionResult.BilanSuccess,
                 is AnalyzeCompositionResult.CompositionLimit -> {
                     disposeRetainedLocked()
                     retainedEngine = engine
                     retainedModelAbsolutePath = modelFile.absolutePath
+                    retainedBackend = mappedBackend
                     result
                 }
                 is AnalyzeCompositionResult.GemmaError -> {
@@ -226,7 +236,8 @@ class LiteRtGemmaEngine(
     private fun runInferenceOnEngine(
         engine: Engine,
         rawText: String,
-        onStreamPartial: ((String) -> Unit)?
+        onStreamPartial: ((String) -> Unit)?,
+        backend: BackendExecution = BackendExecution.INDETERMINATE
     ): AnalyzeCompositionResult {
         val systemInstruction = buildString {
             appendLine("Tu analyses des listes d'ingrédients alimentaires (contexte UE, français).")
@@ -330,6 +341,7 @@ class LiteRtGemmaEngine(
                     AnalyzeCompositionResult.BilanSuccess(
                         bilan = bilan,
                         rawModelOutput = text,
+                        backend = backend,
                     )
                 }
             }

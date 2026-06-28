@@ -21,9 +21,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DeveloperBoard
+import androidx.compose.material.icons.filled.DeveloperMode
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalDining
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -37,8 +43,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +61,7 @@ import com.miamia.additives.AnalysisDisplayResult
 import com.miamia.additives.ui.AdditiveKpiPanel
 import com.miamia.composition.CompositionBilan
 import com.miamia.composition.IngredientHealthImpact
+import com.miamia.gemma4local.model.BackendExecution
 import com.miamia.ui.shared.CategoryChips
 import com.miamia.ui.theme.MiamIAColors
 
@@ -68,6 +73,7 @@ fun BilanResultCard(
     showRaw: Boolean,
     onToggleRaw: () -> Unit,
     inferenceTimeMs: Long = 0L,
+    backend: BackendExecution = BackendExecution.INDETERMINATE,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -89,7 +95,7 @@ fun BilanResultCard(
         }
         DisclaimerSection(bilan.disclaimer)
         if (inferenceTimeMs > 0L) {
-            InferenceTimeBadge(inferenceTimeMs)
+            InferenceTimeBadge(inferenceTimeMs, backend)
         }
         RawTranscriptToggle(
             showRaw = showRaw,
@@ -100,7 +106,10 @@ fun BilanResultCard(
 }
 
 @Composable
-private fun InferenceTimeBadge(inferenceTimeMs: Long) {
+private fun InferenceTimeBadge(
+    inferenceTimeMs: Long,
+    backend: BackendExecution
+) {
     val seconds = inferenceTimeMs / 1000.0
     val formatted = "%.1f".format(seconds)
     Row(
@@ -110,6 +119,8 @@ private fun InferenceTimeBadge(inferenceTimeMs: Long) {
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        BackendBadge(backend)
+        Spacer(modifier = Modifier.width(8.dp))
         Icon(
             imageVector = Icons.Filled.Info,
             contentDescription = null,
@@ -123,6 +134,47 @@ private fun InferenceTimeBadge(inferenceTimeMs: Long) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.testTag("inference_time_label")
         )
+    }
+}
+
+private data class BackendBadgeStyle(
+    val icon: ImageVector,
+    val color: Color,
+)
+
+private fun backendBadgeStyle(backend: BackendExecution): BackendBadgeStyle = when (backend) {
+    BackendExecution.NPU -> BackendBadgeStyle(Icons.Filled.Memory, MiamIAColors.Primary)
+    BackendExecution.GPU -> BackendBadgeStyle(Icons.Filled.DeveloperMode, MiamIAColors.SectionIngredients)
+    BackendExecution.CPU -> BackendBadgeStyle(Icons.Filled.DeveloperBoard, MiamIAColors.OnSurfaceVariant)
+    BackendExecution.INDETERMINATE -> BackendBadgeStyle(Icons.Filled.HelpOutline, MiamIAColors.OnSurfaceVariant)
+}
+
+@Composable
+private fun BackendBadge(backend: BackendExecution) {
+    val style = backendBadgeStyle(backend)
+    Surface(
+        modifier = Modifier.testTag("inference_backend_badge"),
+        shape = RoundedCornerShape(8.dp),
+        color = style.color.copy(alpha = 0.12f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = style.icon,
+                contentDescription = backend.label,
+                tint = style.color,
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(modifier = Modifier.width(3.dp))
+            Text(
+                text = backend.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = style.color,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 

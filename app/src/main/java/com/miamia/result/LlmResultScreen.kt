@@ -120,7 +120,8 @@ fun LlmResultScreen(
                         additiveKpi = null,
                         showRaw = showRaw,
                         onToggleRaw = { showRaw = !showRaw },
-                        inferenceTimeMs = state.inferenceTimeMs
+                        inferenceTimeMs = state.inferenceTimeMs,
+                        backend = state.backend
                     )
                     // Feature O — section critique inline (en continuité sous le bilan,
                     // pastille kcal et KPI additifs juxtaposés). IHI-O-FR-002 / IHI-O-FR-012.

@@ -182,7 +182,8 @@ fun CameraScreen(
                             additiveKpi = additiveKpi,
                             showRaw = showRaw,
                             onToggleRaw = { showRaw = !showRaw },
-                            inferenceTimeMs = bilanState.inferenceTimeMs
+                            inferenceTimeMs = bilanState.inferenceTimeMs,
+                            backend = bilanState.backend
                         )
                     },
                     footerActions = {

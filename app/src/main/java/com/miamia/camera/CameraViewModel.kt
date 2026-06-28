@@ -466,6 +466,7 @@ class CameraViewModel(
                             bilanPrepared,
                             rawText,
                             outcome.rawModelOutput,
+                            outcome.backend,
                         )
                     ) {
                         is AnalyzeCompositionResult.BilanSuccess -> {
@@ -473,7 +474,8 @@ class CameraViewModel(
                             _streamingBilan.value = StreamingBilanState.Complete(
                                 bilan = v.bilan,
                                 rawTranscript = rawText,
-                                inferenceTimeMs = inferenceTimeMs
+                                inferenceTimeMs = inferenceTimeMs,
+                                backend = v.backend,
                             )
                             if (!_captureRouteActive.value) {
                                 val kpi = withContext(Dispatchers.Default) {
@@ -488,7 +490,8 @@ class CameraViewModel(
                                     bilan = v.bilan,
                                     rawTranscript = rawText,
                                     itemsPreview = itemsPreview,
-                                    inferenceTimeMs = inferenceTimeMs
+                                    inferenceTimeMs = inferenceTimeMs,
+                                    backend = v.backend,
                                 )
                             }
                         }
