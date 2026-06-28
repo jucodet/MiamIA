@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.miamia.ui.theme.MiamIAColors
 
 /**
  * Section de critique santé rendue **inline** sur l'écran principal des résultats
@@ -140,6 +144,16 @@ private fun CritiqueProfileContent(
         )
     }
 
+    // Feature P — mise en évidence concise/visuelle des risques pour le profil
+    // sélectionné, en tête de la critique et avant tout détail narratif
+    // (IHI-P-FR-005 / IHI-P-FR-007 / IHI-P-SC-004).
+    ProfileRiskHighlights(
+        cards = critique.riskCards,
+        fullIngredientList = critique.fullIngredientList,
+    )
+
+    PrudenceGauge(level = critique.prudenceLevel, justification = critique.prudenceJustification)
+
     Text(
         text = result.disclaimer,
         style = MaterialTheme.typography.bodySmall,
@@ -161,8 +175,6 @@ private fun CritiqueProfileContent(
         }
     }
 
-    PrudenceGauge(level = critique.prudenceLevel, justification = critique.prudenceJustification)
-
     if (critique.riskCards.isEmpty()) {
         Text(
             text = "Aucun ingrédient à vigilance (Modérée/Élevée) pour votre profil.",
@@ -177,6 +189,103 @@ private fun CritiqueProfileContent(
 
     Spacer(modifier = Modifier.height(8.dp))
     FullIngredientListToggle(entries = critique.fullIngredientList)
+}
+
+/**
+ * Pastilles visuelles courtes — une par ingrédient à vigilance (Modérée/Élevée) pour le
+ * profil sélectionné (Feature P — IHI-P-FR-005 / IHI-P-FR-007). Mis en évidence en tête
+ * de la critique, avant la jauge et tout détail narratif. Chaque pastille reprend le nom
+ * (+ code éventuel) et un marqueur de sévérité visuel dérivé du statut de vigilance
+ * (`IngredientVigilanceStatut`), corrélé via la liste compacte. Si aucune carte : pastille
+ * neutre « Aucun risque marqué pour votre profil ». Chaque ingrédient mentionné reste
+ * ancré dans le `ValidatedIngredientSegment` (Feature C — IHI-P-SC-005).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ProfileRiskHighlights(
+    cards: List<IngredientRiskCard>,
+    fullIngredientList: List<FullIngredientStatutEntry>,
+) {
+    val statutByNom = remember(fullIngredientList) {
+        fullIngredientList.associateBy { it.nom.lowercase().trim() }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("health_result_risk_highlights"),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "Risques pour votre profil",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        if (cards.isEmpty()) {
+            RiskPill(
+                label = "Aucun risque marqué pour votre profil",
+                color = MiamIAColors.ImpactNeutral,
+                emoji = "\u2705",
+                testTagSuffix = "none",
+            )
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                cards.forEach { card ->
+                    val statut = statutByNom[card.nom.lowercase().trim()]?.statut
+                    val (color, emoji) = riskVisual(statut)
+                    val label = buildString {
+                        append(card.nom)
+                        if (!card.code.isNullOrBlank()) append(" (${card.code})")
+                    }
+                    RiskPill(
+                        label = label,
+                        color = color,
+                        emoji = emoji,
+                        testTagSuffix = card.nom.lowercase().replace(' ', '_'),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RiskPill(
+    label: String,
+    color: Color,
+    emoji: String,
+    testTagSuffix: String,
+) {
+    Surface(
+        color = color.copy(alpha = 0.16f),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+        modifier = Modifier.testTag("health_result_risk_pill_$testTagSuffix"),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = emoji,
+                style = MaterialTheme.typography.labelMedium,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MiamIAColors.OnSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun riskVisual(statut: IngredientVigilanceStatut?): Pair<Color, String> = when (statut) {
+    IngredientVigilanceStatut.ELEVE -> MiamIAColors.ImpactRed to "\u274C"
+    IngredientVigilanceStatut.MODERE -> MiamIAColors.ImpactOrange to "\u26A0\uFE0F"
+    else -> MiamIAColors.ImpactOrange to "\u26A0\uFE0F"
 }
 
 @Composable

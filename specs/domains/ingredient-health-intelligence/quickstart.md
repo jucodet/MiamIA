@@ -176,3 +176,32 @@
 - `app/src/androidTest/java/com/miamia/result/LlmResultScreenUiTest.kt`
 - `app/src/androidTest/java/com/miamia/healthcritique/HealthCritiqueReadOnlySegmentAndroidTest.kt`
 - `app/src/androidTest/java/com/miamia/healthcritique/HealthCritiquePersistenceAndroidTest.kt`
+
+---
+
+## Feature P — Compte rendu restructuré (4 sections) + critique concise/visuelle par profil (2026-06-28)
+
+### Parcours manuel (4 sections ordonnées + critique concise/visuelle — `IHI-P-SC-001`..`010`)
+
+1. Scanner un produit → bilan composition succès (`StreamingBilanState.Complete`).
+2. Vérifier que le compte rendu expose **exactement 4 sections** dans cet ordre : **Produit identifié** → **Synthèse** → **Verdict par ingrédient** → **Critique santé** (`IHI-P-SC-001`).
+3. Vérifier l'**absence** de la liste brute des ingrédients identifiés : test tag `bilan_ingredients_section` absent (Complete) et `streaming_ingredients_card` absent (streaming) (`IHI-P-SC-002`).
+4. Vérifier que la **Synthèse** contient la pastille kcal (Feature K) et le panneau KPI additifs (`AdditiveKpiPanel`, attribution `additive-risk-insights`) ; la section « Additifs » autonome est absente (`IHI-P-SC-003`).
+5. Vérifier la **Critique santé** : rappel « Évalué pour vous : <profil> » en tête, puis une **liste de pastilles visuelles** (une par ingrédient à vigilance Modérée/Élevée pour le profil) avant la jauge 3 paliers (`IHI-P-SC-004`).
+6. Vérifier que les pastilles risques profil ne mentionnent que des ingrédients **présents dans l'étiquette** (ancrage Feature C) ; aucun risque inventé (`IHI-P-SC-005`).
+7. Vérifier que les **cartes détaillées** (Impact / Fait établi / Nuance / Cible particulièrement) restent **repliables** par défaut (« Touchez pour le détail ») — profondeur non dominante (`IHI-P-SC-006`).
+8. Vérifier le **déclenchement automatique** et la **restitution inline** de la critique (non-régression Feature O — `IHI-P-SC-007`).
+9. Edge cases :
+   - **Produit non identifié** : la section « Produit identifié » affiche un état neutre « Produit non identifié » (4 sections préservées — `IHI-P-SC-008`).
+   - **Aucun ingrédient à vigilance** : la section « Verdict par ingrédient » affiche un état neutre ; la critique affiche une pastille neutre « Aucun risque marqué pour votre profil ».
+   - **Profil par défaut (Adulte)** : signal visuel « profil par défaut » + pastilles risques Adulte (`IHI-P-SC-009`).
+   - **Critique en cours / erreur** : la section 4 rend l'état inline sans casser les sections 1–3 (`IHI-P-SC-008`).
+10. Non-régression : flux composition, KPI additifs juxtaposés, moteur/prompt/parseur Feature L/N, déclenchement Feature O — inchangés (`IHI-P-FR-008`/`012`).
+
+### Fichiers utiles (Feature P)
+
+- `app/src/main/java/com/miamia/camera/BilanResultCard.kt`
+- `app/src/main/java/com/miamia/result/LlmResultScreen.kt`
+- `app/src/main/java/com/miamia/healthcritique/InlineCritiqueSection.kt`
+- `app/src/androidTest/java/com/miamia/result/LlmResultScreenUiTest.kt`
+- `app/src/androidTest/java/com/miamia/healthcritique/HealthCritiqueReadOnlySegmentAndroidTest.kt`

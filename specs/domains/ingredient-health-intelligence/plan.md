@@ -1,7 +1,7 @@
 # Implementation Plan: ingredient-health-intelligence
 
 **Domain**: `specs/domains/ingredient-health-intelligence` | **Spec**: [spec.md](./spec.md)
-**Dernière feature planifiée**: Feature O — critique santé intégrée à l'écran principal des résultats (2026-06-28)
+**Dernière feature planifiée**: Feature P — compte rendu restructuré en 4 sections ordonnées + critique santé concise/visuelle centrée profil (2026-06-28)
 
 > Plan cumulatif par feature. Sections historiques conservées pour traçabilité (constitution I).
 
@@ -450,3 +450,85 @@ Voir [research.md](./research.md) §13 (décisions clarify 2026-06-28 : déclenc
 ### Phase 2 — Livraison (Feature O)
 
 Tâches exécutables dans [tasks.md](./tasks.md) (section Feature O).
+
+## Feature P — Compte rendu restructuré (4 sections ordonnées) + critique santé concise/visuelle par profil (2026-06-28)
+
+**Branch**: `016-launch-splash-screen` (branche courante domaine) | **Date**: 2026-06-28
+**Input**: spec.md Feature P + **clarify** implicite (spec bornée — 4 questions résolues en clarifications : intégration kcal/KPI dans Synthèse, Verdict = détail Feature N renommé, suppression liste brute sans impact ancrage, pas de mode comparer tous les profils)
+
+### Summary
+
+La **Feature P** restructure l'écran de compte rendu (`LlmResultScreen` / `BilanResultCard`) en **exactement 4 sections ordonnées fixes** : **Produit identifié** → **Synthèse** → **Verdict par ingrédient** → **Critique santé**. L'affichage brut de la **liste des ingrédients identifiés** (`IngredientsSection` / carte streaming « Ingrédients identifiés ») est **supprimé** ; le `ValidatedIngredientSegment` reste entrée d'analyse (ancrage Feature C), simplement non exposé à plat. La **pastille kcal** (Feature K) et les **KPI additifs juxtaposés** (`additive-risk-insights`, `IHI-C-FR-007`) sont **intégrés à la section « Synthèse »** (plus de section « Additifs » autonome). La **Critique santé** (section 4, `InlineCritiqueSection`) évolue vers une forme **concise et visuelle** : rappel « Évalué pour vous : <profil> » en tête, puis une **mise en évidence des risques spécifiques au profil sélectionné** (pastilles/étiquettes colorées courtes, une par ingrédient à vigilance Modérée/Élevée), puis la **jauge 3 paliers** ; les cartes détaillées Feature N restent accessibles en **repli dépliable** (profondeur non dominante). `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N), `HealthCritiqueSectionParser` et le flux composition sont **inchangés** ; conformité Feature C et garde-fous Feature L/N préservés.
+
+### Technical Context
+
+**Language/Version**: Kotlin 2.x, Jetpack Compose, Material 3
+**Primary Dependencies**: `LlmResultScreen.kt` (ordre des sections + état `Complete`), `BilanResultCard.kt` (`IngredientsSection` à supprimer, `AnalysisSection`/`AdditivesSection`/`CompositionEnergyPastille` à fusionner dans « Synthèse », `ProductSection`/`HealthImpactSection` à rendre inconditionnels), `InlineCritiqueSection.kt` (ajout `ProfileRiskHighlights` concis/visuel en tête de `CritiqueProfileContent`), `HealthCritiqueModels.kt` (`IngredientRiskCard` existant — réutilisé pour les pastilles), `CompositionBilan`, `AdditiveKpiPanel`, `MiamIAColors`
+**Storage**: inchangé (`LastHealthAnalysisStore` conservé)
+**Testing**: tests instrumentés existants (`LlmResultScreenUiTest`, `HealthCritiqueReadOnlySegmentAndroidTest`, `HealthCritiquePersistenceAndroidTest`) à adapter (retrait `bilan_ingredients_section` / `streaming_ingredients_card`, attente 4 sections, attente pastilles risques profil) ; parcours quickstart Feature P
+**Target Platform**: Application Android (module `app`)
+**Project Type**: mobile-app monolithique
+**Performance Goals**: aucun nouvel objectif chiffré ; la critique reste une seconde inférence non-bloquante (Feature O) ; le rendu 4-sections est plus léger (suppression d'une section + meta allégée).
+**Constraints**: Constitution ATDD ; **exactement 4 sections** stables sur tous les états du compte rendu (`IHI-P-FR-001`/`IHI-P-SC-008`) ; suppression liste brute d'ingrédients (`IHI-P-FR-002`) ; intégration kcal/KPI dans Synthèse (`IHI-P-FR-003`) ; concision/visuel critique + risques profil en tête (`IHI-P-FR-005`/`007`) ; non-régression Feature C / N / O ; moteur/prompt/parseur/composition inchangés (`IHI-P-FR-012`)
+**Scale/Scope**: `BilanResultCard.kt`, `LlmResultScreen.kt`, `InlineCritiqueSection.kt`, tests instrumentés, docs domaine (plan/research/data-model/quickstart/contract)
+
+### Constitution Check (Feature P)
+
+| Principe | Statut |
+|----------|--------|
+| I. Qualité / traçabilité | OK — spec Feature P → parcours quickstart + tests instrumentés → code ; pas de supersession (Feature N/O préservées) |
+| II. ATDD | OK — parcours quickstart Feature P (4 sections, absence liste brute, concision/visuel critique, risques profil en tête) + tests instrumentés adaptés |
+| III. UX | OK — ordre prévisible 4 sections + scan rapide (pastilles risques profil) ; états vides neutres (produit non identifié, aucun ingrédient à vigilance) ; charge visuelle réduite |
+| IV. Performance | OK — suppression d'une section (rendu plus léger) ; critique reste non-bloquante (Feature O inchangée) |
+| V. Simplicité | OK — suppression de la section « Ingrédients identifiés » et de la section « Additifs » autonome (fusion dans Synthèse) ; réduction de surfaces ; profondeur conservée en repli |
+| VI. DDD | OK — périmètre IHI (compte rendu + restitution critique) ; moteur/prompt/parseur/composition inchangés ; UGE non modifié (Ref. ordonnancement écran résultat) |
+
+**Post-design** : inchangé.
+
+### Project Structure (Feature P)
+
+#### Documentation (this feature)
+
+```text
+specs/domains/ingredient-health-intelligence/
+├── plan.md (section Feature P)
+├── research.md (§14 Feature P)
+├── data-model.md (entités Feature P)
+├── quickstart.md (parcours Feature P)
+├── contracts/
+│   └── report-layout-contract.md   # NOUVEAU — contrat de mise en page 4 sections du compte rendu
+└── tasks.md (section Feature P)
+```
+
+#### Source Code (repository root)
+
+```text
+app/src/main/java/com/miamia/camera/BilanResultCard.kt        # retrait IngredientsSection ; fusion kcal+AdditivesSection dans AnalysisSection (Synthèse) ; ProductSection/HealthImpactSection inconditionnels (états neutres)
+app/src/main/java/com/miamia/result/LlmResultScreen.kt        # retrait carte streaming « Ingrédients identifiés » (StreamingContent) ; ordre 4 sections préservé (BilanResultCard → InlineCritiqueSection)
+app/src/main/java/com/miamia/healthcritique/InlineCritiqueSection.kt   # ajout ProfileRiskHighlights (pastilles visuelles risques profil) en tête de CritiqueProfileContent, avant PrudenceGauge
+app/src/androidTest/java/com/miamia/result/LlmResultScreenUiTest.kt    # adapté (attente 4 sections, absence bilan_ingredients_section/streaming_ingredients_card, attente pastilles risques)
+```
+
+**Structure Decision** : `BilanResultCard` expose désormais **3 sections** (Produit identifié, Synthèse, Verdict par ingrédient) + meta (BilanHeader, Disclaimer, InferenceTimeBadge, RawTranscriptToggle) ; la **4ᵉ section (Critique santé)** est rendue par `InlineCritiqueSection` dans `LlmResultScreen` en continuité (Feature O inchangée). La `Synthèse` absorbe la pastille kcal et le panneau KPI additifs (attribution explicite `IHI-C-FR-007` préservée via `AdditiveKpiPanel`). `InlineCritiqueSection` ajoute une couche concise `ProfileRiskHighlights` (pastilles colorées par `IngredientRiskCard`) entre le rappel « Évalué pour vous » et la jauge ; les cartes détaillées restent repliables (inchangées).
+
+### Complexity Tracking
+
+> Aucune violation constitutionnelle à justifier.
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| — | — | — |
+
+### Phase 0 — Recherche (Feature P)
+
+Voir [research.md](./research.md) §14 (décisions : intégration kcal/KPI dans Synthèse, retrait section Ingrédients identifiés sans impact ancrage, états neutres pour sections inconditionnelles, pastilles risques profil concises/visuelles, profondeur en repli, non-régression Feature N/O).
+
+### Phase 1 — Design (Feature P)
+
+- [data-model.md](./data-model.md) : entités Feature P — `ReportSection`, `ProduitIdentifie`, `Synthese`, `VerdictParIngredient`, `ConciseVisualCritique`, `ProfileRiskHighlight` ; retrait (UI) `RawIngredientListDisplay`.
+- [contracts/report-layout-contract.md](./contracts/report-layout-contract.md) : contrat de mise en page du compte rendu (4 sections ordonnées fixes + intégration kcal/KPI dans Synthèse + suppression liste brute + critique concise/visuelle).
+- [quickstart.md](./quickstart.md) : parcours manuel Feature P (4 sections, absence liste brute, pastilles risques profil, jauge, cartes en repli, états neutres, non-régression composition/critique).
+
+### Phase 2 — Livraison (Feature P)
+
+Tâches exécutables dans [tasks.md](./tasks.md) (section Feature P).
