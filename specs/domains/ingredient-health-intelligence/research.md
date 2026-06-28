@@ -92,3 +92,35 @@ Les « inconnues » techniques ont été résolues par la spec + session **clari
 
 - **Decision** : conserver la constante `DISCLAIMER` existante (« Information indicative à visée éducative ; ne remplace pas un avis médical ou nutritionnel personnalisé. ») déjà alignée sur le texte fourni par l'utilisatrice.
 - **Rationale** : non-régression ; le disclaimer correspond déjà exactement à l'input Feature L.
+
+## 11. Accès UI à la critique santé (Feature M — 2026-06-28)
+
+### 11.1 Réutilisation de l'écran d'entrée existant
+
+- **Decision** : réutiliser `HealthCritiqueScreen` tel quel (champ lecture seule + bouton « Analyser ») ; l'enregistrer dans le `NavHost` via une nouvelle route `HealthCritiqueEntry` plutôt que de créer un nouvel écran.
+- **Rationale** : l'écran existe et est validé par tests instrumentés (`HealthCritiqueReadOnlySegmentAndroidTest`) ; ne pas dupliquer (constitution V).
+- **Alternatives considered** : créer un nouvel écran d'entrée (rejeté — duplication) ; fusionner entrée + résultat (rejeté — casserait la séparation existante).
+
+### 11.2 Point d'entrée depuis le résultat composition
+
+- **Decision** : exposer un bouton « Critique santé » dans `LlmResultScreen`, visible quand le bilan est dans un état terminal (`Complete`/`Error`), activé uniquement si un segment validé est disponible.
+- **Rationale** : respecte la dépendance amont (segment validé synchronisé depuis le scan via `lastValidatedSegmentForHealth`) ; point d'entrée découvrable juste après le bilan composition.
+- **Alternatives considered** : onglet persistant bas (rejeté au MVP — complexité structurelle) ; entrée depuis l'accueil/capture (rejeté — la critique dépend du segment issu du bilan).
+
+### 11.3 Signal de disponibilité du segment
+
+- **Decision** : utiliser le flux existant `cameraViewModel.lastValidatedSegmentForHealth` (déjà consommé dans `MainActivity` pour alimenter `setValidatedSegmentFromScan`) comme condition d'activation du bouton dans `LlmResultScreen`.
+- **Rationale** : pas de nouvelle source de segment ; cohérent avec le câblage existant.
+- **Alternatives considered** : dériver du `streamingBilan` `Complete` (insuffisant — la complétion du bilan ne garantit pas la disponibilité du segment validé synchronisé).
+
+### 11.4 Wiring de navigation
+
+- **Decision** : `LlmResultScreen` reçoit un callback `onCritiqueSante: () -> Unit` ; `MainActivity` passe `cameraNavController.navigate(CameraFlowRoutes.HealthCritiqueEntry)` ; une entrée `composable(HealthCritiqueEntry) { HealthCritiqueScreen(healthCritiqueViewModel) }` est ajoutée au `NavHost`.
+- **Rationale** : pattern conforme au câblage existant de `LlmResult` et `HealthCritiqueResult` ; pas d'état partagé supplémentaire.
+- **Alternatives considered** : navigation par événement via SharedFlow (rejeté — sur-engineering pour un simple bouton).
+
+### 11.5 Non-régression
+
+- **Decision** : la chaîne `analyze()` → `navigateToResult` → `HealthCritiqueResult` reste inchangée ; le flux composition et `LlmResultScreen` existant ne sont pas modifiés au-delà de l'ajout du bouton.
+- **Rationale** : périmètre strict (constitution V) ; les garde-fous Feature C et L restent intacts.
+- **Alternatives considered** : refactor de la navigation (rejeté — hors scope).

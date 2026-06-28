@@ -39,6 +39,7 @@ import com.miamia.gemma4local.GemmaModelImportManager
 import com.miamia.gemma4local.Gemma4LocalRequestMapper
 import com.miamia.gemma4local.HybridGemma4LocalGateway
 import com.miamia.healthcritique.HealthCritiqueResultScreen
+import com.miamia.healthcritique.HealthCritiqueScreen
 import com.miamia.healthcritique.HealthCritiqueViewModel
 import com.miamia.home.HomeSpecPriorityResolver
 import com.miamia.permissions.CameraPermissionHandler
@@ -264,8 +265,14 @@ class MainActivity : ComponentActivity() {
                         composable(CameraFlowRoutes.LlmResult) {
                             LlmResultScreen(
                                 viewModel = cameraViewModel,
-                                onBack = { cameraNavController.popBackStack() }
+                                onBack = { cameraNavController.popBackStack() },
+                                onCritiqueSante = {
+                                    cameraNavController.navigate(CameraFlowRoutes.HealthCritiqueEntry)
+                                }
                             )
+                        }
+                        composable(CameraFlowRoutes.HealthCritiqueEntry) {
+                            HealthCritiqueScreen(viewModel = healthCritiqueViewModel)
                         }
                         composable(CameraFlowRoutes.HealthCritiqueResult) {
                             HealthCritiqueResultScreen(

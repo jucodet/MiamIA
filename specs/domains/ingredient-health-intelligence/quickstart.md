@@ -73,3 +73,30 @@
 - `app/src/main/java/com/miamia/healthcritique/HealthCritiqueSectionParser.kt`
 - `app/src/test/java/com/miamia/healthcritique/HealthCritiquePromptPrudenceTest.kt`
 - `app/src/test/java/com/miamia/healthcritique/HealthCritiqueSectionParserTest.kt`
+
+---
+
+## Quickstart — accès UI à la critique santé (Feature M)
+
+### Prérequis
+
+- Build debug installé sur device/émulateur avec runtime Gemma disponible.
+- Un produit scannable sous la main (liste d'ingrédients imprimée).
+
+### Parcours manuel (MVP — `IHI-M-SC-001`..`005`)
+
+1. Scanner un produit jusqu'au **résultat composition** (`LlmResultScreen`, état `Complete`).
+2. Vérifier la présence d'un bouton **« Critique santé »** sous la carte de résultat (test tag `llm_result_critique_sante`).
+3. Appuyer sur **« Critique santé »** : la navigation atteint `HealthCritiqueScreen` ; la liste d'ingrédients s'affiche **en lecture seule**, synchronisée avec le segment validé du scan.
+4. Appuyer sur **« Analyser »** : la navigation atteint `HealthCritiqueResultScreen` (chaîne `analyze()` → `navigateToResult` inchangée).
+5. Vérifier l'affichage des sections par population : **ENFANTS**, **FEMMES ENCEINTES**, **ADULTES**, **PERSONNES AGEES** (titres + corps ; les marqueurs `###` ne s'affichent pas littéralement, par conception du parseur — `IHI-L-SC-005`).
+6. Tester le **retour** depuis `HealthCritiqueResultScreen` puis `HealthCritiqueScreen` : retour au résultat composition sans état cassé.
+7. Cas sans segment validé : le bouton **« Critique santé »** est désactivé/masqué (`IHI-M-FR-003`).
+
+### Fichiers utiles (Feature M)
+
+- `app/src/main/java/com/miamia/navigation/CameraFlowRoutes.kt`
+- `app/src/main/java/com/miamia/result/LlmResultScreen.kt`
+- `app/src/main/java/com/miamia/MainActivity.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueScreen.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueViewModel.kt`

@@ -184,3 +184,86 @@ Voir [research.md](./research.md) §10 (décisions clarify 2026-06-28 : mécanis
 ### Phase 2 — Livraison (Feature L)
 
 Tâches exécutables dans [tasks.md](./tasks.md) (section Feature L).
+
+---
+
+## Feature M — Accès UI à la critique santé (câblage de navigation) (2026-06-28)
+
+**Branch**: `016-launch-splash-screen` (branche courante domaine) | **Date**: 2026-06-28  
+**Input**: spec.md Feature M + clarify implicite (aucun NEEDS CLARIFICATION — spec bornée)
+
+### Summary
+
+La **Feature M** rend la critique santé accessible en production : `HealthCritiqueScreen` (écran d'entrée avec bouton « Analyser ») n'est aujourd'hui monté qu'en tests instrumentés. On ajoute une route `HealthCritiqueEntry` dans le `NavHost` de `MainActivity` et un bouton « Critique santé » dans `LlmResultScreen` (activé si segment validé disponible). Aucune modification du moteur, du prompt, du parseur ou du flux composition.
+
+### Technical Context
+
+**Language/Version**: Kotlin 2.x, Jetpack Compose, Navigation Compose  
+**Primary Dependencies**: `CameraFlowRoutes`, `MainActivity` NavHost, `LlmResultScreen`, `HealthCritiqueScreen`, `HealthCritiqueViewModel`, `CameraViewModel.lastValidatedSegmentForHealth`  
+**Storage**: N/A  
+**Testing**: tests instrumentés existants (`HealthCritiqueReadOnlySegmentAndroidTest`) + parcours quickstart  
+**Target Platform**: Application Android (module `app`)  
+**Project Type**: mobile-app monolithique  
+**Performance Goals**: aucun objectif nouveau  
+**Constraints**: non-régression flux composition + chaîne `analyze()` → `navigateToResult` inchangée  
+**Scale/Scope**: `CameraFlowRoutes.kt`, `LlmResultScreen.kt`, `MainActivity.kt`
+
+### Constitution Check (Feature M)
+
+| Principe | Statut |
+|----------|--------|
+| I. Qualité / traçabilité | OK — spec Feature M → parcours quickstart → code |
+| II. ATDD | OK — parcours quickstart + tests instrumentés existing |
+| III. UX | OK — point d'entrée explicite, désactivé si pas de segment |
+| IV. Performance | OK — navigation Compose négligeable |
+| V. Simplicité | OK — réutilisation écrans/flux existants, 1 route + 1 bouton |
+| VI. DDD | OK — périmètre navigation ; moteur/prompt/parseur/composition inchangés |
+
+**Post-design** : inchangé.
+
+### Project Structure (Feature M)
+
+#### Documentation (this feature)
+
+```text
+specs/domains/ingredient-health-intelligence/
+├── plan.md (section Feature M)
+├── research.md (§11 Feature M)
+├── data-model.md (entités Feature M)
+├── quickstart.md (parcours Feature M)
+├── contracts/
+│   └── critique-sante-navigation-contract.md
+└── tasks.md (section Feature M)
+```
+
+#### Source Code (repository root)
+
+```text
+app/src/main/java/com/miamia/navigation/CameraFlowRoutes.kt   # + HealthCritiqueEntry
+app/src/main/java/com/miamia/result/LlmResultScreen.kt        # + bouton "Critique santé" + callback onCritiqueSante
+app/src/main/java/com/miamia/MainActivity.kt                  # + composable(HealthCritiqueEntry) + wire onCritiqueSante
+```
+
+**Structure Decision** : ajustement local — 1 constante de route, 1 bouton dans `LlmResultScreen` (avec callback), 1 entrée `composable` dans le `NavHost`. `HealthCritiqueScreen`, `HealthCritiqueViewModel`, `HealthCritiqueResultScreen` et la chaîne `analyze()` → `navigateToResult` inchangés.
+
+### Complexity Tracking
+
+> Aucune violation constitutionnelle à justifier.
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| — | — | — |
+
+### Phase 0 — Recherche (Feature M)
+
+Voir [research.md](./research.md) §11 (décisions : réutilisation écran existant, point d'entrée depuis `LlmResultScreen`, signal de disponibilité segment, non-régression).
+
+### Phase 1 — Design (Feature M)
+
+- [data-model.md](./data-model.md) : entités Feature M — `HealthCritiqueEntryRoute`, `CritiqueSanteEntryTrigger`.
+- [contracts/critique-sante-navigation-contract.md](./contracts/critique-sante-navigation-contract.md) : contrat de navigation (route + callback + condition d'activation).
+- [quickstart.md](./quickstart.md) : parcours manuel bout-en-bout (scan → résultat composition → Critique santé → Analyser → sections).
+
+### Phase 2 — Livraison (Feature M)
+
+Tâches exécutables dans [tasks.md](./tasks.md) (section Feature M).

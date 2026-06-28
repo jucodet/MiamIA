@@ -86,3 +86,22 @@
 - Le prompt construit MUST contenir le persona expert, les 5 `RiskDimension`, les 3 `EvidenceTier`, les 4 `VulnerablePopulation`, le disclaimer, et le format `CritiqueSectionMarker` (`IHI-L-SC-001`..`004`).
 - Le seuil « liste très longue » = `HealthCritiqueConfig.LONG_LIST_INGREDIENT_THRESHOLD` (nombre d'ingrédients, valeur au plan, ex. 20) — `IHI-L-FR-012`.
 - Conformité Feature C préservée : le prompt MUST NOT encourager l'invention d'ingrédients absents (`IHI-L-FR-014` / `IHI-L-SC-006`).
+
+## Entities — Feature M (accès UI à la critique santé)
+
+- `HealthCritiqueEntryRoute` *(route de navigation — `IHI-M-FR-001`)*
+  - Valeur : `CameraFlowRoutes.HealthCritiqueEntry` (constante chaîne, ex. `"health_critique_entry"`).
+  - Cible : `HealthCritiqueScreen` (écran d'entrée existant, non modifié).
+
+- `CritiqueSanteEntryTrigger` *(point d'entrée UI — `IHI-M-FR-002`/`003`)*
+  - Composant : bouton « Critique santé » rendu dans `LlmResultScreen` (état terminal `Complete`/`Error`).
+  - Condition d'activation : `lastValidatedSegmentForHealth` non null/non vide.
+  - Callback : `onCritiqueSante: () -> Unit` → `cameraNavController.navigate(HealthCritiqueEntry)`.
+  - Invariant : désactivé (ou masqué) si aucun segment validé disponible (`InputInvalidReason.NO_VALIDATED_SEGMENT`).
+
+## Validation rules (Feature M)
+
+- La route `HealthCritiqueEntry` MUST être enregistrée dans le `NavHost` de `MainActivity` (`IHI-M-FR-001`).
+- Le bouton « Critique santé » MUST être désactivé lorsque `lastValidatedSegmentForHealth` est vide/null (`IHI-M-FR-003`).
+- La chaîne `analyze()` → `navigateToResult` → `HealthCritiqueResult` MUST rester inchangée (`IHI-M-FR-006`).
+- `HealthCritiqueEngine`, `HealthCritiquePromptBuilder`, `HealthCritiqueSectionParser`, le flux composition MUST NOT être modifiés (`IHI-M-FR-007`).

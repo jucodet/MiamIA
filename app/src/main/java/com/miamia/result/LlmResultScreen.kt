@@ -66,9 +66,12 @@ import kotlinx.coroutines.delay
 fun LlmResultScreen(
     viewModel: CameraViewModel,
     onBack: () -> Unit,
+    onCritiqueSante: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val streamingState by viewModel.streamingBilan.collectAsState()
+    val validatedSegment by viewModel.lastValidatedSegmentForHealth.collectAsState()
+    val critiqueEnabled = !validatedSegment.isNullOrBlank()
 
     Column(
         modifier = modifier
@@ -113,6 +116,15 @@ fun LlmResultScreen(
         }
 
         if (streamingState is StreamingBilanState.Complete || streamingState is StreamingBilanState.Error) {
+            Button(
+                onClick = onCritiqueSante,
+                enabled = critiqueEnabled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("llm_result_critique_sante")
+            ) {
+                Text("Critique santé")
+            }
             Button(
                 onClick = {
                     viewModel.resetStreamingBilan()

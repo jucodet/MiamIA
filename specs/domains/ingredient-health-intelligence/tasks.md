@@ -198,3 +198,92 @@ T101 → T102 → T103 [US-L1] ──┐
 ## Suggested MVP scope (Feature L)
 
 - **T101–T104** = US-L1 complète (persona expert + 5 dimensions de risque + hiérarchie des preuves).
+
+---
+
+## Feature M — Accès UI à la critique santé (câblage de navigation) (2026-06-28)
+
+**Input**: `specs/domains/ingredient-health-intelligence/` (plan.md Feature M, spec.md Feature M, research.md §11, data-model.md Feature M, `contracts/critique-sante-navigation-contract.md`)
+**Prerequisites**: spec Feature M (aucun NEEDS CLARIFICATION)
+
+**Tests**: parcours quickstart + tests instrumentés existing (`HealthCritiqueReadOnlySegmentAndroidTest`). Pas de nouveau test unitaire requis (câblage navigation pur).
+
+## Format
+
+`- [ ] Tnnn [P?] [USMn?] Description avec chemin fichier`
+
+## Dependency graph (Feature M)
+
+```text
+T201 → T202 → T203 [US-M1] → T204 [US-M1] → T205 [US-M2] → T206 [P]
+```
+
+## Phase 1: Setup (Feature M)
+
+**Purpose**: confirmer l'alignement spec/contract ↔ code de navigation existant.
+
+- [X] T201 Lire `specs/domains/ingredient-health-intelligence/spec.md` (Feature M, **IHI-M-FR-001**..**008**), `contracts/critique-sante-navigation-contract.md`, `app/src/main/java/com/miamia/navigation/CameraFlowRoutes.kt`, `app/src/main/java/com/miamia/result/LlmResultScreen.kt`, et la section `NavHost` de `app/src/main/java/com/miamia/MainActivity.kt` pour confirmer : route `HealthCritiqueEntry` absente, `HealthCritiqueScreen` non monté en production, `LlmResultScreen` sans bouton « Critique santé ».
+
+---
+
+## Phase 2: Foundational (Feature M)
+
+**Purpose**: introduire la constante de route avant le câblage UI.
+
+- [X] T202 Ajouter la constante `const val HealthCritiqueEntry = "health_critique_entry"` dans `app/src/main/java/com/miamia/navigation/CameraFlowRoutes.kt` (objet `CameraFlowRoutes`), avec commentaire référençant **IHI-M-FR-001**.
+
+**Checkpoint**: route disponible pour `MainActivity` et `LlmResultScreen`.
+
+---
+
+## Phase 3: User Story M1 — Atteindre la critique santé depuis le résultat composition (P1) 🎯 MVP
+
+**Goal**: un bouton « Critique santé » dans `LlmResultScreen` navigue vers `HealthCritiqueScreen` (route `HealthCritiqueEntry`), activé seulement si un segment validé est disponible.
+
+**Independent test**: parcours quickstart étapes 1–3 — depuis le résultat composition, le bouton est présent, activé avec segment, navigue vers `HealthCritiqueScreen` (liste lecture seule).
+
+### Implementation for US-M1
+
+- [X] T203 [US-M1] Ajouter un paramètre `onCritiqueSante: () -> Unit` à `LlmResultScreen` dans `app/src/main/java/com/miamia/result/LlmResultScreen.kt` ; collecter `viewModel.lastValidatedSegmentForHealth` (StateFlow) via `collectAsState()` ; ajouter un bouton « Critique santé » (test tag `llm_result_critique_sante`) visible à l'état terminal (`Complete`/`Error`), **activé** uniquement si le segment validé est non null/non vide (`IHI-M-FR-002`/`003`), placé au-dessus du bouton « Retour » existant. Le bouton appelle `onCritiqueSante`.
+
+- [X] T204 [US-M1] Câbler la navigation dans `app/src/main/java/com/miamia/MainActivity.kt` : (a) ajouter `composable(CameraFlowRoutes.HealthCritiqueEntry) { HealthCritiqueScreen(healthCritiqueViewModel) }` dans le `NavHost` (`IHI-M-FR-001`/`004`) ; (b) dans `composable(CameraFlowRoutes.LlmResult)`, passer `onCritiqueSante = { cameraNavController.navigate(CameraFlowRoutes.HealthCritiqueEntry) }` à `LlmResultScreen`. Ne pas modifier la route `HealthCritiqueResult` ni le flux `analyze()` (`IHI-M-FR-006`).
+
+**Checkpoint**: US-M1 vert — bouton présent + navigation vers `HealthCritiqueScreen` (liste synchronisée lecture seule).
+
+---
+
+## Phase 4: User Story M2 — Lancer la critique et voir les sections (P1)
+
+**Goal**: confirmer bout-en-bout que « Analyser » depuis `HealthCritiqueScreen` atteint `HealthCritiqueResultScreen` et affiche les sections par population (chaîne pré-existante, désormais atteignable).
+
+**Independent test**: parcours quickstart étapes 4–5 — « Analyser » → `HealthCritiqueResultScreen` affiche ENFANTS / FEMMES ENCEINTES / ADULTES / PERSONNES AGEES.
+
+### Implementation for US-M2
+
+- [X] T205 [US-M2] Vérifier (lecture seule, pas de code à modifier) que la chaîne `viewModel.analyze()` → `navigateToResult` → `cameraNavController.navigate(HealthCritiqueResult)` → `HealthCritiqueResultScreen` fonctionne désormais bout-en-bout depuis `HealthCritiqueScreen` monté en production (T204). Si une régression est détectée sur `HealthCritiqueViewModel.analyze()` ou `navigateToResult`, la corriger sans étendre le scope (la chaîne est pré-existante et devait être intacte — `IHI-M-FR-006`).
+
+**Checkpoint**: US-M2 vert — sections par population affichées après « Analyser ».
+
+---
+
+## Phase 5: Polish & documentation domaine (Feature M)
+
+- [X] T206 [P] Vérifier la cohérence doc domaine (grep sous `specs/domains/ingredient-health-intelligence/`) : `plan.md` Feature M, `research.md` §11, `data-model.md` Feature M, `contracts/critique-sante-navigation-contract.md`, `quickstart.md` Feature M alignés ; exécuter le parcours quickstart Feature M (étapes 1–7).
+
+---
+
+## Parallel execution (Feature M)
+
+- **T203** (`LlmResultScreen.kt`) et **T204** (`MainActivity.kt`) éditent des fichiers distincts mais T204 dépend du nouveau paramètre `onCritiqueSante` introduit par T203 → séquentiel (T203 puis T204).
+- **T205** est une vérification (pas d'édit) → après T204.
+- **T206** après T205.
+
+## Implementation strategy (Feature M)
+
+- MVP = **T201–T204** (route + bouton + câblage NavHost) ; US-M1 complète et démontrable.
+- US-M2 (T205) est une vérification de non-régression de la chaîne pré-existante.
+- Non-régression critique : `HealthCritiqueEngine`, `HealthCritiquePromptBuilder`, `HealthCritiqueSectionParser`, flux composition **non modifiés** (`IHI-M-FR-007`).
+
+## Suggested MVP scope (Feature M)
+
+- **T201–T204** = US-M1 complète (accès UI à la critique santé depuis le résultat composition).

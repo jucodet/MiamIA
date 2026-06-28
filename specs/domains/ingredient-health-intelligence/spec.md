@@ -2,7 +2,7 @@
 
 **Domain Context**: `ingredient-health-intelligence`
 **Created**: 2026-05-06
-**Last Modified**: 2026-06-28 (Feature L — personnalisation du prompt de critique santé : persona expert, dimensions de risque, populations vulnérables, format de sortie)
+**Last Modified**: 2026-06-28 (Feature M — accès UI à la critique santé : câblage de l'écran d'entrée dans la navigation)
 **Status**: Draft
 
 ## Purpose
@@ -423,6 +423,85 @@ En tant qu'utilisatrice, je veux que la personnalisation du prompt ne casse pas 
 
 ---
 
+## Feature M — Accès UI à la critique santé (câblage de navigation)
+
+> Origine : intake `/speckit-design` 2026-06-28
+> Intention : rendre la critique santé par population accessible depuis l'application de production. Aujourd'hui `HealthCritiqueScreen` (écran d'entrée avec bouton « Analyser ») n'est monté que dans les tests instrumentés ; il n'est pas enregistré dans le `NavHost` de `MainActivity`. Seul `HealthCritiqueResultScreen` est routé, et il n'est atteignable que via `navigateToResult` émis par `analyze()`, lui-même appelé uniquement depuis `HealthCritiqueScreen`. Le flux critique santé est donc **inaccessible** en production (l'utilisatrice ne voit que le résultat composition/additifs). Cette feature comble le manque prévu par `specs/002-ingredient-health-critique/plan.md` (« Onglet « Critique santé » dans `MainActivity` »).
+
+### Clarifications (Feature M)
+
+#### Session 2026-06-28
+
+- **Portée** : câblage de navigation uniquement (route + point d'entrée UI) ; **aucune modification** du moteur `HealthCritiqueEngine`, du prompt (`HealthCritiquePromptBuilder`), du parseur (`HealthCritiqueSectionParser`) ou du flux composition.
+- **Écran d'entrée** : `HealthCritiqueScreen` existant (champ lecture seule + bouton « Analyser ») est réutilisé tel quel ; il est monté dans le `NavHost` via une nouvelle route.
+- **Point d'entrée** : un bouton « Critique santé » est exposé depuis l'écran de résultat composition (`LlmResultScreen`) une fois le bilan prêt, afin de respecter la dépendance amont (segment validé synchronisé depuis le scan). Aucun onglet persistant requis au MVP.
+- **Synchronisation du segment** : réutilise le flux existant `cameraViewModel.lastValidatedSegmentForHealth` → `healthCritiqueViewModel.setValidatedSegmentFromScan(...)` (déjà câblé dans `MainActivity`) ; l'écran d'entrée affiche donc la liste prête, en lecture seule.
+- **Recherche d'effets de bord** : `viewModel.analyze()` n'est appelé que depuis `HealthCritiqueScreen` ; l'ajouter à la navigation ne modifie pas les autres routes. La route `HealthCritiqueResult` existe déjà et reste inchangée.
+- **Garde-fou** : le bouton d'entrée est désactivé si aucun segment validé n'est disponible (cohérent avec `InputInvalidReason.NO_VALIDATED_SEGMENT`).
+
+### User Scenarios (Feature M)
+
+#### US-M1 — Atteindre la critique santé depuis le résultat composition (P1)
+
+En tant qu'utilisatrice, après avoir obtenu le bilan de composition d'un produit scanné, je veux un point d'entrée explicite vers la critique santé par population, afin de consulter l'analyse `###ENFANTS` / `###FEMMES_ENCEINTES` / `###ADULTES` / `###PERSONNES_AGEES` qui sinon reste invisible.
+
+**Why this priority**: sans ce point d'entrée, la critique santé (Feature L et spec 002) est totalement inaccessible en production — la feature est inutilisable.
+
+**Independent Test**: naviguer jusqu'au résultat composition, vérifier la présence d'un bouton « Critique santé », le déclencher, et confirmer l'affichage de `HealthCritiqueScreen` (liste en lecture seule + bouton « Analyser »).
+
+**Acceptance Scenarios**:
+
+1. **Given** le résultat composition affiché (`LlmResultScreen`) avec un segment validé disponible, **When** l'utilisatrice consulte l'écran, **Then** un point d'entrée « Critique santé » est visible.
+2. **Given** ce point d'entrée, **When** l'utilisatrice le déclenche, **Then** la navigation atteint `HealthCritiqueScreen` (route enregistrée dans le `NavHost`) et la liste d'ingrédients s'affiche en lecture seule, synchronisée avec le segment validé du scan.
+3. **Given** aucun segment validé disponible, **When** l'utilisatrice est sur le résultat composition, **Then** le point d'entrée « Critique santé » est désactivé (ou masqué) et ne déclenche pas la navigation.
+
+#### US-M2 — Lancer la critique et voir les sections par population (P1)
+
+En tant qu'utilisatrice, depuis `HealthCritiqueScreen`, je veux pouvoir lancer l'analyse (« Analyser ») et atterrir sur l'écran de résultat affichant les sections par population, afin de valider bout-en-bout le flux critique santé.
+
+**Why this priority**: confirme que le câblage complète la chaîne : entrée → `analyze()` → `navigateToResult` → `HealthCritiqueResultScreen` (sections parsées).
+
+**Independent Test**: depuis `HealthCritiqueScreen`, appuyer sur « Analyser » et confirmer la navigation vers `HealthCritiqueResultScreen` puis l'affichage des titres « ENFANTS / FEMMES ENCEINTES / ADULTES / PERSONNES AGEES » (les marqueurs `###` ne s'affichent pas littéralement, par conception du parseur — `IHI-L-SC-005`).
+
+**Acceptance Scenarios**:
+
+1. **Given** `HealthCritiqueScreen` affiché avec un segment validé non vide, **When** l'utilisatrice appuie sur « Analyser », **Then** `viewModel.analyze()` est déclenché et la navigation atteint `HealthCritiqueResult` (`navigateToResult`).
+2. **Given** l'analyse aboutit à un `HealthCritiqueResult.CritiqueReady`, **When** l'écran de résultat s'affiche, **Then** les sections par population sont rendues (titres + corps), conformément à `HealthCritiqueResultScreen`.
+3. **Given** l'analyse aboutit à un `HealthCritiqueResult.InferenceError` ou `InputInvalid`, **When** l'écran de résultat s'affiche, **Then** le message d'erreur est affiché (comportement existant inchangé).
+
+### Edge Cases (Feature M)
+
+- Retour navigation : depuis `HealthCritiqueScreen` ou `HealthCritiqueResultScreen`, le retour (`onBack` / `popBackStack`) ramène au résultat composition sans état cassé.
+- Segment validé devenu vide entre le scan et l'ouverture de la critique : le bouton « Analyser » reste géré par l'existant (`HealthIngredientInputValidator` → `InputInvalid`).
+- Rotation / recréation d'activité : la route et le `ViewModel` survivent (state already handled par `HealthCritiqueViewModel` + `LastHealthAnalysisStore`).
+- Double déclenchement du point d'entrée : navigation standard Compose (pas de double empilement de routes).
+
+### Functional Requirements (Feature M)
+
+- **IHI-M-FR-001**: Le système MUST enregistrer une route de navigation pour `HealthCritiqueScreen` dans le `NavHost` de `MainActivity` (ex. `CameraFlowRoutes.HealthCritiqueEntry`).
+- **IHI-M-FR-002**: Le système MUST exposer un point d'entrée « Critique santé » depuis `LlmResultScreen` (résultat composition) permettant de naviguer vers la route `HealthCritiqueEntry`.
+- **IHI-M-FR-003**: Le système MUST désactiver (ou masquer) le point d'entrée « Critique santé » lorsqu'aucun segment validé n'est disponible (`InputInvalidReason.NO_VALIDATED_SEGMENT`).
+- **IHI-M-FR-004**: Le système MUST réutiliser `HealthCritiqueScreen` existant sans modification de son comportement (champ lecture seule + bouton « Analyser »).
+- **IHI-M-FR-005**: Le système MUST réutiliser le flux de synchronisation existant `lastValidatedSegmentForHealth` → `setValidatedSegmentFromScan(...)` pour alimenter l'écran d'entrée ; aucune nouvelle source de segment.
+- **IHI-M-FR-006**: Le système MUST conserver la route `HealthCritiqueResult` et le flux `analyze()` → `navigateToResult` inchangés (non-régression).
+- **IHI-M-FR-007**: Le système MUST NOT modifier `HealthCritiqueEngine`, `HealthCritiquePromptBuilder`, `HealthCritiqueSectionParser`, ni le flux composition (périmètre navigation stricte).
+- **IHI-M-FR-008**: Le système MUST assurer le retour navigation (`onBack` / `popBackStack`) depuis `HealthCritiqueScreen` vers l'écran précédent sans casser la pile de navigation.
+
+### Key Entities (Feature M)
+
+- **HealthCritiqueEntryRoute**: route de navigation vers `HealthCritiqueScreen` (nouvelle constante dans `CameraFlowRoutes`).
+- **CritiqueSanteEntryTrigger**: point d'entrée UI (bouton) exposé depuis `LlmResultScreen`, activé conditionnellement à la disponibilité d'un segment validé.
+
+### Success Criteria (Feature M)
+
+- **IHI-M-SC-001**: 100 % des parcours « résultat composition → bouton Critique santé » avec un segment validé disponible aboutissent à l'affichage de `HealthCritiqueScreen`.
+- **IHI-M-SC-002**: 100 % des déclenchements du bouton « Analyser » depuis `HealthCritiqueScreen` naviguent vers `HealthCritiqueResultScreen` (route `HealthCritiqueResult`).
+- **IHI-M-SC-003**: 100 % des cas sans segment validé désactivent (ou masquent) le point d'entrée « Critique santé ».
+- **IHI-M-SC-004**: 0 % de régression sur le flux composition (`LlmResultScreen`), le moteur critique, le prompt et le parseur (inchangés).
+- **IHI-M-SC-005**: 100 % des retours navigation depuis `HealthCritiqueScreen` / `HealthCritiqueResultScreen` ramènent à l'écran précédent sans état cassé.
+
+---
+
 ## Cross-domain Notes
 
 - Consomme le segment validé de `ingredient-normalization-validation` (source de vérité pour l’ancrage — Feature C).
@@ -436,6 +515,7 @@ En tant qu'utilisatrice, je veux que la personnalisation du prompt ne casse pas 
 - Intake `/speckit-design` 2026-05-13 (Feature C)
 - Intake `/speckit-design` + `/speckit-specify` 2026-05-13 (Feature K)
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature L)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature M)
 
 ## Assumptions
 
@@ -448,3 +528,4 @@ En tant qu'utilisatrice, je veux que la personnalisation du prompt ne casse pas 
 - Au **MVP**, la conformité à **IHI-C-FR-006** est démontrable par **relecture humaine** et traçabilité ; des garde-fous automatisés supplémentaires relèvent du plan d’évolution hors obligation minimale.
 - Pour **Feature K**, la **source** exacte du champ modèle et la **règle d’arrondi** vers l’entier affiché relèvent du plan d’implémentation ; les **bornes d’affichage** **1–1100** kcal/100 g et les contraintes **IHI-K-FR-004** / **IHI-K-FR-006** sont désormais fixées en spec.
 - Pour **Feature L**, le prompt personnalisé est un **remplacement en dur versionné** dans le builder (pas d’externalisation ni de registre) ; la personnalisation est **limitée au prompt de critique santé** (le bilan de composition garde son propre contrat) ; le seuil « liste très longue » est défini en **nombre d’ingrédients** (valeur exacte au plan) ; la conformité sémantique au prompt est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C), le format restant vérifié par le parseur existant.
+- Pour **Feature M**, le correctif est strictement un **câblage de navigation** (route `HealthCritiqueEntry` + bouton dans `LlmResultScreen`) ; `HealthCritiqueScreen` existant est réutilisé sans modification ; la synchronisation du segment repose sur le flux existant `lastValidatedSegmentForHealth` ; aucune modification du moteur, du prompt, du parseur ou du flux composition.
