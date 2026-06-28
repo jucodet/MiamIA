@@ -3,14 +3,23 @@ package com.miamia.healthcritique
 /**
  * Construit le couple instruction système / message utilisateur pour la critique santé.
  *
- * Feature L (2026-06-28) : personnalisation du prompt de critique — persona expert
- * (nutrition clinique + cancérologie préventive), 5 dimensions de risque par ingrédient,
- * hiérarchie faits établis / incertitudes / hypothèses (réf. CIRC/OMS), populations
- * vulnérables élargies en vigilance transversale, garde-fous éthiques, format de sortie
- * strict préservé. Périmètre critique seule (bilan composition non modifié).
+ * Feature N (2026-06-28) : la critique est **ciblée par profil utilisateur** — le prompt
+ * exige un **unique** marqueur canonique par profil (ex. `###FEMME_ENCEINTE`), précédé du
+ * rappel « Évalué pour vous : <profil> », et structuré en : (1) Niveau de prudence
+ * (Faible/Modéré/Élevé + texte court), (2) cartes d'ingrédients à vigilance
+ * (• nom | code | type + Impact/Fait établi/Nuance/Cible particulièrement), (3) liste
+ * compacte de tous les ingrédients analysés (nom + statut RAS/Modéré/Élevé).
  *
- * Les formulations prudence / grossesse / ambiguïté sont regroupées ici pour faciliter
- * les tests unitaires (T103/T105/T107).
+ * Héritage Feature L préservé (non format-strict) : persona expert (nutrition clinique +
+ * cancérologie préventive), 5 dimensions de risque, hiérarchie faits/incertitudes/hypothèses
+ * (réf. CIRC/OMS), populations vulnérables élargies en vigilance transversale, garde-fous
+ * éthiques, disclaimer, seuil « liste très longue », langue illisible.
+ *
+ * Le format 4-marqueurs strict Feature L (IHI-L-FR-009 / IHI-L-SC-004) est **supersédé et
+ * retiré** (traçabilité en spec Feature N). Périmètre critique seule (bilan composition
+ * non modifié).
+ *
+ * Construction **répétable** (même segment + même profil → même prompt) — IHI-N-FR-014.
  */
 class HealthCritiquePromptBuilder {
 
@@ -19,9 +28,9 @@ class HealthCritiquePromptBuilder {
             "Information indicative à visée éducative ; ne remplace pas un avis médical ou nutritionnel personnalisé."
     }
 
-    fun buildSystemInstruction(): String = buildString {
+    fun buildSystemInstruction(profile: UserProfile): String = buildString {
         appendLine("Tu es un expert de renommée mondiale en nutrition clinique et en cancérologie préventive, spécialisé dans l'évaluation des risques alimentaires.")
-        appendLine("Ton rôle est d'analyser une liste d'ingrédients (issue d'un OCR, contexte réglementaire UE, en français) et d'évaluer son impact potentiel sur la santé.")
+        appendLine("Ton rôle est d'analyser une liste d'ingrédients (issue d'un OCR, contexte réglementaire UE, en français) et d'évaluer son impact potentiel sur la santé, en ciblant le profil utilisateur indiqué.")
         appendLine("Rédige intégralement ta réponse en français (y compris synthèses et formulations de prudence).")
         appendLine(DISCLAIMER)
         appendLine()
@@ -35,22 +44,27 @@ class HealthCritiquePromptBuilder {
         appendLine("CONTRAINTES MÉDICALES ET ÉTHIQUES :")
         appendLine("- Ne pose aucun diagnostic et ne donne aucune prescription de régime ou de traitement ; l'analyse reste sans diagnostic médical.")
         appendLine("- Si l'utilisateur demande un avis médical personnalisé, refuse poliment et oriente vers un professionnel de santé.")
-        appendLine("- Porte une attention particulière aux populations vulnérables : femmes enceintes/allaitantes (grossesse), enfants, personnes immunodéprimées ou ayant des antécédents familiaux de cancer. Pour les populations sans section dédiée (immunodéprimées, antécédents familiaux de cancer), intègre cette vigilance transversale dans chaque section pertinente (Points de vigilance / Nuances), sans ajouter de section ni de préambule.")
+        appendLine("- Porte une attention particulière aux populations vulnérables : femmes enceintes/allaitantes (grossesse), enfants, personnes immunodéprimées ou ayant des antécédents familiaux de cancer. Pour les populations sans section dédiée (immunodéprimées, antécédents familiaux de cancer), intègre cette vigilance transversale dans les cartes et nuances pertinentes, sans ajouter de section supplémentaire.")
         appendLine()
-        appendLine("FORMAT DE SORTIE STRICT :")
-        appendLine("Réponds uniquement avec les marqueurs de section suivants (lignes exactes, dans cet ordre). Aucun texte avant la ligne ###ENFANTS.")
-        appendLine("###ENFANTS")
-        appendLine("###FEMMES_ENCEINTES")
-        appendLine("###ADULTES")
-        appendLine("###PERSONNES_AGEES")
-        appendLine("Sous chaque marqueur, rédige un bloc structuré contenant obligatoirement :")
-        appendLine("1) Points de vigilance : liste à puces, courte, des ingrédients préoccupants pour cette population.")
-        appendLine("2) Analyse par ingrédient & Nuances : détaillée ingrédient par ingrédient. Sépare clairement les faits établis (ex : lien avec certains cancers) des incertitudes scientifiques.")
-        appendLine("3) Niveau de prudence : (Faible / Modéré / Élevé) avec justification prudente basée sur les doses probables et les risques à long terme.")
+        appendLine("FORMAT DE SORTIE STRICT (profil unique — ${profile.label}) :")
+        appendLine("Réponds uniquement avec, en toute première ligne, le rappel du profil ciblé :")
+        appendLine(UserProfile.evaluatedForHeader(profile))
+        appendLine("Puis, sur la ligne suivante, le marqueur de section unique :")
+        appendLine(profile.marker)
+        appendLine("Aucun texte de critique avant le rappel « Évalué pour vous : ${profile.label} ». Ne produis aucun autre marqueur de population (${UserProfile.entries.joinToString(", ") { it.marker }}).")
+        appendLine("Sous le marqueur, rédige obligatoirement les trois blocs suivants :")
+        appendLine("1) Niveau de prudence : (Faible / Modéré / Élevé) — suivi d'un texte court justificatif prudent basé sur les doses probables et les risques à long terme pour le profil ${profile.label}.")
+        appendLine("2) Cartes d'ingrédients à vigilance : pour chaque ingrédient qui déclenche une vigilance Modérée ou Élevée pour le profil ${profile.label}, une entrée de la forme « • <nom> | <code éventuel> | <type> » (ex. « • Nitrite de sodium | E250 | Conservateur — Additif »), suivie des sous-lignes :")
+        appendLine("   Impact : <formulation courte>")
+        appendLine("   Fait établi : <fait établi, avec référence CIRC/OMS si applicable>")
+        appendLine("   Nuance : <dépend de la dose / fréquence / cuisson, etc.>")
+        appendLine("   Cible particulièrement : <autres populations concernées, même si non sélectionnées>")
+        appendLine("   Ne liste ici que les ingrédients à vigilance Modérée/Élevée ; n'affiche pas de carte « RAS ».")
+        appendLine("3) Liste complète des ingrédients analysés : une ligne par ingrédient de la forme « - <nom> : <RAS|Modéré|Élevé> ».")
         appendLine()
         appendLine("GESTION DES CAS PARTICULIERS :")
-        appendLine("- Si la liste est très longue (≥ ${HealthCritiqueConfig.LONG_LIST_INGREDIENT_THRESHOLD} ingrédients) : fais une synthèse des risques majeurs en tête de la section 2, puis détaille les ingrédients pertinents.")
-        appendLine("- Si la liste est dans une autre langue ou illisible : reste structuré avec les marqueurs, et dans la section 2 de chaque partie, demande poliment des précisions ou une meilleure capture.")
+        appendLine("- Si la liste est très longue (≥ ${HealthCritiqueConfig.LONG_LIST_INGREDIENT_THRESHOLD} ingrédients) : fais une synthèse des risques majeurs en tête du bloc 2, puis détaille les ingrédients pertinents.")
+        appendLine("- Si la liste est dans une autre langue ou illisible : conserve le rappel et le marqueur, et dans le bloc 2, demande poliment des précisions ou une meilleure capture.")
     }
 
     fun buildUserMessage(ingredientList: String): String = buildString {

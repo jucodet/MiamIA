@@ -105,3 +105,40 @@
 - Le bouton « Critique santé » MUST être désactivé lorsque `lastValidatedSegmentForHealth` est vide/null (`IHI-M-FR-003`).
 - La chaîne `analyze()` → `navigateToResult` → `HealthCritiqueResult` MUST rester inchangée (`IHI-M-FR-006`).
 - `HealthCritiqueEngine`, `HealthCritiquePromptBuilder`, `HealthCritiqueSectionParser`, le flux composition MUST NOT être modifiés (`IHI-M-FR-007`).
+
+## Entities — Feature N (critique ciblée par profil utilisateur)
+
+- `UserProfile` *(énumération fermée — contrat de consommation IHI, `IHI-N-FR-001`/`006`)*
+  - Valeurs : `FEMME_ENCEINTE` (label « Femme enceinte », marker `###FEMME_ENCEINTE`), `ENFANT` (label « Enfant », marker `###ENFANT`), `PERSONNE_AGEE` (label « Agé », marker `###PERSONNE_AGEE`), `ADULTE` (label « Adulte », marker `###ADULTE`), `SPORTIF` (label « Sportif », marker `###SPORTIF`).
+  - `DEFAULT` : `ADULTE` (fallback en l'absence de profil sélectionné — clarify Q1, `IHI-N-FR-012`).
+
+- `UserProfileProvider` *(interface — frontière DDD UGE↔IHI)*
+  - `current(): UserProfile` — retourne le profil sélectionné (ou `DEFAULT` si non défini).
+  - `DefaultUserProfileProvider` *(implémentation IHI, fallback)* : retourne `UserProfile.DEFAULT` ; settable en mémoire pour tests.
+  - L'implémentation persistée (Onboarding + « Paramètres / Profil ») est fournie par le domaine `user-guidance-experience` sur le même contrat.
+
+- `PrudenceLevel` *(énumération fermée — `IHI-N-FR-007`)*
+  - Valeurs : `FAIBLE`, `MODERE`, `ELEVE` (libellés UI : Faible / Modéré / Élevé).
+  - Champ associé : `justificationCourte: String` (texte court du LLM).
+
+- `IngredientRiskCard` *(carte d'un ingrédient à vigilance — `IHI-N-FR-008`)*
+  - `nom: String`, `code: String?` (ex. E-number), `type: String` (ex. « Conservateur — Additif »), `impact: String`, `faitEtabli: String`, `nuance: String`, `cibleParticulierement: String`.
+  - Invariant : `nom` ancrable dans le `ValidatedIngredientSegment` (**IHI-C-FR-005** / **IHI-N-FR-005**).
+
+- `FullIngredientStatutEntry` *(ligne de la liste compacte — `IHI-N-FR-011`)*
+  - `nom: String`, `statut: IngredientVigilanceStatut` (`RAS` | `MODERE` | `ELEVE`).
+  - Invariant : `nom` ancrable dans le segment.
+
+- `ProfileCritiqueResult` *(sortie parsée profil unique — supersede `ParsedHealthSections` 4-sections)*
+  - `profile: UserProfile`, `evaluatedForHeader: String` (« Évalué pour vous : <label> »), `prudenceLevel: PrudenceLevel?`, `prudenceJustification: String?`, `riskCards: List<IngredientRiskCard>`, `fullIngredientList: List<FullIngredientStatutEntry>`, `warnings: List<String>`, `disclaimer: String`, `isDefaultProfile: Boolean`.
+  - Invariant : si la sortie contient 4 marqueurs (format legacy), `warnings` signale le rejet et le résultat n'est pas un succès (`IHI-N-FR-013` / `IHI-N-SC-009`).
+
+- `EvaluatedForHeader` *(value object)* : chaîne « Évalué pour vous : <profil label> » (`IHI-N-FR-003`).
+
+## Validation rules (Feature N)
+
+- `HealthCritiquePromptBuilder.buildSystemInstruction(profile)` MUST exiger uniquement le marqueur du profil sélectionné + rappel « Évalué pour vous : <label> » (`IHI-N-SC-001`/`002`).
+- `HealthCritiqueSectionParser` MUST extraire (marqueur unique, prudence, cartes, liste compacte) ; MUST rejeter une sortie 4-marqueurs comme `non-analysable-response` (`IHI-N-FR-013` / `IHI-N-SC-009`).
+- Chaque `IngredientRiskCard.nom` / `FullIngredientStatutEntry.nom` MUST être ancrable dans le segment (Feature C / `IHI-N-FR-005`).
+- En l'absence de profil (`UserProfileProvider.current()` → `DEFAULT`), `isDefaultProfile = true` et rappel « Évalué pour vous : Adulte » (`IHI-N-FR-012` / `IHI-N-SC-008`).
+- La restitution UI n'affiche en clair que les `IngredientRiskCard` (vigilance Modérée/Élevée) ; le bouton « Voir tous les ingrédients analysés » déploie `fullIngredientList` (`IHI-N-FR-010`/`011`, `IHI-N-SC-005`/`006`).

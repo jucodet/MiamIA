@@ -100,3 +100,49 @@
 - `app/src/main/java/com/miamia/MainActivity.kt`
 - `app/src/main/java/com/miamia/healthcritique/HealthCritiqueScreen.kt`
 - `app/src/main/java/com/miamia/healthcritique/HealthCritiqueViewModel.kt`
+
+---
+
+## Quickstart — critique ciblée par profil utilisateur (Feature N)
+
+### Prérequis
+
+- Build debug installé (ou tests JVM) ; runtime Gemma disponible pour le parcours LLM.
+- Jeu fixe d'ingrédients de référence (ex. chaîne mock Feature A ou liste courte réelle).
+
+### Parcours automatique (tests JVM — `IHI-N-SC-001`..`010`)
+
+1. Exécuter `UserProfileTest` : vérifier les 5 profils (labels français + marqueurs canoniques `###FEMME_ENCEINTE` / `###ENFANT` / `###PERSONNE_AGEE` / `###ADULTE` / `###SPORTIF`) et `DEFAULT = ADULTE`.
+2. Exécuter `HealthCritiqueProfilePromptTest` (pour ≥ 2 profils, ex. `FEMME_ENCEINTE` et `SPORTIF`) :
+   - `buildSystemInstruction(profile)` contient le rappel « Évalué pour vous : <label> » et **uniquement** le marqueur du profil sélectionné ;
+   - les autres marqueurs de profil sont **absents** ;
+   - les blocs exigés sont présents : « Niveau de prudence », « Impact », « Fait établi », « Nuance », « Cible particulièrement », « Liste complète des ingrédients analysés » ;
+   - héritage Feature L préservé (persona « nutrition clinique »/« cancérologie préventive », 5 dimensions, garde-fous « diagnostic »/« prescription », disclaimer).
+3. Exécuter `HealthCritiqueSectionParserTest` (étendu Feature N) :
+   - une sortie profil unique (rappel + `###ADULTE` + prudence + cartes + liste compacte) est parsée : `prudenceLevel` non null, `riskCards` et `fullIngredientList` remplis ;
+   - une sortie 4-marqueurs legacy (`###ENFANTS`…`###PERSONNES_AGEES`) est **rejetée** (warning + résultat non succès).
+4. Vérifier la répétabilité : deux appels `buildSystemInstruction(profile)` + `buildUserMessage(list)` produisent un prompt identique.
+
+### Parcours manuel (MVP — `IHI-N-SC-012`, aligné `IHI-C-FR-006`)
+
+1. Sans profil sélectionné (provider par défaut) : lancer la critique → l'écran affiche « Évalué pour vous : Adulte » + un badge « profil par défaut » (invitation à personnaliser).
+2. With `UserProfileProvider` retournant `FEMME_ENCEINTE` : lancer la critique → rappel « Évalué pour vous : Femme enceinte », **une seule** section, marqueur `###FEMME_ENCEINTE` attendu.
+3. Vérifier (relecture humaine) que la sortie ne contient **aucune** section ENFANTS/ADULTES/PERSONNES_AGEES/SPORTIF.
+4. Vérifier l'affichage du **Niveau de prudence** (jauge 3 paliers + texte court) sous la zone KPI additifs.
+5. Vérifier que seules les cartes d'ingrédients à vigilance (Modérée/Élevée) sont affichées en clair (pas de carte « RAS »).
+6. Appuyer sur **« Voir tous les ingrédients analysés »** : la liste compacte (nom + statut RAS/Modéré/Élevé) se déploie.
+7. Simuler une sortie 4-marqueurs (jeu de test) : le parseur la rejette ; l'écran n'affiche pas un succès.
+
+### Fichiers utiles (Feature N)
+
+- `app/src/main/java/com/miamia/healthcritique/UserProfile.kt`
+- `app/src/main/java/com/miamia/healthcritique/UserProfileProvider.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiquePromptBuilder.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueSectionParser.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueModels.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueEngine.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueViewModel.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueResultScreen.kt`
+- `app/src/test/java/com/miamia/healthcritique/UserProfileTest.kt`
+- `app/src/test/java/com/miamia/healthcritique/HealthCritiqueProfilePromptTest.kt`
+- `app/src/test/java/com/miamia/healthcritique/HealthCritiqueSectionParserTest.kt`

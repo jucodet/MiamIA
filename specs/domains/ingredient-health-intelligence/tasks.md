@@ -1,7 +1,7 @@
 # Tasks: ingredient-health-intelligence
 
 **Domain**: `specs/domains/ingredient-health-intelligence/`
-**Dernière feature**: Feature L — personnalisation du prompt de critique santé (2026-06-28)
+**Dernière feature**: Feature N — critique ciblée par profil utilisateur (2026-06-28)
 
 > Tâches cumulatives par feature. Section historique Feature K conservée pour traçabilité (constitution I).
 
@@ -287,3 +287,146 @@ T201 → T202 → T203 [US-M1] → T204 [US-M1] → T205 [US-M2] → T206 [P]
 ## Suggested MVP scope (Feature M)
 
 - **T201–T204** = US-M1 complète (accès UI à la critique santé depuis le résultat composition).
+
+---
+
+## Feature N — Critique ciblée par profil utilisateur (2026-06-28)
+
+**Input**: `specs/domains/ingredient-health-intelligence/` (plan.md Feature N, spec.md Feature N, research.md §12, data-model.md Feature N, `contracts/critique-profil-contract.md`)
+**Prerequisites**: spec Feature N + clarify 2026-06-28 (5 décisions) intégré en spec
+
+**Tests**: ATDD — au moins une tâche de test par user story (US-N1, US-N2, US-N3, US-N4).
+
+## Format
+
+`- [ ] Tnnn [P?] [USNn?] Description avec chemin fichier`
+
+## Dependency graph (Feature N)
+
+```text
+T301 → T302 [US-N1] ──┐
+       T303 [P] [US-N2]┤→ T305 → T306 [US-N2] → T307 [US-N3] → T308 [US-N3] → T309 [US-N4] → T310 [US-N4] → T311 [P]
+       T304 [P] [US-N2]┘
+```
+
+## Phase 1: Setup (Feature N)
+
+**Purpose**: confirmer l'alignement spec/clarify/contract ↔ code critique existant.
+
+- [X] T301 Lire `specs/domains/ingredient-health-intelligence/spec.md` (Feature N, **IHI-N-FR-001**..**016**), `contracts/critique-profil-contract.md`, et `app/src/main/java/com/miamia/healthcritique/HealthCritiquePromptBuilder.kt` + `HealthCritiqueSectionParser.kt` + `HealthCritiqueModels.kt` pour confirmer : format 4-marqueurs courant à superséder, absence de concept profil, restitution UI 4-sections à remplacer.
+
+---
+
+## Phase 2: Foundational (Feature N)
+
+**Purpose**: introduire le contrat profil (enum + provider) avant l'adaptation du builder/parseur.
+
+- [X] T302 [US-N1] Créer `app/src/main/java/com/miamia/healthcritique/UserProfile.kt` : enum `UserProfile` (5 valeurs `FEMME_ENCEINTE`, `ENFANT`, `PERSONNE_AGEE`, `ADULTE`, `SPORTIF`) avec `val label: String` (libellés français : « Femme enceinte », « Enfant », « Agé », « Adulte », « Sportif »), `val marker: String` (`###FEMME_ENCEINTE`, `###ENFANT`, `###PERSONNE_AGEE`, `###ADULTE`, `###SPORTIF`), et `val DEFAULT: UserProfile = ADULTE` (companion). Réf. **IHI-N-FR-001**/**006**.
+- [X] T303 [P] [US-N2] Créer `app/src/main/java/com/miamia/healthcritique/UserProfileProvider.kt` : interface `UserProfileProvider { fun current(): UserProfile }` + `class DefaultUserProfileProvider : UserProfileProvider` retournant `UserProfile.DEFAULT` (settable en mémoire via `var override: UserProfile? = null` pour tests). Réf. **IHI-N-FR-001**/**012**.
+
+**Checkpoint**: contrat profil disponible pour builder/engine/viewmodel ; `DEFAULT = ADULTE` (fallback).
+
+---
+
+## Phase 3: User Story N1 — Profil renseigné / contrat profil (P1) 🎯 MVP
+
+**Goal**: le profil utilisateur est modélisé (5 profils + défaut « Adulte ») et consommable via `UserProfileProvider`.
+
+**Independent test**: tests JVM sur `UserProfile` (labels/marqueurs/`DEFAULT`) + `DefaultUserProfileProvider` (fallback `ADULTE`).
+
+### Tests for US-N1 (MANDATORY) ⚠️
+
+- [X] T304 [P] [US-N1] Créer `app/src/test/java/com/miamia/healthcritique/UserProfileTest.kt` : assertions sur les 5 `UserProfile` (label français exact + marker `###...` exact), `UserProfile.DEFAULT == ADULTE` ; `DefaultUserProfileProvider().current() == ADULTE` ; setter `override = FEMME_ENCEINTE` → `current() == FEMME_ENCEINTE`. Test doit passer après T302/T303 (ATDD vert).
+
+### Implementation for US-N1
+
+- *(couvert par T302 + T303)*
+
+**Checkpoint**: US-N1 vert (contrat profil + fallback « Adulte » testés).
+
+---
+
+## Phase 4: User Story N2 — Prompt adapté au profil + rappel « Évalué pour vous » (P1)
+
+**Goal**: `HealthCritiquePromptBuilder.buildSystemInstruction(profile)` exige uniquement le marqueur du profil sélectionné + rappel « Évalué pour vous : <label> », et préserve l'héritage Feature L (persona, dimensions, garde-fous, disclaimer, seuil liste longue).
+
+**Independent test**: tests JVM sur `buildSystemInstruction(profile)` — marqueur unique + rappel + absence des autres marqueurs + blocs prudence/cartes/liste + héritage Feature L.
+
+### Tests for US-N2 (MANDATORY) ⚠️
+
+- [X] T305 [US-N2] Créer `app/src/test/java/com/miamia/healthcritique/HealthCritiqueProfilePromptTest.kt` : pour `FEMME_ENCEINTE` et `SPORTIF`, assertions `contains` sur le rappel « Évalué pour vous : Femme enceinte » / « Évalué pour vous : Sportif », le marqueur du profil (`###FEMME_ENCEINTE` / `###SPORTIF`), et `!contains` sur les **autres** marqueurs (`###ENFANT`, `###ADULTE`, etc.) ; assertions sur les blocs « Niveau de prudence », « Impact », « Fait établi », « Nuance », « Cible particulièrement », « Liste complète des ingrédients analysés » ; héritage Feature L (persona « nutrition clinique »/« cancérologie préventive », « cancérogène »/« mutagène »/« neurotoxique »/« métabolique »/« inflammatoire », « diagnostic »/« prescription », `HealthCritiquePromptBuilder.DISCLAIMER`). Test doit échouer avant l'implémentation (ATDD).
+
+### Implementation for US-N2
+
+- [X] T306 [US-N2] Modifier `app/src/main/java/com/miamia/healthcritique/HealthCritiquePromptBuilder.kt` : ajouter `fun buildSystemInstruction(profile: UserProfile): String` qui (a) conserve le persona/dimensions/hiérarchie/garde-fous/disclaimer Feature L, (b) exige le rappel « Évalué pour vous : ${profile.label} » en tête, (c) exige **uniquement** le marqueur `${profile.marker}` (plus de 4-marqueurs), (d) exige les blocs Niveau de prudence (Faible/Modéré/Élevé + texte court), cartes d'ingrédients à vigilance (• nom | code | type + Impact/Fait établi/Nuance/Cible particulièrement), liste complète des ingrédients analysés (- nom : RAS/Modéré/Élevé), (e) conserve la gestion liste très longue (`LONG_LIST_INGREDIENT_THRESHOLD`) et langue illisible. Conserver `buildUserMessage` inchangé. Réf. **IHI-N-FR-002**/**003**/**004**/**006**/**007**/**008**/**011**.
+
+**Checkpoint**: US-N2 vert (prompt profil unique + rappel + blocs + héritage Feature L).
+
+---
+
+## Phase 5: User Story N3 — Niveau de prudence parsé + rejet 4-marqueurs (P1)
+
+**Goal**: le parseur extrait le Niveau de prudence, les cartes d'ingrédients et la liste compacte depuis une sortie profil unique ; il rejette une sortie 4-marqueurs legacy.
+
+**Independent test**: tests JVM sur `HealthCritiqueSectionParser` — extraction (marqueur unique, prudence, cartes, liste compacte) + rejet 4-marqueurs.
+
+### Tests for US-N3 (MANDATORY) ⚠️
+
+- [X] T307 [US-N3] Étendre `app/src/test/java/com/miamia/healthcritique/HealthCritiqueSectionParserTest.kt` : (a) sur une sortie profil unique (rappel « Évalué pour vous : Adulte » + `###ADULTE` + `Niveau de prudence : Modéré — …` + une carte `• Nitrite de sodium | E250 | Conservateur — Additif` avec sous-lignes + `Liste complète…` avec `- Farine : RAS`), vérifier `prudenceLevel == MODERE`, `riskCards.size == 1` (nom « Nitrite de sodium », code « E250 », type « Conservateur — Additif », champs non vides), `fullIngredientList` contient « Farine »/`RAS` ; (b) sur une sortie 4-marqueurs (`###ENFANTS`…`###PERSONNES_AGEES`), vérifier le rejet (warning + `isRejectedLegacy4Markers == true`). Test doit échouer avant l'implémentation (ATDD).
+
+### Implementation for US-N3
+
+- [X] T308 [US-N3] Réécrire `app/src/main/java/com/miamia/healthcritique/HealthCritiqueSectionParser.kt` : remplacer le parse 4-sections par un parse **profil unique** — détecter le marqueur canonique présent (parmi les 5 `UserProfile.marker`), extraire `Niveau de prudence : <palier> — <texte>` (regex), les cartes (blocs `• <nom> | <code> | <type>` + sous-lignes `Impact :`/`Fait établi :`/`Nuance :`/`Cible particulièrement :`), et la liste compacte (`- <nom> : <RAS|Modéré|Élevé>`) ; retourner un `ProfileCritiqueResult` (voir T309) ; si **plus d'un** marqueur de profil est présent (sortie 4-marqueurs legacy), marquer `isRejectedLegacy4Markers = true` + warning (→ `non-analysable-response` côté engine). Réf. **IHI-N-FR-013**/**IHI-N-SC-009**.
+
+**Checkpoint**: US-N3 vert (parse profil unique + rejet 4-marqueurs).
+
+---
+
+## Phase 6: User Story N4 — Restitution UI (jauge + cartes filtrées + « Voir tous ») (P1)
+
+**Goal**: l'écran de résultat affiche le rappel « Évalué pour vous », la jauge de Niveau de prudence, les cartes d'ingrédients à vigilance (filtrées), et le bouton « Voir tous les ingrédients analysés » (liste compacte) ; fallback « profil par défaut » signalé.
+
+**Independent test**: parcours quickstart Feature N étapes 1–6 + tests engine/viewmodel (profile transmis, fallback ADULTE).
+
+### Tests for US-N4 (MANDATORY) ⚠️
+
+- [X] T309 [US-N4] Étendre `app/src/test/java/com/miamia/healthcritique/HealthCritiqueEngineTest.kt` (ou nouveau test) : avec un `FakeHealthCritiqueLlmRunner` retournant une sortie profil unique (rappel + `###ADULTE` + prudence + cartes + liste), `engine.analyze(ingredientText, profile = ADULTE)` retourne `CritiqueReady` avec `profileCritique` (prudence/cards/liste remplis) ; avec une sortie 4-marqueurs, `engine.analyze` retourne `InferenceError` (non-analysable). Test doit échouer avant l'implémentation (ATDD).
+
+### Implementation for US-N4
+
+- [X] T310 [US-N4] Câbler le profil dans `app/src/main/java/com/miamia/healthcritique/HealthCritiqueModels.kt` + `HealthCritiqueEngine.kt` + `HealthCritiqueViewModel.kt` + `HealthCritiqueResultScreen.kt` :
+  - `HealthCritiqueModels.kt` : ajouter `PrudenceLevel` (FAIBLE/MODERE/ELEVE + label), `IngredientRiskCard`, `FullIngredientStatutEntry` (+ enum `IngredientVigilanceStatut RAS/MODERE/ELEVE`), `ProfileCritiqueResult` ; étendre `HealthCritiqueResult.CritiqueReady` avec `profileCritique: ProfileCritiqueResult` (ou remplacer `sections`).
+  - `HealthCritiqueEngine.kt` : `analyze(ingredientText, profile: UserProfile, …)` — `promptBuilder.buildSystemInstruction(profile)` ; sur succès, construire `ProfileCritiqueResult` (rappel + `isDefaultProfile = (profile == DEFAULT && provider signale défaut)` — MVP : `isDefaultProfile = (profile == UserProfile.DEFAULT)`), et rejeter (InferenceError `INFERENCE_FAILED`) si `isRejectedLegacy4Markers`. Conserver l'ancrage E-numbers (`HealthCritiqueAnchoring`).
+  - `HealthCritiqueViewModel.kt` : accepter un `UserProfileProvider` (factory) ; `analyze()` lit `provider.current()` et le passe à `engine.analyze` ; exposer `profile`/`isDefaultProfile` dans `HealthCritiqueScreenState`.
+  - `HealthCritiqueResultScreen.kt` : remplacer le rendu 4-sections par — rappel « Évalué pour vous : <label> » (+ badge « profil par défaut » si applicable), jauge 3 paliers (Faible/Modéré/Élevé) + texte court, cartes `IngredientRiskCard` (accordéon repliable, test tag `health_result_card_<nom>`), bouton « Voir tous les ingrédients analysés » (test tag `health_result_show_all`) déploiant la liste compacte (nom + statut). Conserver disclaimer + boutons Copier/Retour.
+  Réf. **IHI-N-FR-009**/**010**/**011**/**012** + **IHI-N-SC-004**/**005**/**006**/**008**.
+
+**Checkpoint**: US-N4 vert (restitution profil unique + jauge + cartes filtrées + « Voir tous » + fallback signalé).
+
+---
+
+## Phase 7: Polish & documentation domaine (Feature N)
+
+- [X] T311 [P] Vérifier la cohérence doc domaine (grep sous `specs/domains/ingredient-health-intelligence/`) : `plan.md` Feature N, `research.md` §12, `data-model.md` Feature N, `contracts/critique-profil-contract.md`, `quickstart.md` Feature N alignés ; exécuter le parcours quickstart Feature N (tests JVM `UserProfileTest` + `HealthCritiqueProfilePromptTest` + `HealthCritiqueSectionParserTest` étendu + `HealthCritiqueEngineTest` étendu). Confirmer qu'aucune doc ne cite le format 4-marqueurs comme actif pour le flux critique (supersession tracée).
+
+---
+
+## Parallel execution (Feature N)
+
+- **T302** (`UserProfile.kt`) et **T303** (`UserProfileProvider.kt`) éditent des fichiers distincts → parallèle [P].
+- **T304** (`UserProfileTest.kt`, fichier distinct) → parallèle avec T305 (`HealthCritiqueProfilePromptTest.kt`).
+- **T305** et **T307** éditent des fichiers de test distincts → parallèle [P].
+- **T306** édite `HealthCritiquePromptBuilder.kt` ; **T308** édite `HealthCritiqueSectionParser.kt` (fichiers distincts) mais T308 dépend conceptuellement du format défini en T306 → séquentiel (T306 puis T308).
+- **T309** (test engine) puis **T310** (models+engine+viewmodel+screen) → séquentiel.
+- **T311** après T310.
+
+## Implementation strategy (Feature N)
+
+- MVP = **T301–T306** (contrat profil + prompt profil unique + rappel) ; US-N1 + US-N2 démontrables et testables indépendamment (tests JVM).
+- Incrémental : US-N3 (T307–T308, parseur) puis US-N4 (T309–T310, restitution) s'ajoutent sans casser US-N1/N2.
+- Non-régression critique : Feature C (ancrage) préservé ; flux composition et `additive-risk-insights` non modifiés (les « alertes » sont les KPI existants juxtaposés via **IHI-C-FR-007**).
+- Supersession : le format 4-marqueurs Feature L est **retiré** (parseur le rejette) — `IHI-L-FR-009`/`IHI-L-SC-004` supersédés (traçabilité en spec).
+
+## Suggested MVP scope (Feature N)
+
+- **T301–T306** = US-N1 + US-N2 complètes (contrat profil + prompt ciblé + rappel « Évalué pour vous »).

@@ -20,12 +20,15 @@ data class HealthCritiqueScreenState(
     val result: HealthCritiqueResult? = null,
     val restoredSnapshot: LastHealthAnalysisSnapshot? = null,
     val lastSystemPrompt: String = "",
+    val profile: UserProfile = UserProfile.DEFAULT,
+    val isDefaultProfile: Boolean = true,
 )
 
 class HealthCritiqueViewModel(
     private val engine: HealthCritiqueEngine,
     private val store: LastHealthAnalysisStore,
     private val promptBuilder: HealthCritiquePromptBuilder,
+    private val userProfileProvider: UserProfileProvider = DefaultUserProfileProvider(),
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(HealthCritiqueScreenState())
@@ -65,13 +68,23 @@ class HealthCritiqueViewModel(
                 "SC-005 : buffer affiché et segment validé doivent rester alignés."
             }
         }
-        val systemPreview = promptBuilder.buildSystemInstruction()
+        val profile = userProfileProvider.current()
+        val systemPreview = promptBuilder.buildSystemInstruction(profile)
         _streamingText.value = ""
-        _ui.update { it.copy(isLoading = true, result = null, lastSystemPrompt = systemPreview) }
+        _ui.update {
+            it.copy(
+                isLoading = true,
+                result = null,
+                lastSystemPrompt = systemPreview,
+                profile = profile,
+                isDefaultProfile = profile == UserProfile.DEFAULT,
+            )
+        }
         _navigateToResult.tryEmit(Unit)
         viewModelScope.launch {
             val outcome = engine.analyze(
                 ingredientText = segmentSnapshot,
+                profile = profile,
                 onStreamPartial = { partial ->
                     _streamingText.value = partial
                 },
@@ -103,11 +116,12 @@ class HealthCritiqueViewModel(
                     val store = LastHealthAnalysisStore(app)
                     val runner = LiteRtHealthCritiqueRunner(app)
                     val promptBuilder = HealthCritiquePromptBuilder()
+                    val userProfileProvider = DefaultUserProfileProvider()
                     val engine = HealthCritiqueEngine(
                         promptBuilder = promptBuilder,
                         llmRunner = runner,
                     )
-                    return HealthCritiqueViewModel(engine, store, promptBuilder) as T
+                    return HealthCritiqueViewModel(engine, store, promptBuilder, userProfileProvider) as T
                 }
             }
     }

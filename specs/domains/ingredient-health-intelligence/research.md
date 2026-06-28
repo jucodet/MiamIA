@@ -124,3 +124,58 @@ Les « inconnues » techniques ont été résolues par la spec + session **clari
 - **Decision** : la chaîne `analyze()` → `navigateToResult` → `HealthCritiqueResult` reste inchangée ; le flux composition et `LlmResultScreen` existant ne sont pas modifiés au-delà de l'ajout du bouton.
 - **Rationale** : périmètre strict (constitution V) ; les garde-fous Feature C et L restent intacts.
 - **Alternatives considered** : refactor de la navigation (rejeté — hors scope).
+
+## 12. Critique ciblée par profil utilisateur (Feature N — 2026-06-28)
+
+### 12.1 Cas d'absence de profil (fallback)
+
+- **Decision** : **fallback implicite sur le profil par défaut « Adulte »** (profil unique, pas 4-profils) ; la critique est produite pour « Adulte » avec rappel « Évalué pour vous : Adulte » + signal visuel « profil par défaut » (invitation à personnaliser). Aucune critique 4-profils (pas de rétropédalage Feature L silencieux).
+- **Rationale** : évite un refus frustrant (clarify Q1 Option C) tout en préservant le ciblage profil unique ; « Adulte » est le profil le plus neutre/général.
+- **Alternatives considered** : exiger la saisie avant analyse (rejeté — friction) ; refuser poliment (rejeté — frustration) ; fallback 4-profils (rejeté — rétropédalage Feature L).
+
+### 12.2 Contenu « Voir tous les ingrédients analysés »
+
+- **Decision** : **liste compacte** (nom + statut de vigilance RAS / Modéré / Élevé) de tous les ingrédients analysés ; pas de cartes complètes pour les ingrédients RAS.
+- **Rationale** : « liste complète » dans l'intention produit = consultation, pas re-déploiement de cartes ; limite la charge prompt/parseur/UI (clarify Q2 Option A).
+- **Alternatives considered** : cartes complètes pour tous (rejeté — explosion visuelle) ; hybride cartes RAS + noms (rejeté — inutilement hybride).
+
+### 12.3 « Alertes » au-dessus du Niveau de prudence
+
+- **Decision** : les « alertes » désignent les **KPI additifs/risques existants** du domaine `additive-risk-insights` (juxtaposition régie par **IHI-C-FR-007**) ; Feature N n'introduit **pas** de nouveau bloc d'alertes ; le Niveau de prudence se place juste en dessous de cette zone KPI.
+- **Rationale** : réutilise le contrat existant (Published Language additive) sans dupliquer (constitution V/VI) (clarify Q3 Option A).
+- **Alternatives considered** : nouveau bloc « Alertes critiques » produit par le prompt critique (rejeté — couplage et nouvelle source) ; formulation générique sans ancrage KPI (rejeté — ambigu).
+
+### 12.4 Suppression du flux 4-profils
+
+- **Decision** : **suppression totale** du flux 4-profils (prompt 4-marqueurs, parseur 4-sections, UI 4-sections) ; seul le mode profil unique reste. **IHI-L-FR-009** / **IHI-L-SC-004** supersédés et retirés (traçabilité en spec). Le parseur MUST rejeter comme `non-analysable-response` toute sortie 4-marqueurs non conforme au format profil unique.
+- **Rationale** : l'utilisatrice « se fiche des 3 profils qui ne la concernent pas » ; simplicité (constitution V) — une seule branche prompt/parseur/UI ; gain de tokens/latence (constitution IV) (clarify Q4 Option A).
+- **Alternatives considered** : mode 4-profils caché/expert « comparer » (rejeté — YAGNI, double branche) ; support parseur 4-marqueurs pour back-compat (rejeté — entretient une voie morte).
+
+### 12.5 Modifiabilité du profil hors Onboarding
+
+- **Decision** : profil modifiable dans un écran **« Paramètres / Profil »** (UGE) en plus de l'Onboarding ; la critique suivante utilise le nouveau profil après changement. IHI ne fait que consommer le profil via `UserProfileProvider`.
+- **Rationale** : modèle mobile standard, faible friction (clarify Q5 Option A) ; respecte la frontière DDD (persistance = UGE).
+- **Alternatives considered** : fixé uniquement à l'Onboarding (rejeté — verrouillage) ; sélecteur rapide sur l'écran de critique (rejeté — mélange UX + risque de changement involontaire).
+
+### 12.6 Contrat de consommation du profil (DDD)
+
+- **Decision** : IHI définit un contrat `UserProfile` (enum 5 profils : `FEMME_ENCEINTE`, `ENFANT`, `PERSONNE_AGEE`, `ADULTE`, `SPORTIF` ; `label` français + `marker` canonique `###<...>` ; `DEFAULT = ADULTE`) et une interface `UserProfileProvider` (lit le profil courant). IHI fournit `DefaultUserProfileProvider` (fallback `ADULTE`, settable pour tests) ; l'implémentation persistée côté UGE (Onboarding + « Paramètres / Profil ») sera fournie par une feature UGE distincte et branchée sur le même contrat.
+- **Rationale** : respecte la frontière DDD (constitution VI) — IHI consomme, UGE persiste ; Published Language du profil via l'enum + interface ; MVP testable sans attendre UGE (provider par défaut).
+- **Alternatives considered** : IHI stocke lui-même le profil (rejeté — fuite de frontière) ; UGE définit l'enum (rejeté — IHI est le consommateur canon du langage profil critique).
+
+### 12.7 Format de sortie profil unique (prompt)
+
+- **Decision** : le prompt exige, pour le profil sélectionné, la structure suivante (après rappel « Évalué pour vous : <label> ») :
+  - ligne `###<MARKER>` (marqueur canonique du profil, ex. `###FEMME_ENCEINTE`) ;
+  - bloc **Niveau de prudence** : `Niveau de prudence : <Faible|Modéré|Élevé> — <texte court justificatif>` ;
+  - bloc **Cartes d'ingrédients à vigilance** : pour chaque ingrédient Modéré/Élevé, une entrée `• <nom> | <code éventuel> | <type>` suivie des sous-lignes `Impact :`, `Fait établi :`, `Nuance :`, `Cible particulièrement :` ;
+  - bloc **Liste complète des ingrédients analysés** : une ligne par ingrédient `- <nom> : <RAS|Modéré|Élevé>`.
+  Aucun texte de critique avant le rappel « Évalué pour vous ». Les exigences Feature L non format-strict (persona, 5 dimensions, hiérarchie, garde-fous, populations vulnérables transversales, disclaimer, seuil liste longue, langue illisible) restent intégrées au prompt.
+- **Rationale** : structure parsable (palier + cartes + liste) alignée sur la restitution UI (jauge + cartes filtrées + « Voir tous ») ; préserve l'ancrage Feature C (chaque ingrédiment cité ancrable dans le segment).
+- **Alternatives considered** : JSON structuré (rejeté — Gemma local plus fiable en markdown léger) ; cartes pour tous les ingrédients (rejeté — clarify Q2).
+
+### 12.8 Validation MVP
+
+- **Decision** : conformité sémantique (ciblage profil unique, rappel « Évalué pour vous », structure des cartes, niveau de prudence) tenue par **relecture humaine + traçabilité** sur un jeu fixe (aligné `IHI-C-FR-006` MVP) ; le format de sortie (marqueur unique + blocs) est vérifié par le parseur étendu (tests JVM `IHI-N-SC-009`).
+- **Rationale** : la conformité sémantique sur texte libre n'est pas fiablement automatisable au MVP ; le format, lui, est contractuel et parsable.
+- **Alternatives considered** : audit automatisé bloquant sur chaque sortie (rejeté au MVP — reporté post-MVP).

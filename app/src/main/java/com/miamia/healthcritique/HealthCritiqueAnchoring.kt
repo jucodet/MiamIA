@@ -11,11 +11,10 @@ object HealthCritiqueAnchoring {
     private val eNumberRegex = Regex("\\bE\\d{2,4}[a-z]?\\b", RegexOption.IGNORE_CASE)
 
     /** Codes E cités dans la critique mais absents du segment (normalisation mécanique v1). */
-    fun unanchoredENumbers(segment: String, sections: Map<PopulationKey, String>): List<String> {
+    fun unanchoredENumbers(segment: String, blob: String): List<String> {
         val hay = SegmentAnchoringV1.normalizeMechanical(segment)
         val seen = mutableSetOf<String>()
         val missing = mutableListOf<String>()
-        val blob = sections.values.joinToString("\n")
         for (m in eNumberRegex.findAll(blob)) {
             val token = m.value
             if (!seen.add(token)) continue

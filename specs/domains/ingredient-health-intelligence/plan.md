@@ -1,7 +1,7 @@
 # Implementation Plan: ingredient-health-intelligence
 
 **Domain**: `specs/domains/ingredient-health-intelligence` | **Spec**: [spec.md](./spec.md)
-**Dernière feature planifiée**: Feature L — personnalisation du prompt de critique santé (2026-06-28)
+**Dernière feature planifiée**: Feature N — critique ciblée par profil utilisateur (2026-06-28)
 
 > Plan cumulatif par feature. Sections historiques conservées pour traçabilité (constitution I).
 
@@ -267,3 +267,97 @@ Voir [research.md](./research.md) §11 (décisions : réutilisation écran exist
 ### Phase 2 — Livraison (Feature M)
 
 Tâches exécutables dans [tasks.md](./tasks.md) (section Feature M).
+
+---
+
+## Feature N — Critique santé ciblée par profil utilisateur (2026-06-28)
+
+**Branch**: `016-launch-splash-screen` (branche courante domaine) | **Date**: 2026-06-28
+**Input**: spec.md Feature N + **clarify** 2026-06-28 (5 décisions : fallback « Adulte » par défaut, liste compacte pour « Voir tous », « alertes » = KPI `additive-risk-insights`, suppression totale du flux 4-profils, profil modifiable dans « Paramètres / Profil » UGE)
+
+### Summary
+
+La **Feature N** remplace la sortie critique 4-profils par une **sortie à profil unique** correspondant au profil utilisateur sélectionné (`Femme enceinte` / `Enfant` / `Agé` / `Adulte` / `Sportif`). Le prompt de critique est adapté pour exiger un seul marqueur canonique par profil, précédé du rappel « Évalué pour vous : <profil> », et structuré en : (1) Niveau de prudence (Faible/Modéré/Élevé + texte court), (2) cartes d'ingrédients à vigilance (Modérée/Élevée) avec champs titre/type/Impact/Fait établi/Nuance/Cible particulièrement, (3) liste compacte de tous les ingrédients analysés (nom + statut). La restitution UI affiche le Niveau de prudence (jauge 3 paliers) juste sous les KPI `additive-risk-insights` existants, puis les cartes problématiques (filtrées), avec un bouton « Voir tous les ingrédients analysés ». En l'absence de profil sélectionné, fallback implicite sur « Adulte » avec signal visuel « profil par défaut ». Le format 4-marqueurs strict Feature L (**IHI-L-FR-009** / **IHI-L-SC-004**) est **supersédé et retiré** ; les exigences Feature L non format-strict (persona, dimensions, hiérarchie, garde-fous, populations vulnérables transversales, disclaimer, seuil liste longue) restent applicables. La sélection/persistance du profil est du ressort du domaine `user-guidance-experience` ; IHI **consomme** le profil via un contrat (`UserProfile` + `UserProfileProvider`).
+
+### Technical Context
+
+**Language/Version**: Kotlin 2.x, Jetpack Compose, Navigation Compose
+**Primary Dependencies**: module `healthcritique` existant (`HealthCritiquePromptBuilder`, `HealthCritiqueSectionParser`, `HealthCritiqueEngine`, `HealthCritiqueViewModel`, `HealthCritiqueModels`, `HealthCritiqueResultScreen`, `HealthCritiqueConfig`) ; contrat profil `UserProfile` / `UserProfileProvider` (nouveau, IHI)
+**Storage**: persistance profil = UGE (hors scope IHI) ; IHI conserve un provider par défaut « Adulte » fallback (en mémoire, settable pour tests)
+**Testing**: JUnit 4, `app/src/test/java/com/miamia/healthcritique/` (`HealthCritiquePromptPrudenceTest`, `HealthCritiqueSectionParserTest`, + nouveau `UserProfileTest` / `HealthCritiqueProfilePromptTest`) ; UI via parcours quickstart
+**Target Platform**: Application Android (module `app`)
+**Project Type**: mobile-app monolithique
+**Performance Goals**: aucun objectif nouveau ; prompt ciblé réduit vs 4-profils (gain attendu de latence/token)
+**Constraints**: Constitution ATDD ; non-régression Feature C (ancrage) ; suppression du flux 4-profils (parseur MUST rejeter 4-marqueurs) ; fallback « Adulte » sans rétropédalage silencieux
+**Scale/Scope**: `HealthCritiquePromptBuilder.kt`, `HealthCritiqueSectionParser.kt`, `HealthCritiqueModels.kt`, `HealthCritiqueEngine.kt`, `HealthCritiqueViewModel.kt`, `HealthCritiqueResultScreen.kt`, nouveau `UserProfile.kt` / `UserProfileProvider.kt`, tests JVM, docs domaine
+
+### Constitution Check (Feature N)
+
+| Principe | Statut |
+|----------|--------|
+| I. Qualité / traçabilité | OK — spec Feature N + clarify → tests prompt/parser/engine → code ; supersession 4-profils tracée en spec |
+| II. ATDD | OK — tests JVM (prompt profil unique, parser marqueur unique + blocs, fallback) avant/avec impl |
+| III. UX | OK — jauge prudence + cartes filtrées + « Voir tous » + rappel « Évalué pour vous » + signal « profil par défaut » |
+| IV. Performance | OK — prompt ciblé (1 profil) vs 4-profils : réduction de tokens/latence |
+| V. Simplicité | OK — suppression du flux 4-profils (une seule branche prompt/parseur/UI) ; profil via contrat simple |
+| VI. DDD | OK — IHI consomme le profil via contrat `UserProfile`/`UserProfileProvider` ; saisie/persistance = UGE (cross-domain note) ; pas de fuite vers composition |
+
+**Post-design** : inchangé.
+
+### Project Structure (Feature N)
+
+#### Documentation (this feature)
+
+```text
+specs/domains/ingredient-health-intelligence/
+├── plan.md (section Feature N)
+├── research.md (§12 Feature N)
+├── data-model.md (entités Feature N)
+├── quickstart.md (parcours Feature N)
+├── contracts/
+│   └── critique-profil-contract.md
+└── tasks.md (section Feature N)
+```
+
+#### Source Code (repository root)
+
+```text
+app/src/main/java/com/miamia/healthcritique/
+├── UserProfile.kt                 # NOUVEAU — enum 5 profils (label + marker) + default ADULTE
+├── UserProfileProvider.kt         # NOUVEAU — interface + DefaultUserProfileProvider (fallback ADULTE)
+├── HealthCritiquePromptBuilder.kt # adapté : buildSystemInstruction(profile) — marqueur unique + rappel
+├── HealthCritiqueSectionParser.kt # adapté : parse profil unique (prudence + cartes + liste compacte)
+├── HealthCritiqueModels.kt        # étendu : PrudenceLevel, IngredientRiskCard, FullIngredientStatut, ProfileCritiqueResult
+├── HealthCritiqueEngine.kt        # adapté : analyze(profile) — passe profil au builder
+├── HealthCritiqueViewModel.kt     # adapté : expose/consomme UserProfileProvider
+└── HealthCritiqueResultScreen.kt  # adapté : restitution « Évalué pour vous » + jauge + cartes + « Voir tous »
+
+app/src/test/java/com/miamia/healthcritique/
+├── UserProfileTest.kt                     # NOUVEAU — labels/marqueurs/default
+├── HealthCritiqueProfilePromptTest.kt     # NOUVEAU — prompt profil unique + rappel + blocs
+└── HealthCritiqueSectionParserTest.kt     # étendu — parse marqueur unique + rejet 4-marqueurs
+```
+
+**Structure Decision** : ajout de 2 fichiers (profil contrat) + adaptation locale du builder, parseur, modèles, engine, ViewModel, écran de résultat ; tests JVM étendus/nouveaux. Le flux composition et `additive-risk-insights` ne sont pas modifiés (les KPI « alertes » sont juxtaposés via le contrat existant **IHI-C-FR-007**).
+
+### Complexity Tracking
+
+> Aucune violation constitutionnelle à justifier.
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| — | — | — |
+
+### Phase 0 — Recherche (Feature N)
+
+Voir [research.md](./research.md) §12 (décisions clarify 2026-06-28 : fallback Adulte, liste compacte, alertes = KPI additifs, suppression 4-profils, profil modifiable UGE).
+
+### Phase 1 — Design (Feature N)
+
+- [data-model.md](./data-model.md) : entités Feature N — `UserProfile`, `UserProfileProvider`, `PrudenceLevel`, `IngredientRiskCard`, `FullIngredientStatutEntry`, `ProfileCritiqueResult`.
+- [contracts/critique-profil-contract.md](./contracts/critique-profil-contract.md) : contrat de consommation du profil (IHI) + format de sortie profil unique + restitution (jauge, cartes, liste compacte).
+- [quickstart.md](./quickstart.md) : parcours manuel + tests JVM Feature N (profil unique, rappel, jauge, cartes, « Voir tous », fallback Adulte, rejet 4-marqueurs).
+
+### Phase 2 — Livraison (Feature N)
+
+Tâches exécutables dans [tasks.md](./tasks.md) (section Feature N).

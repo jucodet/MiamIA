@@ -34,8 +34,48 @@ class HealthCritiqueEngineTest {
         assertNull(fake.lastUserMessage())
     }
 
+    // --- Feature N — US-N4 : profil unique parsé + fallback Adulte + rejet 4-marqueurs ---
+
     @Test
-    fun fakeSuccess_returnsCritiqueReady() = runBlocking {
+    fun fakeSuccess_profileUnique_returnsCritiqueReady_withProfileCritique() = runBlocking {
+        val fixture = """
+            Évalué pour vous : Adulte
+
+            ###ADULTE
+
+            Niveau de prudence : Modéré — phosphate.
+
+            • Nitrite de sodium | E250 | Conservateur — Additif
+              Impact : cancérogène probable.
+              Fait établi : risque cancer colorectal.
+              Nuance : dépend de la fréquence.
+              Cible particulièrement : Enfants, Femmes enceintes.
+
+            Liste complète des ingrédients analysés :
+            - Eau : RAS
+            - Nitrite de sodium : Élevé
+        """.trimIndent()
+        val engine = HealthCritiqueEngine(
+            llmRunner = FakeHealthCritiqueLlmRunner(
+                HealthCritiqueLlmGenerateResult.Success(fixture),
+            ),
+        )
+        val r = engine.analyze(
+            requestId = "rid",
+            ingredientText = "eau, nitrite de sodium (E250)",
+            profile = UserProfile.ADULTE,
+        )
+        assertTrue(r is HealthCritiqueResult.CritiqueReady)
+        val ok = r as HealthCritiqueResult.CritiqueReady
+        assertEquals(UserProfile.ADULTE, ok.profile)
+        assertEquals(PrudenceLevel.MODERE, ok.profileCritique.prudenceLevel)
+        assertEquals(1, ok.profileCritique.riskCards.size)
+        assertEquals(2, ok.profileCritique.fullIngredientList.size)
+        assertTrue(ok.isDefaultProfile)
+    }
+
+    @Test
+    fun fakeSuccess_legacyFourMarkers_returnsInferenceError() = runBlocking {
         val fixture = """
             ###ENFANTS
             e1
@@ -52,10 +92,7 @@ class HealthCritiqueEngineTest {
             ),
         )
         val r = engine.analyze(requestId = "rid", ingredientText = "eau, sucre, farine")
-        assertTrue(r is HealthCritiqueResult.CritiqueReady)
-        val ok = r as HealthCritiqueResult.CritiqueReady
-        assertEquals("e1", ok.sections[PopulationKey.ENFANTS]?.trim())
-        assertEquals("e4", ok.sections[PopulationKey.PERSONNES_AGEES]?.trim())
+        assertTrue(r is HealthCritiqueResult.InferenceError)
     }
 
     @Test

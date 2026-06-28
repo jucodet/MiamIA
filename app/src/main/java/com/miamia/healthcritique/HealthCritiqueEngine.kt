@@ -11,14 +11,18 @@ class HealthCritiqueEngine(
 ) {
 
     /**
-     * Analyse la critique santé pour le segment courant.
+     * Analyse la critique santé pour le segment courant et le [profile] sélectionné
+     * (Feature N — profil unique). En l'absence de profil explicite, l'appelant MUST
+     * passer [UserProfile.DEFAULT] (Adulte) — fallback signalé en UI via `isDefaultProfile`.
      *
-     * L’appelant MUST transmettre [ingredientText] **identique** au segment ingrédients validé
-     * affiché en lecture seule (SC-005), ou [null] s’il n’y a pas encore de segment issu du bilan.
+     * L'appelant MUST transmettre [ingredientText] **identique** au segment ingrédients
+     * validé affiché en lecture seule (SC-005), ou [null] s'il n'y a pas encore de segment
+     * issu du bilan.
      */
     suspend fun analyze(
         requestId: String = UUID.randomUUID().toString(),
         ingredientText: String?,
+        profile: UserProfile = UserProfile.DEFAULT,
         maxInferenceMs: Long = HealthCritiqueConfig.DEFAULT_MAX_INFERENCE_MS,
         onStreamPartial: ((String) -> Unit)? = null,
     ): HealthCritiqueResult {
@@ -41,12 +45,20 @@ class HealthCritiqueEngine(
                 "SC-005 : le message utilisateur doit contenir la liste canonique affichée."
             }
         }
-        val system = promptBuilder.buildSystemInstruction()
+        val system = promptBuilder.buildSystemInstruction(profile)
         val user = promptBuilder.buildUserMessage(canonicalList)
         return when (val out = llmRunner.generate(system, user, maxInferenceMs, onStreamPartial)) {
             is HealthCritiqueLlmGenerateResult.Success -> {
-                val parsed = sectionParser.parse(out.text)
-                val missingE = HealthCritiqueAnchoring.unanchoredENumbers(canonicalList, parsed.sections)
+                val parsed = sectionParser.parse(out.text, profile)
+                if (parsed.isRejectedLegacy4Markers) {
+                    return HealthCritiqueResult.InferenceError(
+                        requestId = requestId,
+                        errorCode = HealthInferenceErrorCode.INFERENCE_FAILED,
+                        message = "Sortie 4-profils legacy rejetée (format profil unique attendu — Feature N).",
+                        processedAtEpochMs = now,
+                    )
+                }
+                val missingE = HealthCritiqueAnchoring.unanchoredENumbers(canonicalList, out.text)
                 if (missingE.isNotEmpty()) {
                     return HealthCritiqueResult.InferenceError(
                         requestId = requestId,
@@ -60,9 +72,11 @@ class HealthCritiqueEngine(
                 HealthCritiqueResult.CritiqueReady(
                     requestId = requestId,
                     llmRawText = out.text,
-                    sections = parsed.sections,
+                    profile = profile,
+                    profileCritique = parsed,
                     parseWarnings = parsed.warnings,
                     disclaimer = HealthCritiquePromptBuilder.DISCLAIMER,
+                    isDefaultProfile = profile == UserProfile.DEFAULT,
                     processedAtEpochMs = now,
                 )
             }

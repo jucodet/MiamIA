@@ -9,21 +9,27 @@ class HealthCritiqueGroundingTest {
     @Test
     fun eNumberNotInSegment_returnsInferenceError() = runBlocking {
         val fixture = """
-            ###ENFANTS
-            Contient E999 non listé.
-            ###FEMMES_ENCEINTES
-            ok
-            ###ADULTES
-            ok
-            ###PERSONNES_AGEES
-            ok
+            Évalué pour vous : Adulte
+
+            ###ADULTE
+
+            Niveau de prudence : Élevé — additif non listé.
+
+            • Conservateur X | E999 | Conservateur — Additif
+              Impact : effet suspecté.
+              Fait établi : classement CIRC en discussion.
+              Nuance : dépend de la dose.
+              Cible particulièrement : Enfants.
+
+            Liste complète des ingrédients analysés :
+            - Eau : RAS
         """.trimIndent()
         val engine = HealthCritiqueEngine(
             llmRunner = FakeHealthCritiqueLlmRunner(
                 HealthCritiqueLlmGenerateResult.Success(fixture),
             ),
         )
-        val r = engine.analyze(requestId = "rid", ingredientText = "eau, sucre")
+        val r = engine.analyze(requestId = "rid", ingredientText = "eau, sucre", profile = UserProfile.ADULTE)
         assertTrue(r is HealthCritiqueResult.InferenceError)
     }
 }
