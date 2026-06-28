@@ -10,6 +10,41 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
+ * Abstraction réseau — testable avec un fake (JVM pur) dans [OffCiqualRefreshGateway].
+ */
+fun interface HttpFetcher {
+    suspend fun fetchText(url: String, config: KbRefreshConfig): String
+}
+
+/**
+ * Fetcher par défaut — `HttpURLConnection`, timeouts et plafond depuis [KbRefreshConfig]
+ * (pattern `GemmaModelDownloader` — principe V, aucune nouvelle dépendance HTTP).
+ */
+object DefaultHttpFetcher : HttpFetcher {
+    override suspend fun fetchText(url: String, config: KbRefreshConfig): String {
+        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = config.connectTimeoutMs
+            readTimeout = config.readTimeoutMs
+            requestMethod = "GET"
+            setRequestProperty("Accept", "application/json")
+        }
+        try {
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                throw IOException("HTTP $code pour $url")
+            }
+            val bytes = conn.inputStream.use { it.readBytes() }
+            if (bytes.size > config.maxPayloadBytes) {
+                throw IOException("Payload hors bornes (> ${config.maxPayloadBytes} octets) pour $url")
+            }
+            return String(bytes, Charsets.UTF_8)
+        } finally {
+            conn.disconnect()
+        }
+    }
+}
+
+/**
  * Implémentation [KbRefreshGateway] de production : fetch de la taxonomie additive OpenFoodFacts
  * (couverture exhaustive) + des attributs Ciqual quand disponibles, via `HttpURLConnection`
  * (pattern `GemmaModelDownloader` — principe V, aucune nouvelle dépendance HTTP).
@@ -24,14 +59,9 @@ import java.net.URL
 class OffCiqualRefreshGateway(
     private val baselineAllergens: List<AllergenFactCard>,
     private val config: KbRefreshConfig = KbRefreshConfig(),
-    private val fetcher: HttpFetcher = OffCiqualRefreshGateway.DefaultHttpFetcher,
+    private val fetcher: HttpFetcher = DefaultHttpFetcher,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) : KbRefreshGateway {
-
-    /** Abstraction réseau — testable avec un fake (JVM pur). */
-    fun interface HttpFetcher {
-        suspend fun fetchText(url: String, config: KbRefreshConfig): String
-    }
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -117,34 +147,5 @@ class OffCiqualRefreshGateway(
             rejectedEntries = rejected,
             partial = !ciqualAvailable,
         )
-    }
-
-    companion object {
-        /**
-         * Fetcher par défaut — `HttpURLConnection`, timeouts et plafond depuis [KbRefreshConfig].
-         */
-        object DefaultHttpFetcher : HttpFetcher {
-            override suspend fun fetchText(url: String, config: KbRefreshConfig): String {
-                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = config.connectTimeoutMs
-                    readTimeout = config.readTimeoutMs
-                    requestMethod = "GET"
-                    setRequestProperty("Accept", "application/json")
-                }
-                try {
-                    val code = conn.responseCode
-                    if (code !in 200..299) {
-                        throw IOException("HTTP $code pour $url")
-                    }
-                    val bytes = conn.inputStream.use { it.readBytes() }
-                    if (bytes.size > config.maxPayloadBytes) {
-                        throw IOException("Payload hors bornes (> ${config.maxPayloadBytes} octets) pour $url")
-                    }
-                    return String(bytes, Charsets.UTF_8)
-                } finally {
-                    conn.disconnect()
-                }
-            }
-        }
     }
 }
