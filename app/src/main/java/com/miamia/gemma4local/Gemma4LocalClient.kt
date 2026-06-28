@@ -6,6 +6,7 @@ import com.miamia.gemma4local.model.AnalyseTextuelleErrorType
 import com.miamia.gemma4local.model.AnalyseTextuelleResult
 import com.miamia.gemma4local.model.AnalyseTextuelleStatus
 import com.miamia.gemma4local.model.ApiCallMetric
+import com.miamia.gemma4local.model.BackendExecution
 import kotlinx.coroutines.withTimeout
 
 fun interface Gemma4LocalApiGateway {
@@ -33,19 +34,23 @@ class Gemma4LocalClient(
         }
 
         return try {
-            val output = withTimeout(Gemma4LocalConfig.DEFAULT_TIMEOUT_MS) {
+            val outcome = withTimeout(Gemma4LocalConfig.DEFAULT_TIMEOUT_MS) {
                 if (onStreamPartial != null && gateway is HybridGemma4LocalGateway) {
-                    gateway.analyzeTextStreaming(request.inputText, onStreamPartial)
+                    gateway.analyzeTextStreamingWithBackend(request.inputText, onStreamPartial)
+                } else if (gateway is HybridGemma4LocalGateway) {
+                    gateway.analyzeTextWithBackend(request.inputText)
                 } else {
-                    gateway.analyzeText(request.inputText)
+                    InferenceOutcome(gateway.analyzeText(request.inputText), BackendExecution.INDETERMINATE)
                 }
-            }.trim()
+            }
+            val output = outcome.text.trim()
             val latency = SystemClock.elapsedRealtime() - started
             val result = if (output.isNotEmpty()) {
                 AnalyseTextuelleResult(
                     requestId = request.requestId,
                     status = AnalyseTextuelleStatus.SUCCESS,
-                    outputText = output
+                    outputText = output,
+                    backend = outcome.backend
                 )
             } else {
                 AnalyseTextuelleResult(

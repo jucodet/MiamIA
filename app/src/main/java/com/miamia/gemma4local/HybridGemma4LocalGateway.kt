@@ -10,11 +10,20 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
+import com.miamia.gemma4local.model.BackendExecution
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
+
+/**
+ * Résultat d'une inférence : texte produit + backend matériel réellement utilisé.
+ */
+data class InferenceOutcome(
+    val text: String,
+    val backend: BackendExecution
+)
 
 /**
  * Gateway LiteRT-LM avec telechargement automatique du modele Gemma 4 E2B
@@ -35,10 +44,24 @@ class HybridGemma4LocalGateway(
     }
 
     override suspend fun analyzeText(inputText: String): String {
-        return analyzeTextStreaming(inputText, null)
+        return analyzeTextStreaming(inputText, null).text
     }
 
     suspend fun analyzeTextStreaming(inputText: String, onPartial: ((String) -> Unit)?): String {
+        return analyzeTextStreamingWithBackend(inputText, onPartial).text
+    }
+
+    /**
+     * Variante exposant le backend réellement utilisé (pour la pastille UI).
+     */
+    suspend fun analyzeTextWithBackend(inputText: String): InferenceOutcome {
+        return analyzeTextStreamingWithBackend(inputText, null)
+    }
+
+    suspend fun analyzeTextStreamingWithBackend(
+        inputText: String,
+        onPartial: ((String) -> Unit)?
+    ): InferenceOutcome {
         val modelFile = downloader.resolveLocalModel()
             ?: throw IllegalStateException("Modele Gemma local indisponible")
         val systemInstruction = compositionSystemInstruction()
@@ -61,7 +84,7 @@ class HybridGemma4LocalGateway(
         val modelFile = downloader.resolveLocalModel()
             ?: throw IllegalStateException("Modele Gemma local indisponible")
         return withContext(Dispatchers.IO) {
-            runInferenceLoop(modelFile, systemInstruction, userMessage, onPartial)
+            runInferenceLoop(modelFile, systemInstruction, userMessage, onPartial).text
         }
     }
 
@@ -90,7 +113,7 @@ class HybridGemma4LocalGateway(
         systemInstruction: String,
         userMessage: String,
         onPartial: ((String) -> Unit)?
-    ): String {
+    ): InferenceOutcome {
         val backendErrors = mutableListOf<String>()
         for (backend in prioritizedBackends()) {
             val name = backendName(backend)
@@ -105,7 +128,7 @@ class HybridGemma4LocalGateway(
             }
             if (!output.isNullOrBlank()) {
                 Log.i(TAG, "backend_success $name ${System.currentTimeMillis() - started}ms chars=${output.length}")
-                return output
+                return InferenceOutcome(output, BackendExecution.from(backend))
             }
         }
         throw IllegalStateException(

@@ -20,6 +20,7 @@ class Gemma4LocalCompositionEngine(
             if (parsed != null) AnalyzeCompositionResult.BilanSuccess(
                 bilan = parsed,
                 rawModelOutput = localResult.outputText.orEmpty(),
+                backend = localResult.backend,
             )
             else {
                 Log.w(TAG, "parse_failed full_output=[${localResult.outputText}]")

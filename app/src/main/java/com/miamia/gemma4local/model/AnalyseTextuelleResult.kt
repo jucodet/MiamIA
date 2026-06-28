@@ -21,5 +21,6 @@ data class AnalyseTextuelleResult(
     val outputText: String? = null,
     val errorType: AnalyseTextuelleErrorType? = null,
     val userMessage: String = "",
+    val backend: BackendExecution = BackendExecution.INDETERMINATE,
     val completedAt: Instant = Instant.now()
 )

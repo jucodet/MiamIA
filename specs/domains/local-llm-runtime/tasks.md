@@ -100,6 +100,14 @@ Projet mobile Android monomodule : sources `app/src/main/java/com/miamia/...`, t
 - [ ] T015 [P] Verify pastille lisibilité/contraste thèmes clair et sombre (icône + couleur + libellé) in `app/src/main/java/com/miamia/camera/BilanResultCard.kt`
 - [x] T016 [P] Verify no regression on existing `CameraViewModelGemmaErrorTest` / `CameraLlmFlowViewModelTest` / `Gemma4LocalApiContractSuccessTest` (champ `backend` a défaut non-cassant)
 
+### Correctif path production (post-test utilisateur)
+
+> Le plan initial ciblait `LiteRtGemmaEngine`, mais `MainActivity` câble `Gemma4LocalCompositionEngine` → `Gemma4LocalClient` → `HybridGemma4LocalGateway`. Sans ce correctif, le badge restait `INDETERMINATE` ("—") en production.
+
+- [x] T017 [US1] Propagate backend from `HybridGemma4LocalGateway.runInferenceLoop` via new `InferenceOutcome(text, backend)` + `analyzeTextStreamingWithBackend`/`analyzeTextWithBackend` in `app/src/main/java/com/miamia/gemma4local/HybridGemma4LocalGateway.kt`
+- [x] T018 [US1] Add `backend: BackendExecution = INDETERMINATE` to `AnalyseTextuelleResult` and populate it in `Gemma4LocalClient.analyze` (uses `*WithBackend` variants for `HybridGemma4LocalGateway`) in `app/src/main/java/com/miamia/gemma4local/model/AnalyseTextuelleResult.kt` and `app/src/main/java/com/miamia/gemma4local/Gemma4LocalClient.kt`
+- [x] T019 [US1] Pass `localResult.backend` into `BilanSuccess(backend = ...)` in `Gemma4LocalCompositionEngine.analyze` in `app/src/main/java/com/miamia/composition/Gemma4LocalCompositionEngine.kt`
+
 ---
 
 ## Dependencies & Execution Order
