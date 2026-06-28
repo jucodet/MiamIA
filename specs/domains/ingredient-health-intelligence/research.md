@@ -220,11 +220,11 @@ Les « inconnues » techniques ont été résolues par la spec + session **clari
 - **Rationale** : non-régression de la persistance Feature B ; l'écran principal reste lisible sans actions secondaires.
 - **Alternatives considered** : conserver les actions copier (rejeté — produit) ; déplacer les actions copier dans un menu global (rejeté — hors périmètre, friction).
 
-### 13.7 Inférence synchrone du runner critique (correctif 2026-06-28)
+### 13.7 Délégation de l'inférence critique au gateway composition (correctif 2026-06-28)
 
-- **Decision** : `LiteRtHealthCritiqueRunner` utilise `Conversation.sendMessage` **synchrone** sur engine frais (par backend NPU→GPU→CPU, engine fermé en `finally`), sans `sendMessageAsync` ni re-tentative sur le même engine. `onStreamPartial` est rappelé une fois avec le texte final.
-- **Rationale** : l'API streaming `sendMessageAsync` lève une `IllegalStateException` (cycle de vie conversation/backend) ; la re-tentative synchrone sur le **même** engine wedgé échouait à son tour → `InferenceError` sur tous les backends. Le gateway composition (`HybridGemma4LocalGateway`) qui fonctionne utilise déjà `sendMessage` synchrone + engine fermé en `finally`. Alignement sur ce pattern.
-- **Alternatives considered** : conserver le streaming avec re-tentative sur engine frais (rejeté — complexité, bénéfice UX faible sur une critique ~70 s avec loading inline) ; partager un engine unique composition/critique (rejeté — refactor cross-domaine hors scope Feature O).
+- **Decision** : `LiteRtHealthCritiqueRunner` ne pilote plus son propre `Engine` LiteRT-LM (wrapper `CompletableFuture.supplyAsync` + `synchronized` + rétention d'engine + `sendMessage`/`sendMessageAsync` avec re-tentative sur le même engine). Il délègue à `HybridGemma4LocalGateway.inferStreaming(systemInstruction, userMessage, onPartial)` — **le même chemin d'inférence que la composition** (boucle backends NPU→GPU→CPU, `Engine` fermé en `finally`, streaming `sendMessageAsync`). Délai borné via `withTimeout(maxInferenceMs)` (Feature A) ; résolution modèle via `GemmaModelLocator` pour distinguer `GEMMA_NOT_FOUND` / `GEMMA_LOAD_FAILED` avant l'inférence.
+- **Rationale** : le runner dédié levait une `IllegalStateException` (cycle de vie conversation/backend) sur **tous** les backends, y compris en `sendMessage` synchrone sur engine frais. La composition fonctionne via `HybridGemma4LocalGateway` sur le même appareil/modèle ; réutiliser ce chemin éprouvé élimine la divergence. `HybridGemma4LocalGateway` expose désormais `inferStreaming` générique (system + user fournis), `runAnalyzeOnBackend` ayant été paramétré (system/user extraits du prompt composition).
+- **Alternatives considered** : `sendMessage` synchrone seul (essayé — échec identique) ; partager un `Engine` unique composition/critique (rejeté — refactor cross-domaine hors scope Feature O) ; wrapper `CompletableFuture` de deadline (rejeté — source du bug threading).
 
 ### 13.7 Non-régression et ordonnancement
 

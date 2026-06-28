@@ -41,7 +41,28 @@ class HybridGemma4LocalGateway(
     suspend fun analyzeTextStreaming(inputText: String, onPartial: ((String) -> Unit)?): String {
         val modelFile = downloader.resolveLocalModel()
             ?: throw IllegalStateException("Modele Gemma local indisponible")
-        return withContext(Dispatchers.IO) { runAnalyze(modelFile, inputText, onPartial) }
+        val systemInstruction = compositionSystemInstruction()
+        val userMessage = "Texte capture (OCR):\n${inputText.trim().take(Gemma4LocalConfig.MAX_INPUT_CHARS)}"
+        return withContext(Dispatchers.IO) {
+            runInferenceLoop(modelFile, systemInstruction, userMessage, onPartial)
+        }
+    }
+
+    /**
+     * Inférence générique avec system instruction + user message fournis par l'appelant
+     * (ex. critique santé). Réutilise exactement le même chemin LiteRT-LM que la composition
+     * (boucle backends NPU→GPU→CPU, engine fermé en finally, streaming via sendMessageAsync).
+     */
+    suspend fun inferStreaming(
+        systemInstruction: String,
+        userMessage: String,
+        onPartial: ((String) -> Unit)?
+    ): String {
+        val modelFile = downloader.resolveLocalModel()
+            ?: throw IllegalStateException("Modele Gemma local indisponible")
+        return withContext(Dispatchers.IO) {
+            runInferenceLoop(modelFile, systemInstruction, userMessage, onPartial)
+        }
     }
 
     override suspend fun ping(): Boolean {
@@ -51,8 +72,9 @@ class HybridGemma4LocalGateway(
                 val output = runAnalyzeOnBackend(
                     modelPath = modelFile.absolutePath,
                     backend = Backend.CPU(),
-                    inputText = "ok",
-                    onPartial = null
+                    systemInstruction = "Reponds en francais.",
+                    userMessage = "ok",
+                    onPartial = null,
                 )
                 val healthy = output.isNotBlank()
                 Log.i(TAG, "health_ping healthy=$healthy backend=CPU")
@@ -63,13 +85,18 @@ class HybridGemma4LocalGateway(
         }.getOrDefault(false)
     }
 
-    private fun runAnalyze(modelFile: File, inputText: String, onPartial: ((String) -> Unit)?): String {
+    private fun runInferenceLoop(
+        modelFile: File,
+        systemInstruction: String,
+        userMessage: String,
+        onPartial: ((String) -> Unit)?
+    ): String {
         val backendErrors = mutableListOf<String>()
         for (backend in prioritizedBackends()) {
             val name = backendName(backend)
             val started = System.currentTimeMillis()
             val output = runCatching {
-                runAnalyzeOnBackend(modelFile.absolutePath, backend, inputText, onPartial)
+                runAnalyzeOnBackend(modelFile.absolutePath, backend, systemInstruction, userMessage, onPartial)
             }.getOrElse { t ->
                 val elapsed = System.currentTimeMillis() - started
                 backendErrors += "$name:${t.javaClass.simpleName}:${t.message.orEmpty()}"
@@ -89,7 +116,8 @@ class HybridGemma4LocalGateway(
     private fun runAnalyzeOnBackend(
         modelPath: String,
         backend: Backend,
-        inputText: String,
+        systemInstruction: String,
+        userMessage: String,
         onPartial: ((String) -> Unit)?
     ): String {
         val engine = Engine(
@@ -101,42 +129,41 @@ class HybridGemma4LocalGateway(
         )
         return try {
             engine.initialize()
-            val systemInstruction = Contents.of(
-                "Reponds entierement en francais. " +
-                    "Tu analyses des listes d'ingredients alimentaires (contexte UE). " +
-                    "Ne pas inventer d'ingredients absents du texte source. " +
-                    "Pour ###LISTE : un ingredient par ligne avec - ; reformule chaque libelle OCR vers la graphie la plus probable (orthographe, accents, formulation UE) sans changer le sens ni l'ordre des entrees reellement lues. " +
-                    "Sans pourcentages entre parentheses dans les libelles (ex. farine de ble sans (50 %) ; meme regle pour le champ nom des verdicts). " +
-                    "Corriger polmiste -> palmiste. Si farine(s) de X et de Y sur une ligne, deux lignes - farine de X et - farine de Y. " +
-                    "Enlever une parenthese fermante en trop en fin de libelle si elle n'a pas de ( ouvrante (ex. huile de colza) devient huile de colza sans le dernier ). " +
-                    "Pour ###ADDITIFS_RISQUE et ###IMPACT_SANTE : le champ nom entre les barres doit reprendre le meme intitule normalise que dans ###LISTE pour le meme compose. " +
-                    "###IMPACT_SANTE : exactement une ligne par entree de ###LISTE, meme ordre, aucune omission. " +
-                    "Exemple correction OCR : omidon -> amidon. " +
-                    "Reponds uniquement avec 6 sections dans cet ordre : ###LISTE, ###PRODUIT, ###ANALYSE, ###ENERGIE_ESTIMEE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
-                    "Exemple : ###LISTE\n- eau\n- sucre\n- E300\n###PRODUIT\nLimonade ou soda sucre|80\n###ANALYSE\nProduit simple. Peu d'additifs.\n" +
-                    "###ENERGIE_ESTIMEE\n38\n" +
-                    "###ADDITIFS_RISQUE\nVERT|E300|Vitamine C naturelle\n" +
-                    "###IMPACT_SANTE\nVERT|eau|Hydratation essentielle\nORANGE|sucre|Exces lie au surpoids\nVERT|E300|Sans risque aux doses alimentaires\n" +
-                    "Regles : ###LISTE un ingredient par ligne avec -. " +
-                    "###PRODUIT une seule ligne, format nom_du_produit|pourcentage_certitude (0-100). Le produit alimentaire le plus probable auquel ces ingredients appartiennent. " +
-                    "###ANALYSE 3 phrases max, factuelles, prudentes. " +
-                    "###ENERGIE_ESTIMEE une seule ligne : entier kcal pour 100 g (estimation indicative depuis la liste) ou NA si non fiable. " +
-                    "###ADDITIFS_RISQUE et ###IMPACT_SANTE : chaque ligne commence par VERT ou ORANGE ou ROUGE ou INCERTAIN puis | puis nom puis | puis note courte. " +
-                    "Si aucun additif, laisser ###ADDITIFS_RISQUE vide."
-            )
-            val conversationConfig = ConversationConfig(systemInstruction = systemInstruction)
-            val prompt = "Texte capture (OCR):\n${inputText.trim().take(Gemma4LocalConfig.MAX_INPUT_CHARS)}"
+            val conversationConfig = ConversationConfig(systemInstruction = Contents.of(systemInstruction))
             engine.createConversation(conversationConfig).use { conversation ->
                 if (onPartial != null) {
-                    collectStreaming(conversation, prompt, onPartial)
+                    collectStreaming(conversation, userMessage, onPartial)
                 } else {
-                    textFromMessage(conversation.sendMessage(prompt)).trim()
+                    textFromMessage(conversation.sendMessage(userMessage)).trim()
                 }
             }
         } finally {
             engine.close()
         }
     }
+
+    private fun compositionSystemInstruction(): String =
+        "Reponds entierement en francais. " +
+            "Tu analyses des listes d'ingredients alimentaires (contexte UE). " +
+            "Ne pas inventer d'ingredients absents du texte source. " +
+            "Pour ###LISTE : un ingredient par ligne avec - ; reformule chaque libelle OCR vers la graphie la plus probable (orthographe, accents, formulation UE) sans changer le sens ni l'ordre des entrees reellement lues. " +
+            "Sans pourcentages entre parentheses dans les libelles (ex. farine de ble sans (50 %) ; meme regle pour le champ nom des verdicts). " +
+            "Corriger polmiste -> palmiste. Si farine(s) de X et de Y sur une ligne, deux lignes - farine de X et - farine de Y. " +
+            "Enlever une parenthese fermante en trop en fin de libelle si elle n'a pas de ( ouvrante (ex. huile de colza) devient huile de colza sans le dernier ). " +
+            "Pour ###ADDITIFS_RISQUE et ###IMPACT_SANTE : le champ nom entre les barres doit reprendre le meme intitule normalise que dans ###LISTE pour le meme compose. " +
+            "###IMPACT_SANTE : exactement une ligne par entree de ###LISTE, meme ordre, aucune omission. " +
+            "Exemple correction OCR : omidon -> amidon. " +
+            "Reponds uniquement avec 6 sections dans cet ordre : ###LISTE, ###PRODUIT, ###ANALYSE, ###ENERGIE_ESTIMEE, ###ADDITIFS_RISQUE, ###IMPACT_SANTE. " +
+            "Exemple : ###LISTE\n- eau\n- sucre\n- E300\n###PRODUIT\nLimonade ou soda sucre|80\n###ANALYSE\nProduit simple. Peu d'additifs.\n" +
+            "###ENERGIE_ESTIMEE\n38\n" +
+            "###ADDITIFS_RISQUE\nVERT|E300|Vitamine C naturelle\n" +
+            "###IMPACT_SANTE\nVERT|eau|Hydratation essentielle\nORANGE|sucre|Exces lie au surpoids\nVERT|E300|Sans risque aux doses alimentaires\n" +
+            "Regles : ###LISTE un ingredient par ligne avec -. " +
+            "###PRODUIT une seule ligne, format nom_du_produit|pourcentage_certitude (0-100). Le produit alimentaire le plus probable auquel ces ingredients appartiennent. " +
+            "###ANALYSE 3 phrases max, factuelles, prudentes. " +
+            "###ENERGIE_ESTIMEE une seule ligne : entier kcal pour 100 g (estimation indicative depuis la liste) ou NA si non fiable. " +
+            "###ADDITIFS_RISQUE et ###IMPACT_SANTE : chaque ligne commence par VERT ou ORANGE ou ROUGE ou INCERTAIN puis | puis nom puis | puis note courte. " +
+            "Si aucun additif, laisser ###ADDITIFS_RISQUE vide."
 
     private fun collectStreaming(
         conversation: Conversation,
