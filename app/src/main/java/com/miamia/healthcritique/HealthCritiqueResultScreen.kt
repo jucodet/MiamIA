@@ -205,13 +205,13 @@ private fun CritiqueProfileContent(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 
-    if (critique.parseWarnings.isNotEmpty()) {
+    if (critique.warnings.isNotEmpty()) {
         Text(
             text = "Avertissements de structure",
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.error,
         )
-        critique.parseWarnings.forEach { w ->
+        critique.warnings.forEach { w ->
             Text(
                 text = "• $w",
                 style = MaterialTheme.typography.bodySmall,
