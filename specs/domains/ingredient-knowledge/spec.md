@@ -2,7 +2,7 @@
 
 **Domain Context**: `ingredient-knowledge`
 **Created**: 2026-06-27
-**Last Modified**: 2026-06-27 (Feature IKB-A — KB référence additifs/allergènes offline + injection contexte ; clarify session 2026-06-27)
+**Last Modified**: 2026-06-28 (Feature IKB-B — auto-update base additifs au démarrage + enrichissement OFF/Ciqual ; offline fallback)
 **Status**: Draft
 
 ## Purpose
@@ -23,6 +23,15 @@ Fournir une **base de référence** sur les additifs (E-numbers) et les allergè
 - Q: Quelle est la source authoritative de la base référence additifs/allergènes au P1 ? → A: **Taxonomie additifs OpenFoodFacts** (structurée par E-number) **+ liste des 14 allergènes réglementaires UE** ; version de la base dérivée des versions de ces sources, tracée par fiche.
 - Q: Quelle échelle et source pour le niveau de risque indicatif des additifs ? → A: **3 niveaux fixes (faible / modéré / élevé)** dérivés des **étiquettes de risque OpenFoodFacts** ; le niveau est tracé comme attribut de la fiche et utilisé pour la priorisation d'injection.
 - Q: Quelle strictesse de matching pour le lookup désignation → fiche ? → A: **Sous-chaîne littérale + normalisations mécaniques explicitement listées (casse, espaces, accents)** uniquement ; cohérent avec `IHI-C-FR-005`, aucune règle de synonyme métier.
+
+### Session 2026-06-28 (Feature IKB-B)
+
+- Q: Fréquence de mise à jour de la base référence ? → A: **À chaque démarrage** de l'application, le système tente un rafraîchissement **asynchrone et non bloquant** depuis les sources amont.
+- Q: Comportement en l'absence de réseau ou en cas d'échec ? → A: **Repli offline** : utiliser la **dernière version persistée localement** (cache), à défaut la **baseline embarquée** dans l'APK ; aucun blocage, le lookup reste exploitable.
+- Q: Portée de l'enrichissement « Ciqual + OFF » ? → A: La **taxonomie additive** (E-numbers, alias, rôle, niveau de risque) reste issue d'**OpenFoodFacts** en **couverture exhaustive** (vs l'extrait P1) ; **Ciqual** apporte des **attributs de composition/nutritionnels** (ex. énergie) pour les substances présentes **quand disponibles**. Attributs Ciqual absents → omis (repli silencieux, pas d'invention).
+- Q: Persistance de la version rafraîchie ? → A: **Cache local persistant** (offline) pour les démarrages suivants ; la **baseline embarquée** reste le **filet de sécurité ultime** (cache absent/corrompu + réseau absent).
+- Q: Conformité Feature C avec les nouveaux attributs ? → A: **Inchangée** : tout attribut supplémentaire (ex. nutritionnel) reste **contenu général**, aucun fait étiquette, **aucune extension** de `EquivalencePolicy` v1 stricte.
+- Q: Le rafraîchissement peut-il bloquer l'utilisateur ? → A: **Non** : l'app reste utilisable pendant la mise à jour ; le lookup utilise la version courante disponible (persistée ou baseline) jusqu'à disponibilité de la version rafraîchie.
 
 ## Scope
 
@@ -137,21 +146,116 @@ En tant que développeuse, je veux un jeu fixe d'ingrédients de référence ex�
 
 ---
 
+## Feature IKB-B — Auto-update de la base additifs au démarrage + enrichissement OFF/Ciqual
+
+> Origine : intake `/speckit-design` 2026-06-28
+> Input : « La base référence embarquée des additifs doit se mettre à jour à chaque démarrage de l'application. Si pas de connexion réseau, alors l'appli travaille avec la version embarquée. Enrichis cette base avec tous les additifs possibles issus de Ciqual et OFF. »
+> Réalise l'enrichissement réseau + cache précédemment reporté (Cross-domain Notes IKB-A « hors périmètre P1 »).
+
+### User Scenarios (Feature IKB-B)
+
+#### US-IKB-B1 — Rafraîchir la base additifs à chaque démarrage (P1)
+
+En tant qu'utilisatrice, je veux qu'à chaque ouverture de l'application la base référence des additifs se rafraîchisse automatiquement depuis les sources amont (OpenFoodFacts + Ciqual), afin que mon analyse s'appuie sur la base la plus récente et la plus complète possible.
+
+**Why this priority**: c'est le mécanisme central de la feature ; sans rafraîchissement, pas d'enrichissement ni de mise à jour.
+
+**Independent Test**: vérifiable au démarrage avec réseau disponible → la base utilisée pour le lookup reflète la version rafraîchie ; l'UI n'est pas bloquée pendant l'opération.
+
+**Acceptance Scenarios**:
+
+1. **Given** l'application démarre et une connexion réseau est disponible, **When** le rafraîchissement est tenté, **Then** la base référence est mise à jour depuis les sources amont et la version rafraîchie est utilisée pour les analyses suivantes.
+2. **Given** le rafraîchissement en cours, **When** l'utilisatrice interagit avec l'app, **Then** aucune interaction n'est bloquée ; le lookup utilise la version courante disponible jusqu'à disponibilité de la version rafraîchie.
+3. **Given** le rafraîchissement aboutit, **When** il se termine, **Then** la version rafraîchie est persistée localement pour les démarrages suivants.
+
+#### US-IKB-B2 — Travailler hors-ligne avec la version disponible (P1)
+
+En tant qu'utilisatrice sans connexion réseau, je veux que l'application continue de fonctionner avec la meilleure base disponible localement, afin de ne jamais être bloquée par l'absence de réseau.
+
+**Why this priority**: garantit l'offline-first et la disponibilité continue ; sans repli, l'absence de réseau casserait l'analyse.
+
+**Independent Test**: vérifiable au démarrage sans réseau → le lookup reste exploitable (version persistée ou baseline embarquée), aucun blocage.
+
+**Acceptance Scenarios**:
+
+1. **Given** l'application démarre sans connexion réseau, **When** le rafraîchissement est tenté, **Then** il échoue silencieusement et le lookup utilise la **dernière version persistée localement**.
+2. **Given** l'application démarre sans réseau **et** sans cache local exploitable, **When** le lookup est requis, **Then** le système utilise la **baseline embarquée** dans l'APK.
+3. **Given** un échec réseau, **When** l'utilisatrice consulte l'analyse, **Then** aucune erreur bloquante n'est affichée et le flux d'analyse reste nominal.
+
+#### US-IKB-B3 — Couverture additive exhaustive + attributs Ciqual (P2)
+
+En tant que domaine d'analyse, je veux que la base enrichie couvre l'ensemble des additifs de la taxonomie OpenFoodFacts et intègre les attributs de composition Ciqual quand ils sont disponibles, afin de maximiser la couverture et la richesse factuelle du contexte de référence.
+
+**Why this priority**: valeur métier d'enrichissement (couverture + attributs) ; dépend du mécanisme de rafraîchissement (US-IKB-B1) mais peut être livrée incrémentalement.
+
+**Independent Test**: vérifiable en comparant la base enrichie à la taxonomie OFF (couverture exhaustive) et en contrôlant la présence/trace des attributs Ciqual sur un échantillon connu.
+
+**Acceptance Scenarios**:
+
+1. **Given** la taxonomie additive OpenFoodFacts complète, **When** la base enrichie est constituée, **Then** chaque E-number de la taxonomie possède une fiche canonique dans la base.
+2. **Given** un additif pour lequel Ciqual fournit des attributs de composition, **When** la fiche est enrichie, **Then** ces attributs sont présents et traçables (source Ciqual + version).
+3. **Given** un additif pour lequel Ciqual ne fournit aucun attribut, **When** la fiche est constituée, **Then** les attributs Ciqual sont omis (repli silencieux) et aucune donnée n'est inventée.
+
+### Edge Cases (Feature IKB-B)
+
+- Réseau partiel : une source disponible, l'autre non → utiliser ce qui est disponible ; attributs/fiches manquants omis (repli silencieux, pas d'invention).
+- Source amont modifie ou supprime un E-number → la version rafraîchie reflète l'amont ; la baseline embarquée conserve l'ancien état (filet de sécurité).
+- Cache local corrompu ou illisible → repli sur la baseline embarquée ; erreur domaine tracée, pas d'invention.
+- Données amont incohérentes (E-number dupliqué, niveau de risque invalide, attribut Ciqual incohérent) → entrée rejetée et tracée ; pas d'invention ni de blocage.
+- Rafraîchissement plus lent que le premier lookup requis → le lookup utilise la version courante disponible (persistée/baseline), puis la version rafraîchie pour les suivants.
+
+### Functional Requirements (Feature IKB-B)
+
+- **IKB-B-FR-001**: Le système MUST tenter à **chaque démarrage** un rafraîchissement **asynchrone et non bloquant** de la base référence additifs depuis les sources amont (taxonomie OpenFoodFacts + attributs Ciqual).
+- **IKB-B-FR-002**: Le système MUST rester **utilisable pendant le rafraîchissement** : le lookup utilise la version courante disponible (persistée ou baseline) jusqu'à disponibilité de la version rafraîchie.
+- **IKB-B-FR-003**: Le système MUST, en cas d'absence de réseau ou d'échec amont, assurer un **repli offline** : **dernière version persistée localement**, à défaut **baseline embarquée** ; aucun blocage, lookup reste exploitable.
+- **IKB-B-FR-004**: Le système MUST **persister localement** la version rafraîchie (cache offline) pour les démarrages suivants.
+- **IKB-B-FR-005**: Le système MUST conserver la **baseline embarquée** dans l'APK comme **filet de sécurité ultime** (cache absent/corrompu + réseau absent).
+- **IKB-B-FR-006**: Le système MUST couvrir l'**ensemble des additifs** de la taxonomie OpenFoodFacts dans la base enrichie (couverture exhaustive vs l'extrait P1).
+- **IKB-B-FR-007**: Le système MUST enrichir chaque fiche additive avec les **attributs de composition Ciqual disponibles** (ex. énergie) ; attributs absents MUST être omis (repli silencieux, pas d'invention).
+- **IKB-B-FR-008**: Le système MUST tracer, pour chaque attribut/fiche, sa **source** (OpenFoodFacts ou Ciqual) et la **version** de la base dont il provient.
+- **IKB-B-FR-009**: Le système MUST respecter **Feature C** : tout attribut supplémentaire (ex. nutritionnel) reste **contenu général**, aucun fait étiquette ; MUST NOT étendre `EquivalencePolicy` v1 stricte.
+- **IKB-B-FR-010**: Le système MUST détecter un **cache corrompu/illisible** et replier sur la baseline embarquée, en signalant une erreur domaine explicite (tracée, sans invention).
+- **IKB-B-FR-011**: Le système MUST rejeter et tracer toute **entrée amont incohérente** (E-number dupliqué, niveau de risque invalide, attribut incohérent) sans produire de fiche inventée ni bloquer le flux.
+
+### Key Entities (Feature IKB-B)
+
+- **AdditiveFactCard (étendu)**: fiche référence additif enrichie d'**attributs Ciqual optionnels** (ex. composition/énergie) lorsque disponibles, en plus des attributs OFF (E-number, alias, rôle, niveau de risque, source, version).
+- **KbCache**: version rafraîchie **persistée localement** (offline) pour les démarrages suivants ; version + timestamp + sources.
+- **KbRefreshOutcome**: résultat du rafraîchissement (succès / partiel / repli offline), sources consultées, version obtenue, timestamp, raisons d'échec éventuelles.
+- **KbBaseline**: version **embarquée** dans l'APK (filet de sécurité ultime) — correspond à la base P1 (Feature IKB-A).
+
+### Success Criteria (Feature IKB-B)
+
+- **IKB-B-SC-001**: 100 % des démarrages avec réseau disponible aboutissent à une base rafraîchie utilisée pour les analyses suivantes, sans blocage de l'UI.
+- **IKB-B-SC-002**: 100 % des démarrages sans réseau fournissent un lookup exploitable (version persistée ou baseline embarquée), sans erreur bloquante.
+- **IKB-B-SC-003**: 100 % des E-numbers de la taxonomie OpenFoodFacts sont présents dans la base enrichie (couverture exhaustive).
+- **IKB-B-SC-004**: 100 % des attributs Ciqual injectés sont traçables à une source et une version.
+- **IKB-B-SC-005**: 100 % des attributs Ciqual absents sont omis sans invention.
+- **IKB-B-SC-006**: 0 % de blocage de l'UI pendant le rafraîchissement (l'app reste interactive).
+- **IKB-B-SC-007**: 100 % des contextes publiés depuis la base enrichie respectent Feature C (contenu général, aucun fait étiquette, aucune extension d'équivalence).
+
+---
+
 ## Cross-domain Notes
 
 - **Upstream de** `ingredient-health-intelligence` : publie un `ReferenceContext` consommé comme contexte général par les flux LLM composition + critique (pattern *Published Language* / *Open Host Service*).
 - **Ne court-circuite pas** `additive-risk-insights` : les KPI additifs restent la projection des faits d'analyse par ce domaine ; `ingredient-knowledge` ne fournit que des faits référence amont.
 - **Respecte** `ingredient-normalization-validation` : le lookup s'appuie sur des désignations issues du `ValidatedIngredientSegment` ; aucune nouvelle règle d'équivalence.
-- **Hors périmatoire P1** : valeurs nutritionnelles (Ciqual), lookup code-barres OpenFoodFacts, enrichissement réseau avec cache (features ultérieures).
+- **Réalise (Feature IKB-B)** l'enrichissement réseau + cache précédemment reporté : auto-update au démarrage (OFF + Ciqual), offline fallback (cache persisté puis baseline embarquée) ; conformité Feature C inchangée.
+- **Hors périmètre (reste reporté)** : lookup code-barres OpenFoodFacts produit (feature ultérieure).
 
 ## Source Mapping
 
 - Intake `/speckit-design` 2026-06-27 (Feature IKB-A).
+- Intake `/speckit-design` 2026-06-28 (Feature IKB-B).
 
 ## Assumptions
 
-- La base référence P1 se limite aux additifs (E-numbers) issus de la taxonomie OpenFoodFacts et aux 14 allergènes réglementaires UE ; couverture exhaustive des E-numbers non exigée au premier livrable (jeu fixe de référence suffisant).
+- La base référence P1 (Feature IKB-A) se limite aux additifs (E-numbers) issus de la taxonomie OpenFoodFacts et aux 14 allergènes réglementaires UE ; couverture exhaustive des E-numbers non exigée au premier livrable (jeu fixe de référence suffisant).
+- **Feature IKB-B** : la taxonomie additive (E-numbers, alias, rôle, risque) reste issue d'OpenFoodFacts ; Ciqual apporte des **attributs de composition/nutritionnels** (ex. énergie) et non une taxonomie d'additifs. Si l'intention était différente (ex. Ciqual comme source d'additifs), lancer `/speckit-clarify`.
 - Le flux LLM consommateur (`ingredient-health-intelligence`) accepte un bloc de contexte général balisé, conformément à `IHI-C-FR-004`.
 - La politique d'équivalence du core reste **stricte v1** ; aucune extension de synonyme n'est apportée par ce domaine.
-- Aucune dépendance réseau au P1 ; la base est entièrement embarquée.
+- La baseline embarquée (Feature IKB-A) reste toujours disponible dans l'APK comme filet de sécurité ultime, indépendamment du cache et du réseau.
+- Le rafraîchissement au démarrage est **non bloquant** : l'app reste interactive et le lookup utilise la meilleure version disponible à l'instant considéré.
 - Le jeu fixe d'ingrédients de référence est exécutable hors suites dépendantes de la caméra/OCR/runtime LLM.

@@ -42,3 +42,34 @@
 - `app/src/main/java/com/miamia/composition/GemmaBilanParser.kt`
 - `app/src/main/java/com/miamia/composition/EnergyEstimateValidator.kt`
 - `app/src/main/java/com/miamia/camera/BilanResultCard.kt`
+
+---
+
+## Quickstart — prompt de critique santé personnalisé (Feature L)
+
+### Prérequis
+
+- Build debug installé (ou tests JVM) ; runtime Gemma disponible pour le parcours LLM.
+- Jeu fixe d'ingrédients de référence (ex. chaîne mock Feature A ou liste courte réelle).
+
+### Parcours automatique (tests JVM — `IHI-L-SC-001`..`005`, `007`)
+
+1. Exécuter `HealthCritiquePromptPrudenceTest` : vérifier la présence dans `buildSystemInstruction()` du persona expert (« nutrition clinique », « cancérologie préventive »), des 5 dimensions de risque (cancérogène, mutagène, neurotoxique, métabolique, inflammatoire), des 3 tiers de preuve (faits établis, incertitudes, hypothèses), des 4 populations vulnérables (immunodéprimées, antécédents familiaux cancer), du disclaimer, et des 4 marqueurs de section ordonnés.
+2. Exécuter `HealthCritiqueSectionParserTest` : non-régression — 4 sections reconnues dans l'ordre `###ENFANTS` → `###FEMMES_ENCEINTES` → `###ADULTES` → `###PERSONNES_AGEES`.
+3. Vérifier la répétabilité : deux appels `buildSystemInstruction()` + `buildUserMessage(list)` produisent un prompt identique.
+
+### Parcours manuel (MVP — `IHI-L-SC-008`, aligné `IHI-C-FR-006`)
+
+1. Saisir une liste d'ingrédients de test ; lancer la critique santé.
+2. Vérifier (relecture humaine) que la sortie distingue visiblement, par ingrédient, faits établis / incertitudes / hypothèses, et évalue les dimensions de risque demandées.
+3. Vérifier la présence d'une vigilance transversale pour immunodéprimées / antécédents familiaux cancer dans les sections pertinentes (sans section ni préambule ajouté).
+4. Simuler une demande d'avis médical personnalisé : la sortie refuse poliment de poser un diagnostic/prescription et oriente vers un professionnel de santé, en conservant les 4 sections.
+5. Avec une liste ≥ `LONG_LIST_INGREDIENT_THRESHOLD` ingrédients : vérifier une synthèse des risques majeurs en tête de la section 2 de chaque partie.
+
+### Fichiers utiles (Feature L)
+
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiquePromptBuilder.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueConfig.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueSectionParser.kt`
+- `app/src/test/java/com/miamia/healthcritique/HealthCritiquePromptPrudenceTest.kt`
+- `app/src/test/java/com/miamia/healthcritique/HealthCritiqueSectionParserTest.kt`

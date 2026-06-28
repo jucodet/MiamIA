@@ -22,8 +22,8 @@ class IngredientKbLoadException(message: String, cause: Throwable? = null) :
  */
 class EmbeddedReferenceKb private constructor(
     private val baseVersion: String,
-    private val additives: List<AdditiveFactCard>,
-    private val allergens: List<AllergenFactCard>,
+    val additives: List<AdditiveFactCard>,
+    val allergens: List<AllergenFactCard>,
 ) : ReferenceKb {
 
     override fun lookup(designations: List<IngredientDesignation>): LookupOutcome =

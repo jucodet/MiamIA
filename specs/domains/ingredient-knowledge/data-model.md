@@ -119,3 +119,104 @@ LookupOutcome ──(build, cap N, prioritize)──▶ ReferenceContext
 ## State Transitions
 
 N/A — base référence statique versionnée ; pas de cycle de vie mutable au P1.
+
+---
+
+# Data Model — Feature IKB-B (Auto-update + enrichissement OFF/Ciqual)
+
+**Date**: 2026-06-28 | **Spec**: [spec.md](./spec.md) (Feature IKB-B)
+
+## Entities (IKB-B)
+
+### `CiqualAttributes` (nouveau)
+
+Attributs de composition Ciqual optionnels rattachés à un additif **quand disponibles**.
+
+- `energyKcalPer100g`: `Double?` — énergie (kcal/100 g) si pertinent et disponible
+- `otherAttributes`: `Map<String, String>` — attributs nutritionnels additionnels (clé normalisée)
+- `source`: `KbSource` — `origin = Ciqual` (à étendre : ajouter `CIQUAL` à `KbSource.Origin`)
+
+**Invariants** : attributs absents → `null`/map vide (repli silencieux, `IKB-B-FR-007`) ; aucune donnée inventée ; tout attribut est traçable (`IKB-B-FR-008`).
+
+### `AdditiveFactCard` (étendu)
+
+Extension de l'entité IKB-A :
+
+- +(existant) `eNumber`, `canonicalName`, `aliases`, `role`, `riskLevel`, `source` (OFF)
+- `ciqual`: `CiqualAttributes?` — attributs Ciqual quand disponibles (`IKB-B-FR-007`)
+
+**Invariants inchangés** : clé primaire E-number ; aliases = recherche (pas de synonyme métier) ; attributs Ciqual = contenu général (`IKB-B-FR-009`).
+
+### `KbCache` (nouveau)
+
+Version rafraîchie **persistée localement** (offline) pour les démarrages suivants.
+
+- `baseVersion`: `String`
+- `additives`: `List<AdditiveFactCard>`
+- `allergens`: `List<AllergenFactCard>`
+- `refreshedAt`: `Long` — timestamp (ms)
+- `sources`: `List<String>` — sources consultées (OFF, Ciqual)
+
+**Invariants** : écriture atomique (`.tmp` → rename) ; lisible offline ; relecture → index in-memory.
+
+### `KbBaseline` (nouveau — concept)
+
+Version **embarquée** dans l'APK (assets IKB-A) = filet de sécurité ultime. Modélisé par l'impl `EmbeddedReferenceKb` existante (IKB-A). Aucun changement de structure : sert de source quand cache absent/corrompu + réseau absent.
+
+### `KbRefreshOutcome` (nouveau)
+
+Résultat du rafraîchissement au démarrage.
+
+- `status`: `SUCCESS` | `PARTIAL` | `OFFLINE_FALLBACK`
+- `baseVersion`: `String?` — version obtenue (null si offline fallback)
+- `sourcesConsulted`: `List<String>`
+- `sourcesAvailable`: `List<String>` — sources réellement exploitées
+- `refreshedAt`: `Long`
+- `failureReason`: `String?` — raison d'échec éventuelle (réseau, parse, incohérence)
+- `rejectedEntries`: `Int` — nombre d'entrées amont rejetées (incohérentes)
+
+**Invariants** : `OFFLINE_FALLBACK` ⇒ `baseVersion` hérité du cache/baseline ; aucune invention ; `rejectedEntries` tracé (`IKB-B-FR-011`).
+
+## Relationships (IKB-B)
+
+```text
+Au démarrage :
+  KbCacheStore ──(read)──▶ KbCache? ──(index)──▶ RefreshableReferenceKb
+                                │ (absent/corrompu)
+                                ▼
+                          KbBaseline (assets) ──▶ RefreshableReferenceKb
+
+  KbRefreshCoordinator ──(fetch)──▶ KbRefreshGateway (OFF + Ciqual)
+                                  ──(validate)──▶ KbRefreshOutcome
+                                  ──(persist)──▶ KbCacheStore (atomic write)
+                                  ──(swap index)──▶ RefreshableReferenceKb
+
+RefreshableReferenceKb : ReferenceKb  (lookup sur version courante)
+```
+
+## Validation Rules (mapped to FRs) — IKB-B
+
+| Règle | FR |
+|-------|----|
+| Refresh asynchrone non bloquant au démarrage | `IKB-B-FR-001`/`002` |
+| Repli offline : cache → baseline | `IKB-B-FR-003`/`005` |
+| Persistance locale du cache | `IKB-B-FR-004` |
+| Couverture exhaustive OFF | `IKB-B-FR-006` |
+| Attributs Ciqual optionnels (repli silencieux si absents) | `IKB-B-FR-007` |
+| Traçabilité source/version (OFF + Ciqual) | `IKB-B-FR-008` |
+| Attributs Ciqual = contenu général, aucune extension d'équivalence | `IKB-B-FR-009` |
+| Cache corrompu → erreur domaine + repli baseline | `IKB-B-FR-010` |
+| Entrées amont incohérentes rejetées/tracées | `IKB-B-FR-011` |
+
+## State Transitions (IKB-B)
+
+```text
+[STARTUP] → read cache
+   ├── cache valid   → index = cache ; kick refresh (async)
+   └── cache invalid → index = baseline ; kick refresh (async)
+
+refresh → SUCCESS    → persist cache ; swap index → refreshed
+        → PARTIAL    → persist cache (sources disponibles) ; swap index
+        → OFFLINE    → keep current index (cache or baseline) ; trace failure
+```
+

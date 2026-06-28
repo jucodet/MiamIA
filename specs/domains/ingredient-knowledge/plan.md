@@ -106,3 +106,108 @@ Voir [research.md](./research.md) : format de bundling (JSON assets), parsing (k
 ## Phase 2 — Livraison (hors scope de ce fichier)
 
 Les tâches exécutables sont dans [tasks.md](./tasks.md) (commande `/speckit-tasks`).
+
+---
+
+# Implementation Plan: ingredient-knowledge — Feature IKB-B (Auto-update base additifs + enrichissement OFF/Ciqual)
+
+**Branch**: `025-kb-auto-update-enrich` | **Date**: 2026-06-28 | **Spec**: [spec.md](./spec.md) (Feature IKB-B)
+**Input**: Feature specification Feature IKB-B + clarify session 2026-06-28
+
+## Summary
+
+La **Feature IKB-B** ajoute un **rafraîchissement asynchrone au démarrage** de la base référence additifs depuis les sources amont (**taxonomie OpenFoodFacts** en couverture exhaustive + **attributs Ciqual** quand disponibles), avec **repli offline en cascade** : dernière version **persistée localement** (cache `filesDir`) → à défaut **baseline embarquée** (APK). Rafraîchissement **non bloquant** ; conformité **Feature C** inchangée (attributs Ciqual = contenu général, aucune extension d'équivalence).
+
+## Technical Context (IKB-B)
+
+**Language/Version**: Kotlin 2.x, Android (minSdk 26, targetSdk 34)
+**Primary Dependencies**: `java.net.HttpURLConnection` (pattern existant `GemmaModelDownloader` — pas de nouvelle dépendance HTTP), `kotlinx.serialization-json` (déjà ajouté en IKB-A), `kotlinx-coroutines` (async refresh sur `Dispatchers.IO`)
+**Storage**: Cache persistant offline = fichier JSON versionné dans `Context.filesDir/ingredientkb/` (`additives.cache.json`, `allergens.cache.json`, `kb-version.cache.json`) ; index in-memory rechargé au démarrage. **Pas de Room** (base statique versionnée, cohérent avec IKB-A). Baseline embarquée (assets IKB-A) = filet de sécurité ultime.
+**Testing**: JUnit 4 JVM pur (gateway avec fake HTTP fetcher + fake cache store), Robolectric (cache réel `filesDir` + assets baseline), `kotlinx-coroutines-test` (async refresh, repli offline)
+**Target Platform**: Application Android (module `app`)
+**Project Type**: mobile-app monolithique, extension du package `com.miamia.ingredientknowledge`
+**Performance Goals**: refresh non bloquant (l'app reste interactive, `IKB-B-SC-006`) ; lookup p95 < 20 ms conservé (index in-memory) ; cache offline < 10 Mo (taxonomie OFF complète + attributs Ciqual)
+**Constraints**: offline-first (repli cache → baseline) ; respect Feature C (contenu général) ; aucune extension de `EquivalencePolicy` v1 stricte ; rafraîchissement non bloquant ; entrées amont incohérentes rejetées/tracées
+**Scale/Scope**: taxonomie OFF additive complète (~500–600 E-numbers) + attributs Ciqual par substance quand disponibles ; ~6–8 nouvelles classes + 4–5 classes de test
+
+## Constitution Check (IKB-B)
+
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+| Principe | Statut |
+|----------|--------|
+| I. Qualité / traçabilité | OK — refresh tracé (`KbRefreshOutcome` : sources, version, timestamp, raison d'échec) ; entrées incohérentes rejetées/tracées |
+| II. ATDD | OK — US-IKB-B1/B2/B3 avec Given/When/Then ; tests offline fallback + refresh non bloquant |
+| III. UX | OK — refresh non bloquant (`IKB-B-FR-002`), pas d'erreur bloquante hors-ligne (`IKB-B-FR-003`) |
+| IV. Performance | OK — refresh non bloquant mesurable (`SC-006`), lookup p95 < 20 ms conservé, cache < 10 Mo |
+| V. Simplicité | OK — `HttpURLConnection` (pattern existant) + cache fichier JSON (pas de Room) ; anti-corruption via interfaces `KbRefreshGateway` / `KbCacheStore` |
+| VI. Frontières DDD | OK — reste dans `ingredient-knowledge` ; `KbRefreshGateway` = frontière vers sources externes (anti-corruption OFF/Ciqual) ; read-model `ReferenceContext` inchangé pour le core |
+
+**Post-design** : inchangé (aucune violation à justifier).
+
+## Project Structure (IKB-B)
+
+### Documentation (this feature)
+
+```text
+specs/domains/ingredient-knowledge/
+├── plan.md                      # mis à jour (section IKB-B ajoutée)
+├── research.md                  # mis à jour (section IKB-B ajoutée)
+├── data-model.md                # mis à jour (section IKB-B ajoutée)
+├── quickstart.md                # mis à jour (section IKB-B ajoutée)
+├── contracts/
+│   ├── reference-context-read-model.md   # inchangé
+│   ├── ingredient-kb-lookup-contract.md  # inchangé
+│   └── kb-refresh-gateway-contract.md    # NOUVEAU — frontière sources amont OFF/Ciqual + cache
+└── tasks.md                     # /speckit-tasks (à regénérer pour IKB-B)
+```
+
+### Source Code (repository root)
+
+```text
+app/src/main/java/com/miamia/ingredientknowledge/
+├── ... (fichiers IKB-A inchangés)
+├── CiqualAttributes.kt                 # attributs composition Ciqual optionnels
+├── KbRefreshOutcome.kt                 # résultat refresh (succès/partiel/offline-fallback)
+├── KbRefreshGateway.kt                 # interface (anti-corruption OFF/Ciqual)
+├── OffCiqualRefreshGateway.kt          # impl HttpURLConnection (OFF taxonomy + Ciqual)
+├── KbCacheStore.kt                     # interface cache offline
+├── FileKbCacheStore.kt                 # impl filesDir JSON (kotlinx.serialization)
+├── KbRefreshCoordinator.kt             # orchestrateur : refresh → cache → fallback baseline
+└── RefreshableReferenceKb.kt           # ReferenceKb utilisant (cache | baseline) + refresh différé
+
+app/src/test/java/com/miamia/ingredientknowledge/
+├── ... (tests IKB-A inchangés)
+├── KbRefreshCoordinatorTest.kt         # refresh succès / offline fallback / cache corrompu
+├── FakeKbRefreshGatewayTest.kt         # gateway fake (sources partielles, incohérences)
+├── FileKbCacheStoreRobolectricTest.kt  # cache réel filesDir + repli baseline
+└── RefreshableReferenceKbTest.kt       # lookup sur version courante pendant refresh
+```
+
+**Structure Decision** : extension du package `ingredientknowledge`. Trois interfaces d'anti-corruption :
+- `KbRefreshGateway` : isole les sources externes (OFF/Ciqual) — testable avec un fake.
+- `KbCacheStore` : isole le stockage offline — testable avec un fake (JVM pur) + impl `filesDir` (Robolectric).
+- `RefreshableReferenceKb` : implémente `ReferenceKb` en exposant la **version courante disponible** (cache ou baseline) et en déclenchant le refresh de façon **non bloquante** via `KbRefreshCoordinator`.
+
+## Complexity Tracking (IKB-B)
+
+> Aucune violation constitutionnelle à justifier.
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| — | — | — |
+
+## Phase 0 — Recherche (IKB-B)
+
+Voir [research.md](./research.md) §IKB-B : sources amont (URLs taxonomie OFF + Ciqual), format fetch/parse, stratégie de cache (filesDir JSON vs Room), repli offline en cascade, refresh non bloquant, rejet des entrées incohérentes, conformité Feature C.
+
+## Phase 1 — Design (IKB-B)
+
+- [data-model.md](./data-model.md) §IKB-B : `AdditiveFactCard` étendu (attributs Ciqual), `CiqualAttributes`, `KbCache`, `KbRefreshOutcome`, `KbBaseline`.
+- [contracts/kb-refresh-gateway-contract.md](./contracts/kb-refresh-gateway-contract.md) : interfaces `KbRefreshGateway` + `KbCacheStore` + orchestrateur `KbRefreshCoordinator`.
+- [quickstart.md](./quickstart.md) §IKB-B : scénarios manuels refresh (réseau ok), offline fallback (cache puis baseline), entrée amont incohérente.
+
+## Phase 2 — Livraison (hors scope de ce fichier)
+
+Tâches exécutables dans [tasks.md](./tasks.md) (à regénérer via `/speckit-tasks` pour IKB-B).
+

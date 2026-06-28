@@ -66,4 +66,30 @@ class ReferenceContextContractTest {
         assertEquals("E300", entry.key)
         assertEquals("acide ascorbique", entry.display)
     }
+
+    @Test
+    fun read_model_avec_attributs_ciqual_reste_qualification_general_feature_c() {
+        val ciqualSource = KbSource(KbSource.Origin.CIQUAL, baseVersion)
+        val outcome = LookupOutcome(
+            matchedAdditives = listOf(
+                AdditiveFactCard(
+                    eNumber = "E300",
+                    canonicalName = "acide ascorbique",
+                    riskLevel = RiskLevel.FAIBLE,
+                    source = off,
+                    ciqual = CiqualAttributes(energyKcal = 0.0, source = ciqualSource),
+                ),
+            ),
+            matchedAllergens = emptyList(),
+            unmatchedDesignations = emptyList(),
+            baseVersion = baseVersion,
+        )
+        val ctx = ReferenceContextBuilder().build(outcome)
+
+        // Feature C : les attributs Ciqual sont publiés comme contenu général — qualification
+        // GENERAL inchangée, aucun fait étiquette (IKB-B-FR-009).
+        assertEquals(ReferenceContextQualification.GENERAL, ctx.qualification)
+        val entry = ctx.cards.single()
+        assertEquals(0.0, entry.ciqualEnergyKcal)
+    }
 }

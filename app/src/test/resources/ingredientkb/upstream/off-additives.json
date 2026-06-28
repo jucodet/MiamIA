@@ -1,0 +1,36 @@
+{
+  "version": "off-2026-06",
+  "additives": [
+    {
+      "e_number": "E300",
+      "names": { "fr": "acide ascorbique", "en": "ascorbic acid" },
+      "aliases": ["vitamine c", "ascorbate"],
+      "role": "antioxydant",
+      "risk_level": "FAIBLE"
+    },
+    {
+      "e_number": "E621",
+      "names": { "fr": "glutamate monosodique" },
+      "aliases": ["msg"],
+      "role": "exhausteur de gout",
+      "risk_level": "MODERE"
+    },
+    {
+      "e_number": "E102",
+      "names": { "fr": "tartrazine" },
+      "aliases": [],
+      "role": "colorant",
+      "risk_level": "ELEVE"
+    },
+    {
+      "e_number": "E300",
+      "names": { "fr": "acide ascorbique duplique" },
+      "risk_level": "FAIBLE"
+    },
+    {
+      "e_number": "E999",
+      "names": { "fr": "additif inconnu" },
+      "risk_level": "CATEGORIE_INEXISTANTE"
+    }
+  ]
+}

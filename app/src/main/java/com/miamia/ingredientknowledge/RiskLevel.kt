@@ -1,9 +1,14 @@
 package com.miamia.ingredientknowledge
 
+import kotlinx.serialization.Serializable
+
 /**
  * Niveau de risque indicatif d'un additif, dérivé des étiquettes de risque OpenFoodFacts.
  * Échelle fixe à 3 niveaux (IKB-A-FR-013). Utilisé pour la priorisation d'injection (IKB-A-FR-011).
+ *
+ * `@Serializable` pour la persistance du cache offline (IKB-B — `FileKbCacheStore`).
  */
+@Serializable
 enum class RiskLevel {
     FAIBLE,
     MODERE,

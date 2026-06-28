@@ -57,3 +57,32 @@
 
 - Normaliser segment + candidats de claims avec **uniquement** `mechanicalNormalizations` v1 avant test de sous-chaîne.
 - Ratio de rejet : tendre vers **0** ligne « fait produit » non ancrée en succès (stricter que le seuil historique 50 % si la spec prime).
+
+## Entities — Feature L (personnalisation du prompt de critique)
+
+- `HealthCritiquePrompt` *(construction — remplacement en dur versionné)*
+  - `systemInstruction` : texte d'instruction système (persona expert + dimensions de risque + hiérarchie des preuves + populations vulnérables + garde-fous éthiques + format de sortie strict)
+  - `userMessage` : message utilisateur construit à partir du segment ingrédients (plafond `MAX_INGREDIENT_TEXT_CHARS`)
+  - Invariant : construction **répétable** (même entrée → même prompt) — `IHI-L-SC-007`.
+
+- `RiskDimension` *(énumération fermée — `IHI-L-FR-003`)*
+  - Valeurs : `CANCEROGENE`, `MUTAGENE`, `NEUROTOXIQUE`, `METABOLIQUE`, `INFLAMMATOIRE`.
+  - Note : « métabolique » couvre pics glycémiques, cholestérol.
+
+- `EvidenceTier` *(énumération fermée — `IHI-L-FR-004`)*
+  - Valeurs : `FAIT_ETABLI` (ex. classification CIRC/OMS, consensus scientifique), `INCERTITUDE_SCIENTIFIQUE` (débats, effets à doses massives chez l'animal), `HYPOTHESE_MECANISME` (mécanismes suspectés).
+
+- `VulnerablePopulation` *(énumération fermée — `IHI-L-FR-008`)*
+  - Valeurs : `FEMMES_ENCEINTES_ALLAITANTES`, `ENFANTS`, `IMMUNODEPRIMEES`, `ANTECEDENTS_FAMILIAUX_CANCER`.
+  - Note : les deux dernières n'ont pas de section de sortie dédiée → traitées en **vigilance transversale intégrée** (clarify Q2).
+
+- `CritiqueSectionMarker` *(contrat de sortie strict — `IHI-L-FR-009`)*
+  - Marqueurs ordonnés : `###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES`.
+  - Blocs obligatoires sous chaque marqueur : (1) Points de vigilance, (2) Analyse par ingrédient & Nuances, (3) Niveau de prudence (Faible / Modéré / Élevé).
+  - Invariant : aucun texte avant `###ENFANTS` ; ordre immuable (non-régression `HealthCritiqueSectionParser`).
+
+## Validation rules (Feature L)
+
+- Le prompt construit MUST contenir le persona expert, les 5 `RiskDimension`, les 3 `EvidenceTier`, les 4 `VulnerablePopulation`, le disclaimer, et le format `CritiqueSectionMarker` (`IHI-L-SC-001`..`004`).
+- Le seuil « liste très longue » = `HealthCritiqueConfig.LONG_LIST_INGREDIENT_THRESHOLD` (nombre d'ingrédients, valeur au plan, ex. 20) — `IHI-L-FR-012`.
+- Conformité Feature C préservée : le prompt MUST NOT encourager l'invention d'ingrédients absents (`IHI-L-FR-014` / `IHI-L-SC-006`).

@@ -2,7 +2,7 @@
 
 **Domain Context**: `ingredient-health-intelligence`
 **Created**: 2026-05-06
-**Last Modified**: 2026-05-13 (Feature K — pastille kcal/100 g ; clarify bornes affichage 1–1100)
+**Last Modified**: 2026-06-28 (Feature L — personnalisation du prompt de critique santé : persona expert, dimensions de risque, populations vulnérables, format de sortie)
 **Status**: Draft
 
 ## Purpose
@@ -308,6 +308,121 @@ En tant qu’utilisatrice, je ne veux pas qu’une estimation soit présentée c
 
 ---
 
+## Feature L — Personnalisation du prompt de critique santé
+
+> Origine : intake `/speckit-design` + `/speckit-specify` 2026-06-28
+> Intention : personnaliser le prompt utilisé pour l'analyse des ingrédients (critique santé) afin d'expliciter le **persona expert** (nutrition clinique + cancérologie préventive), les **dimensions de risque** évaluées par ingrédient, la **hiérarchie faits / incertitudes / hypothèses** (avec références CIRC/OMS), l'attention aux **populations vulnérables**, et le **format de sortie strict** par population.
+
+### Clarifications (Feature L)
+
+#### Session 2026-06-28
+
+- **Portée** : la personnalisation porte sur le **prompt de critique santé** (flux LLM critique par population) ; elle ne modifie pas le bilan de composition ni les KPI additifs (`additive-risk-insights`), et reste soumise à l'ancrage Feature C (aucun fait étiquette non ancré).
+- **Persona expert** : le prompt MUST positionner le modèle comme **expert de renommée mondiale en nutrition clinique et en cancérologie préventive, spécialisé dans l'évaluation des risques alimentaires** ; ce persona est une instruction de cadrage, pas une allégation produit.
+- **Dimensions de risque** : le prompt MUST demander l'évaluation explicite, par ingrédient, des potentiels **cancérogène, mutagène, neurotoxique, métabolique (ex. pics glycémiques, cholestérol) et inflammatoire**.
+- **Hiérarchie des preuves** : le prompt MUST imposer de distinguer **1) les faits établis** (ex. classification CIRC/OMS, consensus scientifique), **2) les incertitudes scientifiques** (ex. débats actuels, effets à doses massives chez l'animal), **3) les hypothèses ou mécanismes suspectés**.
+- **Populations vulnérables** : le prompt MUST porter une attention particulière aux **femmes enceintes/allaitantes, enfants, personnes immunodéprimées et personnes ayant des antécédents familiaux de cancer** (au-delà des 4 sections de sortie, comme axe transversal de vigilance).
+- **Format de sortie** : les 4 marqueurs de section (`###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES`) et la structure par bloc (Points de vigilance / Analyse par ingrédient & Nuances / Niveau de prudence) sont **inchangés** ; seuls les libellés et le contenu de cadrage du prompt évoluent.
+- **Conformité Feature C** : le prompt personnalisé MUST NOT encourager le modèle à produire des faits produit non ancrés ; il MUST réaffirmer l'interdiction d'inventer des ingrédients absents et de poser un diagnostic/prescription.
+- Q: Mécanisme de personnalisation du prompt ? → A: **Remplacement en dur versionné** dans le builder de prompt (contenu intégré au code, testable, répétable) ; pas d'externalisation configurée ni de registre de prompts au périmètre Feature L.
+- Q: Affichage des populations vulnérables sans section dédiée (immunodéprimées, antécédents familiaux cancer) ? → A: **Mention transversale intégrée** dans chaque section pertinente (Points de vigilance / Nuances), comme axe de vigilance, sans ajouter de section ni de préambule (préserve le format strict des 4 marqueurs).
+- Q: La personnalisation s'applique-t-elle aussi au prompt du bilan de composition ? → A: **Non, uniquement au prompt de critique santé** (périmètre Feature L strict) ; le bilan de composition garde son propre contrat, une extension éventuelle ferait l'objet d'une feature distincte.
+- Q: Seuil déclenchant la synthèse pour « liste très longue » ? → A: **Seuil en nombre d'ingrédients** (ex. ≥ 20), non en caractères ; la valeur exacte est laissée au plan d'implémentation.
+- Q: Validation de la conformité au prompt (persona / hiérarchie des preuves / populations vulnérables) au MVP ? → A: **Relecture humaine + traçabilité** sur un jeu fixe d'ingrédients (aligné Feature C / `IHI-C-FR-006` MVP) ; le format de sortie reste vérifié par le parseur existant, la conformité sémantique n'est pas automatisée au MVP.
+
+### User Scenarios (Feature L)
+
+#### US-L1 — Cadre expert et dimensions de risque explicites (P1)
+
+En tant qu'utilisatrice, je veux que la critique santé soit produite avec un cadrage d'expert en nutrition clinique et cancérologie préventive, évaluant explicitement plusieurs dimensions de risque par ingrédient, afin d'obtenir une analyse plus structurée et plus crédible.
+
+**Why this priority**: cœur de la personnalisation demandée ; sans persona et sans dimensions de risque explicites, la sortie reste générique.
+
+**Independent Test**: vérifiable en inspectant le prompt construit (présence du persona expert + des 5 dimensions de risque) et en contrôlant que la sortie LLM distingue faits / incertitudes / hypothèses sur un jeu fixe.
+
+**Acceptance Scenarios**:
+
+1. **Given** le prompt de critique santé construit, **When** on inspecte son contenu, **Then** il contient explicitement le cadrage « expert de renommée mondiale en nutrition clinique et en cancérologie préventive, spécialisé dans l'évaluation des risques alimentaires ».
+2. **Given** le même prompt, **When** on inspecte ses dimensions d'évaluation, **Then** il exige l'évaluation par ingrédient des potentiels cancérogène, mutagène, neurotoxique, métabolique et inflammatoire.
+3. **Given** une analyse produite depuis ce prompt sur un jeu d'ingrédients fixe, **When** on lit la sortie, **Then** chaque ingrédient analysé distingue visiblement faits établis, incertitudes scientifiques et hypothèses/mécanismes suspectés.
+
+#### US-L2 — Populations vulnérables élargies et garde-fous éthiques (P1)
+
+En tant qu'utilisatrice faisant partie d'une population vulnérable (ex. immunodéprimée, antécédents familiaux de cancer), je veux que le prompt porte une attention particulière à ma situation et conserve les garde-fous éthiques (pas de diagnostic, pas de prescription), afin de rester prudente et informée.
+
+**Why this priority**: sécurise l'usage médical et l'inclusion des populations au-delà des 4 sections de sortie.
+
+**Independent Test**: vérifiable en inspectant le prompt (mention des populations vulnérables élargies + garde-fous éthiques) et en contrôlant le refus de diagnostic sur une demande explicite simulée.
+
+**Acceptance Scenarios**:
+
+1. **Given** le prompt construit, **When** on inspecte son contenu, **Then** il mentionne explicitement l'attention particulière aux femmes enceintes/allaitantes, enfants, personnes immunodéprimées et personnes ayant des antécédents familiaux de cancer.
+2. **Given** le prompt construit, **When** on inspecte les garde-fous éthiques, **Then** il interdit explicitement de poser un diagnostic, de prescrire un régime ou un traitement, et oriente vers un professionnel de santé en cas de demande d'avis médical personnalisé.
+3. **Given** une demande simulée d'avis médical personnalisé transmise au flux, **When** l'analyse est produite, **Then** la sortie refuse poliment de poser un diagnostic/prescription et oriente vers un professionnel de santé, tout en conservant la structure des 4 sections.
+
+#### US-L3 — Format de sortie strict préservé (P1)
+
+En tant qu'utilisatrice, je veux que la personnalisation du prompt ne casse pas le format de sortie attendu (4 sections, blocs structurés), afin de garder une présentation cohérente avec l'existant.
+
+**Why this priority**: garantit la non-régression du contrat de parsing et de l'UX de résultat.
+
+**Independent Test**: vérifiable en exécutant le flux sur un jeu fixe et en contrôlant que les marqueurs `###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES` et les 3 blocs attendus sont présents et ordonnés.
+
+**Acceptance Scenarios**:
+
+1. **Given** le prompt personnalisé, **When** on inspecte la section « format de sortie », **Then** il exige **uniquement** les marqueurs `###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES` dans cet ordre, avec aucun texte avant `###ENFANTS`.
+2. **Given** le même prompt, **When** on inspecte la structure exigée sous chaque marqueur, **Then** il requiert obligatoirement : 1) Points de vigilance (liste à puces courte), 2) Analyse par ingrédient & Nuances (faits établis vs incertitudes), 3) Niveau de prudence (Faible / Modéré / Élevé) avec justification prudente.
+3. **Given** une analyse produite depuis ce prompt sur un jeu fixe, **When** le parseur de sections traite la sortie, **Then** les 4 sections sont reconnues dans l'ordre attendu, sans régression par rapport au comportement pré-Feature L.
+
+### Edge Cases (Feature L)
+
+- Liste d'ingrédients très longue : le prompt MUST demander une **synthèse des risques majeurs en tête de la section 2** (Analyse par ingrédient & Nuances), puis le détail des ingrédients pertinents, sans déroger au format des 4 sections.
+- Liste dans une autre langue ou illisible : le prompt MUST conserver la structure des marqueurs et demander poliment des précisions / une meilleure capture dans la section 2 de chaque partie concernée.
+- Terme ambigu (« arômes », « épices », additif non spécifié) : le prompt MUST demander de signaler l'opacité et son impact négatif sur la confiance de l'analyse.
+- Demande d'avis médical personnalisé : le prompt MUST imposer un refus poli et une orientation vers un professionnel de santé, sans rompre la structure de sortie.
+- Risque d'invention d'ingrédients (correction OCR) : le prompt MUST autoriser la **correction mentale** des erreurs OCR et l'usage de la dénomination scientifique/réglementaire la plus probable, tout en **interdisant d'inventer des ingrédients absents** (cohérent Feature C / `IHI-C-FR-001`).
+
+### Functional Requirements (Feature L)
+
+- **IHI-L-FR-001**: Le système MUST construire le prompt de critique santé en positionnant le modèle comme **expert de renommée mondiale en nutrition clinique et en cancérologie préventive, spécialisé dans l'évaluation des risques alimentaires**.
+- **IHI-L-FR-002**: Le système MUST exiger dans le prompt l'analyse **ingrédient par ingrédient**, avec correction mentale des erreurs typiques d'OCR vers la dénomination scientifique ou réglementaire la plus probable, **sans jamais inventer d'ingrédients absents** (cohérent `IHI-C-FR-001` / `IHI-C-FR-002`).
+- **IHI-L-FR-003**: Le système MUST exiger dans le prompt l'évaluation explicite, par ingrédient, des potentiels **cancérogène, mutagène, neurotoxique, métabolique (ex. pics glycémiques, cholestérol) et inflammatoire**.
+- **IHI-L-FR-004**: Le système MUST exiger dans le prompt la distinction explicite entre : **1) faits établis** (ex. classification CIRC/OMS, consensus scientifique), **2) incertitudes scientifiques** (ex. débats actuels, effets à doses massives chez l'animal), **3) hypothèses ou mécanismes suspectés**.
+- **IHI-L-FR-005**: Le système MUST exiger dans le prompt la **contextualisation de la dose et de l'exposition** (un ingrédient n'est toxique que si sa dose l'est) et l'interdiction des conclusions catégoriques (« toujours toxique », « poison »).
+- **IHI-L-FR-006**: Le système MUST exiger dans le prompt le signalement de l'**opacité** pour les termes ambigus (« arômes », « épices », additifs non spécifiés) et de son impact négatif sur la confiance de l'analyse.
+- **IHI-L-FR-007**: Le système MUST exiger dans le prompt les **garde-fous éthiques** : aucun diagnostic, aucune prescription de régime ou traitement ; refus poli et orientation vers un professionnel de santé en cas de demande d'avis médical personnalisé.
+- **IHI-L-FR-008**: Le système MUST exiger dans le prompt une **attention particulière aux populations vulnérables** : femmes enceintes/allaitantes, enfants, personnes immunodéprimées et personnes ayant des antécédents familiaux de cancer. Le prompt MUST indiquer que les populations sans section dédiée (immunodéprimées, antécédents familiaux de cancer) sont traitées comme une **vigilance transversale intégrée** dans chaque section pertinente (Points de vigilance / Nuances), **sans** ajouter de section ni de préambule au format de sortie strict.
+- **IHI-L-FR-009**: Le système MUST conserver le **format de sortie strict** : uniquement les marqueurs `###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES` dans cet ordre, aucun texte avant `###ENFANTS`.
+- **IHI-L-FR-010**: Le système MUST exiger, sous chaque marqueur, un bloc structuré contenant obligatoirement : **1) Points de vigilance** (liste à puces courte des ingrédients préoccupants pour cette population), **2) Analyse par ingrédient & Nuances** (faits établis vs incertitudes scientifiques, détaillée ingrédient par ingrédient), **3) Niveau de prudence** (Faible / Modéré / Élevé) avec justification prudente basée sur les doses probables et les risques à long terme.
+- **IHI-L-FR-011**: Le système MUST exiger dans le prompt la **rédaction intégrale en français** (y compris synthèses et formulations de prudence) et la présence du **disclaimer** indiquant que l'information est indicative à visée éducative et ne remplace pas un avis médical ou nutritionnel personnalisé.
+- **IHI-L-FR-012**: Le système MUST exiger, pour les listes très longues, une **synthèse des risques majeurs en tête de la section 2** de chaque partie, puis le détail des ingrédients pertinents. Le seuil « très longue » est défini en **nombre d'ingrédients** (valeur exacte fixée au plan d'implémentation, ex. ≥ 20), non en caractères.
+- **IHI-L-FR-013**: Le système MUST exiger, pour les listes dans une autre langue ou illisibles, le maintien de la structure des marqueurs et une demande polie de précisions / meilleure capture dans la section 2 de chaque partie concernée.
+- **IHI-L-FR-014**: Le système MUST respecter **Feature C** : le prompt personnalisé MUST NOT encourager la production de faits produit non ancrés sur le `ValidatedIngredientSegment` ; toute formulation liant « ce produit » à un ingrédient/risque reste soumise à `IHI-C-FR-004` / `IHI-C-FR-005`.
+- **IHI-L-FR-015**: Le système MUST permettre la **répétabilité** de la construction du prompt (même entrée → même prompt construit) pour faciliter les tests unitaires et la non-régression du contrat de critique.
+- **IHI-L-FR-016**: Le système MUST matérialiser le prompt personnalisé comme un **contenu intégré au code (remplacement en dur versionné)** dans le builder de prompt ; il MUST NOT introduire de configuration externe modifiable sans recompilation ni de registre de prompts sélectionnables au périmètre Feature L.
+- **IHI-L-FR-017**: Le système MUST limiter la personnalisation Feature L au **prompt de critique santé** ; le prompt du bilan de composition MUST conserver son propre contrat (non modifié par Feature L). Toute extension du persona/des dimensions de risque au flux composition ferait l'objet d'une feature distincte.
+
+### Key Entities (Feature L)
+
+- **HealthCritiquePrompt**: prompt de critique santé construit (instruction système + message utilisateur), intégrant persona expert, dimensions de risque, hiérarchie des preuves, populations vulnérables et format de sortie strict.
+- **RiskDimension**: dimension d'évaluation par ingrédient parmi {cancérogène, mutagène, neurotoxique, métabolique, inflammatoire}.
+- **EvidenceTier**: niveau de preuve parmi {fait établi, incertitude scientifique, hypothèse / mécanisme suspecté}.
+- **VulnerablePopulation**: population à vigilance accrue parmi {femmes enceintes/allaitantes, enfants, personnes immunodéprimées, antécédents familiaux de cancer}.
+- **CritiqueSectionMarker**: marqueur de section de sortie (`###ENFANTS`, `###FEMMES_ENCEINTES`, `###ADULTES`, `###PERSONNES_AGEES`) et structure de bloc associée.
+
+### Success Criteria (Feature L)
+
+- **IHI-L-SC-001**: 100 % des prompts construits contiennent le persona expert (nutrition clinique + cancérologie préventive) et les 5 dimensions de risque (cancérogène, mutagène, neurotoxique, métabolique, inflammatoire).
+- **IHI-L-SC-002**: 100 % des prompts construits exigent la distinction faits établis / incertitudes scientifiques / hypothèses (avec références CIRC/OMS pour les faits établis).
+- **IHI-L-SC-003**: 100 % des prompts construits mentionnent les populations vulnérables élargies (femmes enceintes/allaitantes, enfants, immunodéprimées, antécédents familiaux de cancer) et les garde-fous éthiques (pas de diagnostic, pas de prescription, orientation professionnel de santé).
+- **IHI-L-SC-004**: 100 % des prompts construits préservent le format de sortie strict (4 marqueurs ordonnés, aucun texte avant `###ENFANTS`, 3 blocs obligatoires par section).
+- **IHI-L-SC-005**: 100 % des sorties LLM produites depuis le prompt personnalisé sur un jeu fixe sont parsables par le parseur de sections existant sans régression (4 sections reconnues dans l'ordre).
+- **IHI-L-SC-006**: 100 % des prompts construits préservent la conformité Feature C (aucune incitation à inventer des ingrédients absents, ancrage préservé).
+- **IHI-L-SC-007**: 100 % des exécutions de construction du prompt sont répétables (même entrée → même prompt) sur ≥ 3 exécutions successives.
+- **IHI-L-SC-008**: La conformité sémantique de la sortie au prompt personnalisé (persona expert, hiérarchie faits/incertitudes/hypothèses, populations vulnérables, garde-fous éthiques) est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe d'ingrédients (aligné `IHI-C-FR-006` MVP) ; le format de sortie (4 marqueurs, 3 blocs) reste vérifié par le parseur existant (`IHI-L-SC-005`). Aucun audit automatisé bloquant n'est exigé au MVP.
+
+---
+
 ## Cross-domain Notes
 
 - Consomme le segment validé de `ingredient-normalization-validation` (source de vérité pour l’ancrage — Feature C).
@@ -320,6 +435,7 @@ En tant qu’utilisatrice, je ne veux pas qu’une estimation soit présentée c
 - `specs/016-test-llm-mock/` (Feature A)
 - Intake `/speckit-design` 2026-05-13 (Feature C)
 - Intake `/speckit-design` + `/speckit-specify` 2026-05-13 (Feature K)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature L)
 
 ## Assumptions
 
@@ -331,3 +447,4 @@ En tant qu’utilisatrice, je ne veux pas qu’une estimation soit présentée c
 - Un **contrat de read-model** (ou équivalent) avec `additive-risk-insights` est disponible pour permettre l’attribution explicite visée par **IHI-C-FR-007** ; à défaut, l’enrichissement additif ne s’affiche pas en juxtaposition d’un succès LLM.
 - Au **MVP**, la conformité à **IHI-C-FR-006** est démontrable par **relecture humaine** et traçabilité ; des garde-fous automatisés supplémentaires relèvent du plan d’évolution hors obligation minimale.
 - Pour **Feature K**, la **source** exacte du champ modèle et la **règle d’arrondi** vers l’entier affiché relèvent du plan d’implémentation ; les **bornes d’affichage** **1–1100** kcal/100 g et les contraintes **IHI-K-FR-004** / **IHI-K-FR-006** sont désormais fixées en spec.
+- Pour **Feature L**, le prompt personnalisé est un **remplacement en dur versionné** dans le builder (pas d’externalisation ni de registre) ; la personnalisation est **limitée au prompt de critique santé** (le bilan de composition garde son propre contrat) ; le seuil « liste très longue » est défini en **nombre d’ingrédients** (valeur exacte au plan) ; la conformité sémantique au prompt est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C), le format restant vérifié par le parseur existant.

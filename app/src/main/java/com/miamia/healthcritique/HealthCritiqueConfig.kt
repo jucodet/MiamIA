@@ -6,6 +6,9 @@ object HealthCritiqueConfig {
 
     const val MAX_INGREDIENT_TEXT_CHARS: Int = 12_000
 
+    /** Seuil « liste très longue » en nombre d'ingrédients — IHI-L-FR-012 (clarify Q4, 2026-06-28). */
+    const val LONG_LIST_INGREDIENT_THRESHOLD: Int = 20
+
     /** Délai d’inférence par défaut (ms) — objectif produit inférieur à 30 s perçus (`plan.md`). */
     const val DEFAULT_MAX_INFERENCE_MS: Long = 30_000L
 }

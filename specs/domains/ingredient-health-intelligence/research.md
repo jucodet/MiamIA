@@ -55,3 +55,40 @@ Les « inconnues » techniques ont été résolues par la spec + session **clari
 - **Decision** : entier **inclus 1..1100** (**clarify** 2026-05-13, **Option B**) ; toute valeur hors intervalle ou non parseable → `estimatedKcalPer100g = null` (pastille sans nombre trompeur).
 - **Rationale** : aligné **IHI-K-FR-006** / **IHI-K-SC-002** ; couvre huiles et matrices très denses (~900 kcal/100 g) sans accepter valeurs absurdes (ex. 12_000).
 - **Alternatives considered** : **1..950** (impl antérieure — trop strict vs spec) ; plage 50..900 (trop stricte) ; laisser 0 (rejeté, min = 1).
+
+## 10. Personnalisation du prompt de critique santé (Feature L — 2026-06-28)
+
+### 10.1 Mécanisme de personnalisation
+
+- **Decision** : **remplacement en dur versionné** du contenu du prompt dans `HealthCritiquePromptBuilder` (contenu intégré au code, testable, répétable) ; pas d'externalisation configurée ni de registre de prompts.
+- **Rationale** : aligné avec l'existait (`HealthCritiquePromptBuilder`), MVP testabilité/répétabilité (`IHI-L-SC-007`), pas de complexité de configuration hors périmètre.
+- **Alternatives considered** : externalisation dans asset/fichier de config modifiable sans recompilation (rejeté — YAGNI, complexité non justifiée) ; registre versionné de prompts sélectionnables (rejeté — sur-architecture).
+
+### 10.2 Populations vulnérables sans section dédiée
+
+- **Decision** : populations sans section propre (immunodéprimées, antécédents familiaux cancer) traitées comme **vigilance transversale intégrée** dans chaque section pertinente (Points de vigilance / Nuances), sans nouvelle section ni préambule.
+- **Rationale** : préserve le format de sortie strict des 4 marqueurs (non-régression parser, `IHI-L-SC-004`/`SC-005`) tout en honorant l'attention particulière.
+- **Alternatives considered** : sous-bloc dédié dans `###ADULTES` (rejeté — perd la transversalité) ; préambule commun avant `###ENFANTS` (rejeté — casse le format « aucun texte avant ###ENFANTS »).
+
+### 10.3 Périmètre critique seule
+
+- **Decision** : personnalisation **limitée au prompt de critique santé** ; prompt du bilan de composition non modifié.
+- **Rationale** : le prompt fourni vise l'évaluation des risques alimentaires et la sortie par population (critique) ; fusion avec le bilan composition (contrat distinct, pastille kcal — Feature K) introduirait un couplage hors scope.
+- **Alternatives considered** : appliquer aux deux flux (rejeté — couplage inter-contrats) ; extraire un socle commun persona+hiérarchie (rejeté pour Feature L — ferait l'objet d'une feature distincte si besoin).
+
+### 10.4 Seuil « liste très longue »
+
+- **Decision** : seuil défini en **nombre d'ingrédients** (ex. ≥ 20), valeur exacte laissée au plan d'implémentation (constante `LONG_LIST_INGREDIENT_THRESHOLD` dans `HealthCritiqueConfig`), non en caractères.
+- **Rationale** : la notion de « longue » renvoie au nombre d'ingrédients à analyser (charge de lecture), pas à la longueur textuelle déjà plafonnée par `MAX_INGREDIENT_TEXT_CHARS`.
+- **Alternatives considered** : seuil en caractères aligné sur `MAX_INGREDIENT_TEXT_CHARS` (rejeté — mal corrélé à la charge d'analyse) ; pas de seuil chiffré, modèle juge (rejeté — critère non testable).
+
+### 10.5 Validation de la conformité au prompt (MVP)
+
+- **Decision** : conformité sémantique (persona, hiérarchie des preuves, populations vulnérables, garde-fous) tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe d'ingrédients (aligné `IHI-C-FR-006` MVP) ; format de sortie vérifié par le parseur existant (`IHI-L-SC-005`).
+- **Rationale** : la conformité sémantique sur texte libre n'est pas fiablement automatisable au MVP ; le format, lui, est contractuel et parsable.
+- **Alternatives considered** : audit automatisé bloquant sur chaque sortie (rejeté au MVP — reporté post-MVP) ; validation hybride parseur+LLM-juge (rejeté au MVP — coût/complexité).
+
+### 10.6 Disclaimer
+
+- **Decision** : conserver la constante `DISCLAIMER` existante (« Information indicative à visée éducative ; ne remplace pas un avis médical ou nutritionnel personnalisé. ») déjà alignée sur le texte fourni par l'utilisatrice.
+- **Rationale** : non-régression ; le disclaimer correspond déjà exactement à l'input Feature L.

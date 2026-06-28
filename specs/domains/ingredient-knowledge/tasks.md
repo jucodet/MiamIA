@@ -201,11 +201,113 @@ Avec plusieurs dev : Setup + Foundational en commun, puis :
 
 ---
 
-## Notes
+# Tasks: ingredient-knowledge — Feature IKB-B (Auto-update base additifs au démarrage + enrichissement OFF/Ciqual)
+
+**Input**: Design documents from `/specs/domains/ingredient-knowledge/` (sections IKB-B de plan.md, spec.md, research.md, data-model.md, contracts/kb-refresh-gateway-contract.md, quickstart.md)
+**Prerequisites**: Feature IKB-A réalisée (T001–T030). Continue la numérotation à T031.
+
+**Tests**: ATDD obligatoire. Au minimum une tâche de test d'acceptation par user story, alignée sur les scénarios Given/When/Then du `spec.md` (section IKB-B). Tests DOIVENT échouer avant l'implémentation.
+
+**Organization**: Tasks grouped by user story (US-IKB-B1 P1, US-IKB-B2 P1, US-IKB-B3 P2).
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Exécutable en parallèle (fichiers différents, pas de dépendance sur tâche incomplète)
+- **[Story]**: User story rattachée (US1=IKB-B1, US2=IKB-B2, US3=IKB-B3)
+- Chemins exacts inclus dans chaque description
+
+## Phase 1 — Setup (IKB-B)
+
+- [X] T031 Vérifier la permission `android.permission.INTERNET` présente dans app/src/main/AndroidManifest.xml (nécessaire pour fetch OFF/Ciqual ; déjà utilisée par GemmaModelDownloader)
+- [X] T032 [P] Créer la configuration des sources amont (URLs OFF taxonomy + Ciqual, timeouts, taille max) dans app/src/main/java/com/miamia/ingredientknowledge/KbRefreshConfig.kt
+
+## Phase 2 — Foundational (IKB-B) — blocking prerequisites
+
+- [X] T033 [P] Étendre `KbSource.Origin` avec `CIQUAL` dans app/src/main/java/com/miamia/ingredientknowledge/KbSource.kt
+- [X] T034 [P] Créer le modèle `CiqualAttributes` (energyKcal, proteins, etc.) dans app/src/main/java/com/miamia/ingredientknowledge/CiqualAttributes.kt
+- [X] T035 [P] Étendre `AdditiveFactCard` avec le champ optionnel `ciqual: CiqualAttributes?` dans app/src/main/java/com/miamia/ingredientknowledge/AdditiveFactCard.kt
+- [X] T036 [P] Créer le modèle `KbCache` (version source + cartes additives/allergènes sérialisables) dans app/src/main/java/com/miamia/ingredientknowledge/KbCache.kt
+- [X] T037 [P] Créer le modèle `KbRefreshOutcome` (status: SUCCESS/OFFLINE_FALLBACK/REJECTED, refreshedVersion, rejectedEntries, trace) dans app/src/main/java/com/miamia/ingredientknowledge/KbRefreshOutcome.kt
+- [X] T038 [P] Créer l'interface `KbRefreshGateway` + type `KbRefreshPayload` (cartes exhaustives + attributs Ciqual + entries rejetées) dans app/src/main/java/com/miamia/ingredientknowledge/KbRefreshGateway.kt
+- [X] T039 [P] Créer l'interface `KbCacheStore` (save/read/current + atomicité) dans app/src/main/java/com/miamia/ingredientknowledge/KbCacheStore.kt
+
+## Phase 3 — User Story 1 (IKB-B1, P1) : Rafraîchir la base additifs à chaque démarrage
+
+**Goal**: Au démarrage, la base référence tente un refresh async depuis les sources amont ; l'index actif bascule sur la nouvelle version sans bloquer l'UI.
+**Independent test criteria**: `KbRefreshCoordinator` avec un `KbRefreshGateway` de test réussit, produit `outcome=SUCCESS`, écrit le cache via `KbCacheStore` et `RefreshableReferenceKb.current()` expose la nouvelle version ; un lookup pendulaire répond pendant le refresh (non-blocage).
+
+- [X] T040 [P] [US1] Test d'acceptation : refresh succès → `outcome.status=SUCCESS`, cache écrit, index basculé sur nouvelle version dans app/src/test/java/com/miamia/ingredientknowledge/KbRefreshCoordinatorTest.kt
+- [X] T041 [P] [US1] Test d'acceptation : non-blocage — `RefreshableReferenceKb.lookup()` répond (sur baseline) pendant que le refresh est en cours dans app/src/test/java/com/miamia/ingredientknowledge/RefreshableReferenceKbTest.kt
+- [X] T042 [P] [US1] Créer le fixture `FakeKbRefreshGateway` (succès/échec configurables) dans app/src/test/java/com/miamia/ingredientknowledge/FakeKbRefreshGateway.kt
+- [X] T043 [P] [US1] Créer le fixture `FakeKbCacheStore` (mémoire, contrôle atomicité) dans app/src/test/java/com/miamia/ingredientknowledge/FakeKbCacheStore.kt
+- [X] T044 [US1] Implémenter `KbRefreshCoordinator` (orchestrateur : fetch → valider → persister → basculer index ; async via coroutines) dans app/src/main/java/com/miamia/ingredientknowledge/KbRefreshCoordinator.kt (dépend T037, T038, T039)
+- [X] T045 [US1] Implémenter `RefreshableReferenceKb` (délègue à `ReferenceKb` courant, swap atomique `current`, fallback baseline) dans app/src/main/java/com/miamia/ingredientknowledge/RefreshableReferenceKb.kt (dépend T039)
+- [X] T046 [US1] Câbler `KbRefreshCoordinator.refreshAtStartup()` au démarrage app dans app/src/main/java/com/miamia/MiamIAApplication.kt (dépend T044, T045)
+
+## Phase 4 — User Story 2 (IKB-B2, P1) : Travailler hors-ligne avec la version disponible
+
+**Goal**: Sans réseau (ou fetch en échec), l'app travaille avec la dernière version persistée ; si cache absent/corrompu, avec la baseline embarquée (IKB-A).
+**Independent test criteria**: Échec gateway → `outcome.status=OFFLINE_FALLBACK`, cache conservé, `current()` inchangé ; cache absent/corrompu → `current()` = baseline assets (IKB-A).
+
+- [X] T047 [P] [US2] Test d'acceptation : offline fallback (gateway échec) → `outcome.status=OFFLINE_FALLBACK`, cache/baseline conservé dans app/src/test/java/com/miamia/ingredientknowledge/KbRefreshCoordinatorTest.kt
+- [X] T048 [P] [US2] Test d'acceptation : cache absent/corrompu → `RefreshableReferenceKb.current()` = baseline (assets IKB-A) dans app/src/test/java/com/miamia/ingredientknowledge/RefreshableReferenceKbTest.kt
+- [X] T049 [US2] Implémenter `FileKbCacheStore` (persistance JSON dans `Context.filesDir`, écriture atomique `.tmp`→`rename`, rejet cache corrompu) dans app/src/main/java/com/miamia/ingredientknowledge/FileKbCacheStore.kt (dépend T039, T036)
+- [X] T050 [P] [US2] Test Robolectric : `FileKbCacheStore` écriture/lecture round-trip + cache corrompu → `read()` retourne null dans app/src/test/java/com/miamia/ingredientknowledge/FileKbCacheStoreRobolectricTest.kt
+
+## Phase 5 — User Story 3 (IKB-B3, P2) : Couverture additive exhaustive + attributs Ciqual
+
+**Goal**: Le refresh produit une base exhaustive (tous E-numbers OFF) + attributs nutritionnels Ciqual par additif (traçables, `KbSource.origin=CIQUAL`) ; les entrées incohérentes (E-number dupliqué, risque invalide) sont rejetées et tracées.
+**Independent test criteria**: Tous les E-numbers OFF présents dans le payload ; attributs Ciqual présents+traçables sur les cartes concernées, omis sinon ; entrées incohérentes → `rejectedEntries>0` + trace, et absentes de l'index.
+
+- [X] T051 [P] [US3] Test d'acceptation : couverture exhaustive OFF (tous E-numbers attendus présents) dans app/src/test/java/com/miamia/ingredientknowledge/OffCiqualRefreshGatewayTest.kt
+- [X] T052 [P] [US3] Test d'acceptation : attributs Ciqual présents+traçables (`origin=CIQUAL`) / absents → champ `ciqual` omis dans app/src/test/java/com/miamia/ingredientknowledge/OffCiqualRefreshGatewayTest.kt
+- [X] T053 [P] [US3] Test d'acceptation : entrée incohérente (E-number dupliqué, risque invalide) → rejetée + tracée, `rejectedEntries>0`, absente de l'index dans app/src/test/java/com/miamia/ingredientknowledge/OffCiqualRefreshGatewayTest.kt
+- [X] T054 [P] [US3] Ajouter les DTO amont (`@Serializable`) pour le parsing OFF taxonomy + Ciqual dans app/src/main/java/com/miamia/ingredientknowledge/dto/UpstreamDtos.kt
+- [X] T055 [P] [US3] Ajouter les fixtures amont (extraits JSON OFF taxonomy + Ciqual) dans app/src/test/resources/ingredientkb/upstream/
+- [X] T056 [US3] Implémenter `OffCiqualRefreshGateway` (fetch via `HttpURLConnection`, parse DTOs, validation cohérence, construction `KbRefreshPayload`) dans app/src/main/java/com/miamia/ingredientknowledge/OffCiqualRefreshGateway.kt (dépend T038, T034, T035, T054)
+
+## Phase 6 — Polish & Cross-Cutting (IKB-B)
+
+- [X] T057 [P] Étendre `ReferenceContextEntry` pour exposer les attributs Ciqual (`energyKcal`) comme contenu général dans app/src/main/java/com/miamia/ingredientknowledge/ReferenceContext.kt
+- [X] T058 [P] Étendre le test de contrat : présence d'attributs Ciqual maintient `qualification=GENERAL` (Feature C) dans app/src/test/java/com/miamia/ingredientknowledge/ReferenceContextContractTest.kt
+- [ ] T059 Valider manuellement les scénarios quickstart IKB-B (refresh réseau, fallback offline, non-blocage, couverture exhaustive/Ciqual, entrée incohérente) selon specs/domains/ingredient-knowledge/quickstart.md
+- [X] T060 [P] Test de perf : lookup p95 < 20 ms avec la base rafraîchie exhaustive dans app/src/test/java/com/miamia/ingredientknowledge/RefreshableReferenceKbPerfTest.kt
+- [X] T061 Vérifier la cohérence du domain-map (ownership `ingredient-knowledge` déjà présent) dans specs/domains/domain-map.md
+
+## Dependency Graph (IKB-B)
+
+```mermaid
+graph TD
+  Setup[T031 T032] --> Found[T033-T039]
+  Found --> US1[T040-T046]
+  Found --> US2[T047-T050]
+  US1 --> US3[T051-T056]
+  US2 --> US3
+  US3 --> Polish[T057-T061]
+```
+
+## Implementation Strategy (IKB-B)
+
+1. MVP = Phase 1 + 2 + US1 (refresh au démarrage, fakes, non-blocage) — démontre la cascade refresh+bascule.
+2. US2 (offline fallback + `FileKbCacheStore`) — même priorité P1, garantit la robustesse offline.
+3. US3 (OFF exhaustif + Ciqual) — P2, enrichissement ; après US1+US2 pour brancher le gateway réel.
+4. Polish → validation quickstart + perf + conformité Feature C.
+
+### Parallel Team Strategy (IKB-B)
+
+- Setup + Foundational en commun.
+- Dev A : US1 (coordinator + `RefreshableReferenceKb` + câblage startup).
+- Dev B : US2 (`FileKbCacheStore` + Robolectric) — démarrable en parallèle avec fakes US1.
+- US3 après fusion US1+US2 (gateway réel consommant le contrat `KbRefreshGateway`).
+
+---
+
+## Notes (IKB-A + IKB-B)
 
 - `[P]` = fichiers différents, pas de dépendance.
-- `[Story]` rattachement à US-IKB-A1/A2/A3 pour traçabilité.
+- `[Story]` rattachement à US-IKB-A1/A2/A3 (T001–T030) et US-IKB-B1/B2/B3 (T031–T061) pour traçabilité.
 - Chaque user story indépendamment complétable et testable.
 - Vérifier que les tests échouent avant l'implémentation (ATDD).
 - Committer après chaque tâche ou groupe logique.
-- Respecter Feature C : `ReferenceContext` = contenu général uniquement, aucun fait étiquette, aucune extension de `EquivalencePolicy` v1 stricte.
+- Respecter Feature C : `ReferenceContext` = contenu général uniquement, aucun fait étiquette, aucune extension de `EquivalencePolicy` v1 stricte. Les attributs Ciqual injectés restent `qualification=GENERAL`.
+- IKB-B préserve la cascade offline : cache persisté (`filesDir`) → baseline embarquée (IKB-A). Aucune dépendance réseau au démarrage n'est bloquante pour l'analyse.

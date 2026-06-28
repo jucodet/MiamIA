@@ -8,6 +8,10 @@ enum class ReferenceContextQualification { GENERAL }
 
 /**
  * Projection d'une fiche en entrée de contexte (forme sérialisable pour le prompt LLM).
+ *
+ * Les attributs Ciqual ([ciqualEnergyKcal]) sont publiés comme **contenu général**
+ * (qualification [ReferenceContextQualification.GENERAL] inchangée — Feature C, IKB-B-FR-009).
+ * Aucune formulation de fait étiquette ; aucune extension d'EquivalencePolicy v1 stricte.
  */
 data class ReferenceContextEntry(
     val kind: Kind,
@@ -15,6 +19,7 @@ data class ReferenceContextEntry(
     val display: String,
     val riskLevel: RiskLevel?,
     val role: String?,
+    val ciqualEnergyKcal: Double? = null,
 ) {
     enum class Kind { ADDITIVE, ALLERGEN }
 
@@ -25,6 +30,7 @@ data class ReferenceContextEntry(
             display = card.canonicalName,
             riskLevel = card.riskLevel,
             role = card.role,
+            ciqualEnergyKcal = card.ciqual?.energyKcal,
         )
 
         fun from(card: AllergenFactCard): ReferenceContextEntry = ReferenceContextEntry(
