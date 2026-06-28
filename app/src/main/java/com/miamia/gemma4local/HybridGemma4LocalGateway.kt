@@ -44,7 +44,7 @@ class HybridGemma4LocalGateway(
     }
 
     override suspend fun analyzeText(inputText: String): String {
-        return analyzeTextStreaming(inputText, null).text
+        return analyzeTextStreaming(inputText, null)
     }
 
     suspend fun analyzeTextStreaming(inputText: String, onPartial: ((String) -> Unit)?): String {
