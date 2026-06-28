@@ -166,6 +166,12 @@ class CameraViewModel(
             onPermissionDenied()
             return
         }
+        // Préserve une analyse en cours : reseter l'état de scan / la session d'aperçu ici
+        // interromprait le streaming Gemma et renverrait l'UI à l'écran de capture lorsque
+        // l'activité est recréée (changement de config, retour depuis l'arrière-plan) pendant
+        // l'inférence. La caméra n'est pas requise tant que le bilan composition n'est pas terminé.
+        if (_scanState.value is ScanState.CompositionAnalyzing) return
+        if (_streamingBilan.value is StreamingBilanState.Streaming) return
         bindJob?.cancel()
         captureController.unbind()
         _previewSession.value += 1

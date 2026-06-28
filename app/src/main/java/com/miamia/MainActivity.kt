@@ -2,7 +2,9 @@ package com.miamia
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -20,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -28,6 +31,8 @@ import com.miamia.BuildConfig
 import com.miamia.camera.CameraScreen
 import com.miamia.camera.CameraViewModel
 import com.miamia.camera.ScanState
+import com.miamia.camera.StreamingBilanState
+import com.miamia.analysis.AnalysisForegroundService
 import com.miamia.composition.Gemma4LocalCompositionEngine
 import com.miamia.data.repository.ScanSessionRepository
 import com.miamia.gemma4local.DeviceClassResolver
@@ -88,6 +93,10 @@ class MainActivity : ComponentActivity() {
             cameraViewModel.onPermissionDenied()
         }
     }
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* résultat non bloquant : le foreground service protège le processus même si la notification est masquée */ }
 
     private val chooseGemmaModelLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -179,10 +188,29 @@ class MainActivity : ComponentActivity() {
                             cameraNavController.navigate(CameraFlowRoutes.LlmResult)
                         }
                     }
+                    // Maintient le processus en vie (foreground service) pendant l'inférence Gemma
+                    // pour éviter que le système ne tue l'analyse quand l'application perd le focus.
+                    LaunchedEffect(cameraViewModel) {
+                        cameraViewModel.streamingBilan.collect { state ->
+                            if (state is StreamingBilanState.Streaming) {
+                                AnalysisForegroundService.start(this@MainActivity)
+                            } else {
+                                AnalysisForegroundService.stop(this@MainActivity)
+                            }
+                        }
+                    }
                     LaunchedEffect(onboardingState) {
                         when (onboardingState) {
                             is LlmModelReadinessState.Ready -> {
-                                if (cameraNavController.currentDestination?.route != CameraFlowRoutes.Capture) {
+                                // Ne forcer la navigation vers Capture que depuis un écran
+                                // d'onboarding. Si l'activité est recréée (rotation, retour
+                                // après mise en arrière-plan) alors que l'utilisateur est déjà
+                                // sur l'écran de résultats, on préserve sa position afin de ne
+                                // pas interrompre l'analyse en cours.
+                                val current = cameraNavController.currentDestination?.route
+                                if (current != CameraFlowRoutes.Capture &&
+                                    current != CameraFlowRoutes.LlmResult
+                                ) {
                                     cameraNavController.navigate(CameraFlowRoutes.Capture) {
                                         popUpTo(0) { inclusive = true }
                                     }
@@ -318,6 +346,17 @@ class MainActivity : ComponentActivity() {
             cameraViewModel.onPermissionGranted()
         } else {
             permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+        requestNotificationPermissionIfNeeded()
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
