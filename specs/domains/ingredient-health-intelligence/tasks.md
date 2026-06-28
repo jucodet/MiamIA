@@ -549,3 +549,86 @@ T401 → T402 [US-O1] → T403 [US-O2] → T404 [US-O2] → T405 [US-O3] → T40
 ## Suggested MVP scope (Feature O)
 
 - **T401–T405** = US-O1 + US-O2 complètes (section critique inline sur `LlmResultScreen` + déclenchement automatique).
+
+---
+
+# Feature P — Compte rendu restructuré (4 sections) + critique concise/visuelle par profil (2026-06-28)
+
+**Spec**: spec.md Feature P | **Plan**: plan.md Feature P | **Contract**: contracts/report-layout-contract.md
+
+## Phase 8: User Story P1 — Compte rendu en 4 sections ordonnées fixes (P1)
+
+**Goal**: `LlmResultScreen` / `BilanResultCard` expose exactement 4 sections ordonnées (Produit identifié → Synthèse → Verdict par ingrédient → Critique santé), stables跨-états.
+
+**Independent test**: parcours quickstart étapes 1–2 + 9 — 4 sections dans l'ordre ; états neutres produit/verdict ; stabilité跨-états.
+
+### Implementation for US-P1
+
+- [X] T501 [US-P1] Rendre `ProductSection` **inconditionnel** dans `app/src/main/java/com/miamia/camera/BilanResultCard.kt` : toujours rendre la section ; si `bilan.identifiedProduct` est blank/null, afficher un état neutre « Produit non identifié » (texte `onSurfaceVariant`) au lieu de skipper la section (`IHI-P-FR-001`, edge case « Produit non identifié »).
+- [X] T502 [US-P1] Rendre `HealthImpactSection` **inconditionnelle** dans `app/src/main/java/com/miamia/camera/BilanResultCard.kt` : toujours rendre la section ; si `bilan.healthImpacts` est vide, afficher un état neutre « Aucun ingrédient à vigilance identifié » (texte `onSurfaceVariant`) au lieu de skipper (`IHI-P-FR-001`, edge case « Aucun ingrédient à vigilance »).
+- [X] T503 [US-P1] Réordonner `BilanResultCard` pour exposer les 3 sections internes dans l'ordre **Produit identifié → Synthèse → Verdict par ingrédient** (en supprimant l'appel `IngredientsSection` — cf. US-P2) dans `app/src/main/java/com/miamia/camera/BilanResultCard.kt` ; conserver `BilanHeader`, `DisclaimerSection`, `InferenceTimeBadge`, `RawTranscriptToggle` comme méta hors-sections (`IHI-P-FR-001` / `IHI-P-SC-001`).
+
+**Checkpoint**: US-P1 vert — 3 sections internes (Produit, Synthèse, Verdict) inconditionnelles et ordonnées ; la 4ᵉ (Critique) est rendue par `InlineCritiqueSection` en continuité (Feature O).
+
+## Phase 9: User Story P2 — Suppression de la liste brute des ingrédients identifiés (P1)
+
+**Goal**: plus d'affichage à plat du `ValidatedIngredientSegment` (section Complete + carte streaming) ; ancrage Feature C préservé (segment reste entrée d'analyse).
+
+**Independent test**: parcours quickstart étape 3 — `bilan_ingredients_section` et `streaming_ingredients_card` absents ; verdict + bouton « Voir tous les ingrédients analysés » restent disponibles.
+
+### Implementation for US-P2
+
+- [X] T504 [US-P2] Supprimer l'appel `IngredientsSection(bilan.ingredientLines)` et la fonction `IngredientsSection` dans `app/src/main/java/com/miamia/camera/BilanResultCard.kt` (test tag `bilan_ingredients_section` retiré — `IHI-P-FR-002` / `IHI-P-SC-002`). Vérifier que `bilan.ingredientLines` n'est plus lu dans `BilanResultCard` (le segment reste utilisé en amont pour l'analyse, ancrage Feature C inchangé).
+- [X] T505 [US-P2] Supprimer la carte streaming « Ingrédients identifiés » (bloc `AnimatedVisibility` sur `state.partialIngredients` avec test tag `streaming_ingredients_card`) dans `StreamingContent` de `app/src/main/java/com/miamia/result/LlmResultScreen.kt` (`IHI-P-FR-002` / `IHI-P-SC-002`). Conserver les cartes streaming « Produit identifié », « Synthèse », « Verdict par ingrédient » (alignement 4-sections pendant le streaming).
+
+**Checkpoint**: US-P2 vert — aucune liste brute d'ingrédients à plat sur le compte rendu ; verdict + liste compacte (Feature N) toujours accessibles.
+
+## Phase 10: User Story P-intégration — Synthèse absorbe kcal + KPI additifs (P1)
+
+**Goal**: la section « Synthèse » intègre la pastille kcal (Feature K) et le panneau KPI additifs (`AdditiveKpiPanel`) ; la section « Additifs » autonome disparaît.
+
+**Independent test**: parcours quickstart étape 4 — Synthèse contient pastille kcal + KPI additifs ; `bilan_additives_section` absent.
+
+### Implementation for US-P-intégration
+
+- [X] T506 [US-P-intégration] Fusionner la `CompositionEnergyPastille` et l'`AdditivesSection` dans la section **Synthèse** de `app/src/main/java/com/miamia/camera/BilanResultCard.kt` : étendre `AnalysisSection` (ou introduire une `SyntheseSection`) pour contenir (a) la `CompositionEnergyPastille` en tête, (b) le texte d'analyse `bilan.compositionAnalysis`, (c) le `AdditiveKpiPanel` (si `additiveKpi != null`, attribution `IHI-C-FR-007` préservée via `onRequestShowRaw`). Retirer l'appel autonome `CompositionEnergyPastille(...)` et `AdditivesSection(...)` hors Synthèse ; supprimer la fonction `AdditivesSection` devenue section autonome (le `AdditiveKpiPanel` reste utilisé dans Synthèse) (`IHI-P-FR-003` / `IHI-P-SC-003`). Le `onToggleRaw` reste câblé au `RawTranscriptToggle` (inchangé) et à `AdditiveKpiPanel.onRequestShowRaw`.
+
+**Checkpoint**: US-P-intégration vert — Synthèse agrège kcal + analyse + KPI additifs ; plus de section « Additifs » autonome.
+
+## Phase 11: User Story P3 — Critique santé concise/visuelle, risques profil en tête (P1)
+
+**Goal**: la critique (section 4) met en évidence les risques spécifiques au profil sélectionné via des pastilles visuelles courtes en tête, avant la jauge ; cartes détaillées en repli.
+
+**Independent test**: parcours quickstart étapes 5–7 — pastilles risques profil entre « Évalué pour vous » et la jauge ; ancrage respecté ; cartes repliables.
+
+### Implementation for US-P3
+
+- [X] T507 [US-P3] Ajouter un composable `ProfileRiskHighlights(cards: List<IngredientRiskCard>)` dans `app/src/main/java/com/miamia/healthcritique/InlineCritiqueSection.kt` : rend une ligne/ligne-flux de **pastilles colorées courtes** (une par carte — `nom` + `code` éventuel + marqueur de sévérité visuel dérivé du niveau de vigilance Modéré/Élevé). Si `cards.isEmpty()`, pastille neutre « Aucun risque marqué pour votre profil ». Test tag `health_result_risk_highlights` (`IHI-P-FR-005` / `IHI-P-SC-004`).
+- [X] T508 [US-P3] Insérer `ProfileRiskHighlights(critique.riskCards)` dans `CritiqueProfileContent` **entre** le rappel `evaluatedForHeader` (+ signal « profil par défaut ») et la `PrudenceGauge`, avant le bloc narratif/carte (`IHI-P-FR-005`/`007`). S'assurer que les cartes `IngredientRiskCardItem` restent **repliables par défaut** (profondeur non dominante — `IHI-P-FR-006` / `IHI-P-SC-006`, inchangé).
+
+**Checkpoint**: US-P3 vert — risques profil mis en évidence en tête de critique ; profondeur conservée en repli.
+
+## Phase 12: Polish & documentation domaine (Feature P)
+
+- [X] T509 [P] Vérifier la cohérence doc domaine (grep sous `specs/domains/ingredient-health-intelligence/`) : `plan.md` Feature P, `research.md` §14, `data-model.md` Feature P, `contracts/report-layout-contract.md`, `quickstart.md` Feature P alignés avec la spec Feature P (`IHI-P-FR-001`..`012` / `IHI-P-SC-001`..`010`) ; exécuter le parcours quickstart Feature P. Confirmer qu'aucune référence active à `IngredientsSection` / `bilan_ingredients_section` / `streaming_ingredients_card` / `AdditivesSection` (comme section autonome) ne subsiste dans le code de production.
+- [X] T510 [P] Adapter les tests instrumentés existants dans `app/src/androidTest/java/com/miamia/result/LlmResultScreenUiTest.kt` (et `app/src/androidTest/java/com/miamia/healthcritique/HealthCritiqueReadOnlySegmentAndroidTest.kt` si besoin) : (a) retirer les assertions sur `bilan_ingredients_section` / `streaming_ingredients_card`, (b) ajouter l'attente des **4 sections** ordonnées (Produit, Synthèse, Verdict, Critique inline), (c) ajouter l'attente de `health_result_risk_highlights` (pastilles risques profil), (d) vérifier l'absence de `bilan_additives_section` (fusion Synthèse). Confirmer la non-régression composition/critique (Feature O/N inchangées).
+
+---
+
+## Parallel execution (Feature P)
+
+- **T501** + **T502** + **T504** + **T505** éditent des sections/fichiers distincts mais convergent vers `BilanResultCard.kt` / `LlmResultScreen.kt` → coordonner séquentiellement sur le même fichier (T501/T502/T504 sur `BilanResultCard.kt` ; T505 sur `LlmResultScreen.kt`).
+- **T503** (réordonnancement) après T501/T502/T504 (sections inconditionnelles + IngredientsSection retirée).
+- **T506** (fusion Synthèse) après T503 (ordre établi) — édite `BilanResultCard.kt` → séquentiel.
+- **T507** + **T508** sur `InlineCritiqueSection.kt` → séquentiel (T508 dépend du composable T507).
+- **T509** (doc) + **T510** (tests) → parallèle [P] après T503–T508.
+
+## Implementation strategy (Feature P)
+
+- MVP = **T501–T506** (4 sections ordonnées + suppression liste brute + fusion kcal/KPI dans Synthèse) ; US-P1 + US-P2 + US-P-intégration démontrables et testables indépendamment (parcours quickstart étapes 1–4 + 9).
+- Incrémental : US-P3 (T507–T508, critique concise/visuelle) s'ajoute sans casser US-P1/P2/P-intégration.
+- Non-régression critique : `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N), `HealthCritiqueSectionParser`, flux composition, `AdditiveKpiPanel` (`additive-risk-insights`), `CompositionEnergyPastille` (Feature K), déclenchement automatique + restitution inline (Feature O) **inchangés** (`IHI-P-FR-008`/`009`/`012`).
+
+## Suggested MVP scope (Feature P)
+
+- **T501–T506** = US-P1 + US-P2 + US-P-intégration complètes (4 sections ordonnées + suppression liste brute + Synthèse agrégée).

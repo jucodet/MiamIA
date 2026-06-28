@@ -173,3 +173,51 @@
 - `HealthCritiqueEngine`, `HealthCritiquePromptBuilder`, `HealthCritiqueSectionParser` MUST être inchangés (`IHI-O-FR-007` / `IHI-O-SC-005`).
 - Un même `Complete` MUST déclencher au plus une inférence critique (`IHI-O-FR-013` / `IHI-O-SC-008`).
 - `LastHealthAnalysisStore` MUST être conservé sans écran séparé (`IHI-O-FR-011`).
+
+---
+
+## Feature P — Compte rendu restructuré (4 sections) + critique concise/visuelle par profil
+
+### Entités (Feature P)
+
+- `ReportSection` *(section ordonnée du compte rendu — `IHI-P-FR-001`)*
+  - Valeurs canoniques dans l'ordre exact : `ProduitIdentifie` → `Synthese` → `VerdictParIngredient` → `CritiqueSante`.
+  - Invariant : **exactement 4 sections** exposées sur le compte rendu `Complete` ; aucun section hors cadre ; ordre stable跨-états (`IHI-P-SC-001`/`008`).
+
+- `ProduitIdentifie` *(section 1 — `IHI-P-FR-001`)*
+  - Restitue le produit identifié (`CompositionBilan.identifiedProduct` + `productConfidence`) ou un **état neutre** « Produit non identifié » si absent (edge case).
+  - Invariant : section **inconditionnelle** (toujours rendue sur `Complete`).
+
+- `Synthese` *(section 2 — `IHI-P-FR-003`)*
+  - Agrège : `CompositionEnergyPastille` (Feature K, kcal/100 g) **en tête** + texte d'analyse (`CompositionBilan.compositionAnalysis`) + `AdditiveKpiPanel` (KPI `additive-risk-insights`, attribution explicite `IHI-C-FR-007`).
+  - Invariant : la section « Additifs » n'est plus une section autonome (fusion dans Synthèse) ; pas de perte d'information KPI.
+
+- `VerdictParIngredient` *(section 3 — `IHI-P-FR-004`)*
+  - Restitue les impacts santé ingrédient par ingrédient (`CompositionBilan.healthImpacts`, `IngredientHealthImpact`) ou un **état neutre** « Aucun ingrédient à vigilance identifié » si vide.
+  - Remplace l'affichage brut du segment (liste « Ingrédients identifiés » supprimée — `IHI-P-FR-002`).
+  - Invariant : section **inconditionnelle** (toujours rendue sur `Complete`).
+
+- `ConciseVisualCritique` *(forme de restitution critique — section 4 — `IHI-P-FR-005`/`006`)*
+  - Structure ordonnée : (1) rappel `EvaluatedForHeader` « Évalué pour vous : <profil> » (`IHI-N-FR-003`) + signal « profil par défaut » le cas échéant (`IHI-N-FR-012`) ; (2) `ProfileRiskHighlights` (pastilles risques profil) ; (3) `PrudenceGauge` (jauge 3 paliers + texte court, `IHI-N-FR-009`) ; (4) cartes `IngredientRiskCardItem` **repliables** (Feature N, `IHI-N-FR-010`) ; (5) `FullIngredientListToggle` (Feature N, `IHI-N-FR-011`).
+  - Invariant : rendu par défaut **concis et visuel** (pas de mur narratif) ; profondeur accessible en repli.
+
+- `ProfileRiskHighlight` *(pastille visuelle de risque profil — `IHI-P-FR-005`/`007`)*
+  - Une pastille par `IngredientRiskCard` (ingrédient à vigilance Modérée/Élevée pour le profil sélectionné) : **nom** (+ `code` éventuel) + **marqueur de sévérité visuel** (couleur / emoji dérivé du niveau de vigilance).
+  - Mis en évidence **en tête de la critique**, avant la jauge.
+  - Invariant : chaque ingrédient mentionné MUST être ancré dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`) ; aucun risque inventé (`IHI-P-SC-005`). Si aucune carte : pastille neutre « Aucun risque marqué pour votre profil ».
+
+### Entités retirées de l'UI (Feature P)
+
+- `RawIngredientListDisplay` *(exposition à plat du `ValidatedIngredientSegment` — `IngredientsSection` du `BilanResultCard` + carte streaming « Ingrédients identifiés »)* — **supprimée de l'UI** (`IHI-P-FR-002`). Le segment reste entrée d'analyse (ancrage Feature C, inchangé).
+- `AdditivesSection` *(section « Additifs » autonome)* — **supprimée comme section** ; le `AdditiveKpiPanel` est intégré à `Synthese` (`IHI-P-FR-003`).
+
+## Validation rules (Feature P)
+
+- Le compte rendu `Complete` MUST exposer **exactement 4 sections** dans l'ordre `ProduitIdentifie` → `Synthese` → `VerdictParIngredient` → `CritiqueSante` (`IHI-P-FR-001` / `IHI-P-SC-001`).
+- `BilanResultCard` MUST NOT exposer `IngredientsSection` (test tag `bilan_ingredients_section` absent) ; `LlmResultScreen` MUST NOT exposer la carte streaming « Ingrédients identifiés » (test tag `streaming_ingredients_card` absent) (`IHI-P-FR-002` / `IHI-P-SC-002`).
+- `Synthese` MUST contenir la pastille kcal (Feature K) et le `AdditiveKpiPanel` (attribution `IHI-C-FR-007`) ; la section « Additifs » autonome MUST être absente (`IHI-P-FR-003` / `IHI-P-SC-003`).
+- `ProductSection` et `HealthImpactSection` MUST être inconditionnelles (états neutres si vide) — 4 sections stables跨-états (`IHI-P-FR-001` / `IHI-P-SC-008`).
+- `CritiqueProfileContent` MUST afficher `ProfileRiskHighlights` (pastilles risques profil) entre le rappel « Évalué pour vous » et la `PrudenceGauge` (`IHI-P-FR-005` / `IHI-P-SC-004`).
+- Chaque `ProfileRiskHighlight` MUST être ancré dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`) ; 0 % risque inventé (`IHI-P-SC-005`).
+- Les cartes détaillées `IngredientRiskCardItem` MUST rester repliables par défaut (profondeur non dominante — `IHI-P-FR-006` / `IHI-P-SC-006`).
+- `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N), `HealthCritiqueSectionParser`, flux composition, déclenchement automatique (Feature O) MUST être inchangés (`IHI-P-FR-008`/`009`/`012`).

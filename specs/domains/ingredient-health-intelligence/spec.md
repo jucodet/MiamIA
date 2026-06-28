@@ -2,7 +2,7 @@
 
 **Domain Context**: `ingredient-health-intelligence`
 **Created**: 2026-05-06
-**Last Modified**: 2026-06-28 (Feature O — critique santé intégrée à l'écran principal des résultats : déclenchement automatique + restitution inline, supersede Feature M)
+**Last Modified**: 2026-06-28 (Feature P — restructuration du compte rendu en 4 sections ordonnées + critique santé concise/visuelle centrée sur le profil sélectionné)
 **Status**: Draft
 
 ## Purpose
@@ -765,6 +765,122 @@ En tant qu'utilisatrice, je veux que le flux critique santé ne passe plus par u
 
 ---
 
+## Feature P — Compte rendu restructuré (4 sections ordonnées) + critique santé concise et visuelle par profil
+
+> Origine : intake `/speckit-design` + `/speckit-specify` 2026-06-28
+> Intention : restructurer l'écran de compte rendu (`LlmResultScreen`) en **4 sections ordonnées fixes** — **Produit identifié**, **Synthèse**, **Verdict par ingrédient**, **Critique santé** — et **supprimer l'affichage de la liste des ingrédients identifiés** (la liste brute des ingrédients détectés, distincte du verdict par ingrédient). La **Critique santé** est reformulée pour être **aussi concise et visuelle que possible**, en **faisant ressortir les risques pour le type d'utilisateur choisi** (ex. femme enceinte) : signaux visuels courts, hiérarchisation des risques propres au profil, plutôt qu'un bloc narratif long. S'appuie sur Feature N (profil unique) et Feature O (restitution inline) ; ne rouvre pas le format 4-profils.
+
+### Clarifications (Feature P)
+
+#### Session 2026-06-28
+
+- **Portée** : Feature P modifie l'**ordonnancement et la composition des sections** de l'écran de compte rendu (`LlmResultScreen`), **supprime la liste brute des ingrédients identifiés**, et fait évoluer la **restitution de la critique santé** vers une forme **concise et visuelle** centrée sur le profil sélectionné. Elle ne modifie pas le moteur `HealthCritiqueEngine`, le prompt builder (Feature L/N) au-delà de l'orientation concise/visuelle, le flux composition, ni les KPI additifs (`additive-risk-insights`). Conformité Feature C (`IHI-C-FR-001` à `IHI-C-FR-007`) et garde-fous Feature L/N inchangés.
+- **« Liste des ingrédients identifiés » supprimée** : désigne l'**affichage brut de la liste des ingrédients détectés** (issus du `ValidatedIngredientSegment`) tel qu'exposé aujourd'hui sur `LlmResultScreen`. Cette liste **n'est plus affichée** en tant que section. Le **verdict par ingrédient** (section 3) et le bouton « Voir tous les ingrédients analysés » (Feature N, `IHI-N-FR-011`) restent disponibles et fournissent l'accès structuré aux ingrédients ; aucun affichage en clair de la liste brute n'est conservé. La donnée segment reste utilisée en entrée d'analyse (ancrage Feature C), simplement non exposée comme liste à plat.
+- **Ordonnancement fixe à 4 sections** : le compte rendu MUST présenter, dans cet ordre exact, **uniquement** : (1) **Produit identifié**, (2) **Synthèse**, (3) **Verdict par ingrédient**, (4) **Critique santé**. Toute section additionnelle (ex. KPI additifs juxtaposés `additive-risk-insights`, pastille kcal Feature K) MUST être **intégrée** à l'une de ces 4 sections (la Synthèse pour la pastille kcal et les KPI additifs) plutôt que d'ajouter des sections hors cadre — l'écran expose exactement 4 sections à l'utilisatrice. Détail de placement visuel interne laissé au plan d'implémentation (Ref. UGE).
+- **Critique santé concise et visuelle** : la restitution critique (Feature N/O) évolue vers une forme **courte et visuelle** : le **Niveau de prudence** (jauge 3 paliers) reste le signal prudence principal, complété par une **liste priorisée de signaux-risques courts** propres au profil sélectionné (ex. pastilles/étiquettes colorées « Risque élevé : phosphate »), plutôt que des paragraphes narratifs longs. Les **cartes ingrédients** Feature N (`IHI-N-FR-010`) restent disponibles **en repli dépliable** pour la profondeur, mais ne constituent plus le rendu par défaut dominant. La critique fait **ressortir les risques pour le type d'utilisateur choisi** (ex. femme enceinte) en tête de section.
+- **« Faire ressortir les risques pour le type d'utilisateur choisi »** : la critique MUST mettre en évidence, en haut de la section 4, les **risques spécifiques au profil sélectionné** (ex. pour « Femme enceinte » : alertes sur les additifs à vigilance maternelle/périnatale, substances à limiter en grossesse). Cette mise en évidence s'appuie sur le contenu produit par le prompt Feature N (profil unique) et respecte l'ancrage Feature C (aucun risque inventé non ancré). Le rappel « Évalué pour vous : <profil> » (`IHI-N-FR-003`) reste en tête de la critique.
+- **Non-régression Feature N/O** : les exigences Feature N (`IHI-N-FR-001` à `IHI-N-FR-016`) et Feature O (`IHI-O-FR-001` à `IHI-O-FR-014`) restent applicables ; Feature P **ajoute** une contrainte d'ordonnancement 4-sections, une suppression d'affichage de liste brute, et une orientation concise/visuelle de la restitution critique. Le déclenchement automatique (Feature O) et la restitution inline (Feature O) sont préservés.
+- **Validation MVP** : la conformité sémantique (ordonnancement 4 sections, absence de liste brute, concision/visuel de la critique, mise en évidence des risques profil) est tenue par **relecture humaine + traçabilité** sur un jeu fixe (aligné `IHI-C-FR-006` MVP) ; le format de sortie parsé (Feature N/O) reste vérifié par le parseur existant. Aucun audit automatisé bloquant n'est exigé au MVP.
+- Q: Les KPI additifs (`additive-risk-insights`) et la pastille kcal (Feature K) forment-ils des sections supplémentaires ? → A: **Non** : ils sont **intégrés à la section « Synthèse »** (pastille kcal en tête de synthèse, KPI additifs dans la synthèse), afin de respecter le cadre strict à 4 sections. La juxtaposition reste régie par **IHI-C-FR-007** (attribution explicite + ancrage).
+- Q: Le « Verdict par ingrédient » (section 3) remplace-il le « détail ingrédient par ingrédient » Feature N ? → A: **Oui, c'est la même notion** renommée et positionnée comme section 3 ; les cartes ingrédients Feature N (`IHI-N-FR-010`, vigilances Modéré/Élevée) et le bouton « Voir tous les ingrédients analysés » (`IHI-N-FR-011`) y sont intégrés. Le nom usager « Verdict par ingrédient » est le libellé section visible.
+- Q: La suppression de la liste brute d'ingrédients impacte-t-elle l'ancrage Feature C ? → A: **Non** : le `ValidatedIngredientSegment` reste l'entrée d'analyse et la source d'ancrage ; seule son **exposition à plat** comme liste d'ingrédients identifiés est retirée de l'UI. L'ancrage littéral (`IHI-C-FR-005`) reste exigé pour toute mention d'ingrédient dans le verdict et la critique.
+
+### User Scenarios (Feature P)
+
+#### US-P1 — Compte rendu en 4 sections ordonnées fixes (P1)
+
+En tant qu'utilisatrice, je veux que le compte rendu suive un ordre prévisible en **4 sections** — Produit identifié, Synthèse, Verdict par ingrédient, Critique santé — afin de savoir où trouver chaque information sans chercher.
+
+**Why this priority** : structure lisible = condition de la valeur produit décrite ; sans ordre fixe, la lisibilité et le scan rapide échouent.
+
+**Independent Test** : compléter un scan → bilan composition succès → vérifier que `LlmResultScreen` expose **exactement 4 sections** dans l'ordre Produit identifié → Synthèse → Verdict par ingrédient → Critique santé, et qu'aucune section hors cadre n'est présente.
+
+**Acceptance Scenarios**:
+
+1. **Given** un compte rendu prêt (bilan composition succès + critique prête inline, Feature O), **When** `LlmResultScreen` s'affiche, **Then** il expose **exactement 4 sections** dans cet ordre : **Produit identifié**, **Synthèse**, **Verdict par ingrédient**, **Critique santé**.
+2. **Given** le compte rendu affiché, **When** l'utilisatrice cherche la pastille kcal (Feature K) ou les KPI additifs (`additive-risk-insights`), **Then** ils sont **intégrés à la section « Synthèse »** (pas de section supplémentaire), avec attribution explicite `IHI-C-FR-007` pour les KPI additifs.
+3. **Given** plusieurs analyses successives, **When** les comptes rendus s'affichent, **Then** l'ordre des 4 sections est **stable** (répétable sur ≥ 3 analyses).
+
+#### US-P2 — Suppression de la liste brute des ingrédients identifiés (P1)
+
+En tant qu'utilisatrice, je veux ne plus voir la **liste brute des ingrédients identifiés** sur le compte rendu, afin de ne pas être noyée sous une liste à plat peu actionnable ; je conserve l'accès au verdict par ingrédient et à la liste compacte analysée.
+
+**Why this priority** : réduit la charge visuelle et évite la redondance avec le verdict par ingrédient ; cœur de l'intention produit décrite.
+
+**Independent Test** : compléter un scan → vérifier qu'aucune section « liste des ingrédients identifiés » (affichage brut du segment) n'est présente sur `LlmResultScreen`, et que le « Verdict par ingrédient » + le bouton « Voir tous les ingrédients analysés » (Feature N) restent disponibles.
+
+**Acceptance Scenarios**:
+
+1. **Given** un compte rendu prêt avec un `ValidatedIngredientSegment` non vide, **When** `LlmResultScreen` s'affiche, **Then** **aucune liste brute** des ingrédients identifiés n'est exposée à plat (pas de section dédiée, pas de bloc hors cadre).
+2. **Given** la section « Verdict par ingrédient », **When** l'utilisatrice la consulte, **Then** seules les cartes vigilances Modérée/Élevée (Feature N, `IHI-N-FR-010`) sont affichées en clair par défaut.
+3. **Given** l'utilisatrice souhaite la liste complète, **When** elle déplie le bouton « Voir tous les ingrédients analysés » (`IHI-N-FR-011`), **Then** une **liste compacte** (nom + statut de vigilance) est exposée — sans liste brute à plat hors ce contrôle.
+
+#### US-P3 — Critique santé concise et visuelle, risques profil en tête (P1)
+
+En tant qu'utilisatrice dont le profil est « Femme enceinte », je veux que la critique santé soit **courte et visuelle**, en **faisant ressortir les risques qui me concernent** en premier (ex. pastilles de risque sur les additifs à vigilance grossesse), afin de saisir ma situation en quelques secondes sans lire un long bloc narratif.
+
+**Why this priority** : cœur de la lisibilité profil ; sans concision/visuel et hiérarchisation profil, la critique reste un mur de texte peu actionnable.
+
+**Independent Test** : produire une critique pour un profil donné (ex. « Femme enceinte ») sur un jeu fixe → vérifier que la section critique affiche en tête le rappel « Évalué pour vous : <profil> » + une **liste priorisée de signaux-risques courts** propres au profil (pastilles/étiquettes visuelles), que le Niveau de prudence (jauge 3 paliers) est visible, et que les cartes détaillées restent disponibles en repli dépliable.
+
+**Acceptance Scenarios**:
+
+1. **Given** une critique prête pour le profil sélectionné, **When** la section 4 « Critique santé » s'affiche, **Then** elle commence par le rappel « Évalué pour vous : <profil> » (`IHI-N-FR-003`) suivi d'une **mise en évidence des risques spécifiques au profil sélectionné** (ex. signaux-risques courts, pastilles/étiquettes visuelles), avant tout détail narratif.
+2. **Given** la critique affichée, **When** l'utilisatrice la scanne, **Then** le **Niveau de prudence** (jauge 3 paliers + texte court, `IHI-N-FR-009`) est visible et **concis**, sans paragraphe narratif long en rendu par défaut.
+3. **Given** l'utilisatrice veut la profondeur, **When** elle déplie une entrée de risque, **Then** la **carte ingrédient** Feature N (`IHI-N-FR-010` : titre, type, Impact, Fait établi, Nuance, Cible particulièrement) est exposée en repli — la profondeur reste accessible mais non dominante.
+4. **Given** un risque mis en évidence pour le profil, **When** on vérifie son ancrage, **Then** l'ingrédient/sustance mentionné est **littéralement ancrable** dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`) ; aucun risque non ancré n'est affiché.
+
+### Edge Cases (Feature P)
+
+- **Produit non identifié** : la section « Produit identifié » indique un état neutre (ex. « Produit non identifié ») sans inventer de produit ; l'ancrage Feature C est préservé.
+- **Synthèse sans estimation kcal disponible** (Feature K) : la synthèse expose l'état d'analyse terminé sans valeur trompeuse (cohérent `IHI-K-FR-004` / US-K2) ; la structure 4-sections est préservée.
+- **Aucun KPI additif juxtaposé** (`additive-risk-insights` indisponible) : la synthèse omet les KPI sans casser l'ordre 4-sections (attribution `IHI-C-FR-007` non satisfaite → pas de juxtaposition).
+- **Aucun ingrédient à vigilance (Modéré/Élevé)** : la section « Verdict par ingrédient » indique l'absence d'ingrédient problématique pour le profil ; le bouton « Voir tous les ingrédients analysés » reste disponible (cohérent Feature N).
+- **Critique en cours / erreur** (Feature O) : la section 4 rend les états inline (`en cours` streaming, `erreur`) sans casser l'ordre des sections 1–3 (qui restent visibles au-dessus).
+- **Profil non sélectionné (fallback « Adulte »)** : cohérent `IHI-N-FR-012` — la critique met en évidence les risques pour « Adulte » (profil par défaut) avec le signal visuel « profil par défaut » ; pas de critique 4-profils.
+- **Liste très longue** : la synthèse des risques majeurs (`IHI-L-FR-012`) reste applicable, produite **pour le profil sélectionné uniquement** et restituée de façon concise/visuelle (pas de mur narratif).
+- **Ancrage Feature C** : toute mise en évidence de risque ou mention d'ingrédient (verdict, critique) MUST être ancrée dans le `ValidatedIngredientSegment` ; un échec d'ancrage suit `IHI-C-FR-003`.
+
+### Functional Requirements (Feature P)
+
+- **IHI-P-FR-001**: Le système MUST exposer le compte rendu (`LlmResultScreen`) en **exactement 4 sections ordonnées fixes** : (1) **Produit identifié**, (2) **Synthèse**, (3) **Verdict par ingrédient**, (4) **Critique santé** ; le système MUST NOT exposer de section hors ce cadre.
+- **IHI-P-FR-002**: Le système MUST **supprimer l'affichage de la liste brute des ingrédients identifiés** (exposition à plat du `ValidatedIngredientSegment`) sur le compte rendu ; le segment reste utilisé comme **entrée d'analyse** (ancrage Feature C) mais n'est pas exposé comme liste à plat.
+- **IHI-P-FR-003**: Le système MUST **intégrer la pastille kcal (Feature K) et les KPI additifs juxtaposés (`additive-risk-insights`)** à la section **« Synthèse »** (pastille kcal en tête de synthèse, KPI additifs dans la synthèse), avec attribution explicite `IHI-C-FR-007` pour les KPI ; aucun n'a sa propre section hors cadre.
+- **IHI-P-FR-004**: Le système MUST exposer la section **« Verdict par ingrédient »** intégrant les cartes vigilances Modérée/Élevée Feature N (`IHI-N-FR-010`) et le bouton « Voir tous les ingrédients analysés » (`IHI-N-FR-011`, liste compacte nom + statut de vigilance).
+- **IHI-P-FR-005**: Le système MUST restituer la **Critique santé** (section 4) sous une forme **concise et visuelle** : rappel « Évalué pour vous : <profil> » (`IHI-N-FR-003`) en tête, **mise en évidence des risques spécifiques au profil sélectionné** (signaux-risques courts, pastilles/étiquettes visuelles) avant tout détail narratif, et **Niveau de prudence** (jauge 3 paliers + texte court, `IHI-N-FR-009`).
+- **IHI-P-FR-006**: Le système MUST limiter le **rendu narratif par défaut** de la critique à des formulations courtes/visuelles ; les **cartes ingrédients détaillées** Feature N (`IHI-N-FR-008`) MUST rester accessibles **en repli dépliable** (profondeur non dominante).
+- **IHI-P-FR-007**: Le système MUST faire ressortir les **risques pour le type d'utilisateur choisi** (ex. femme enceinte) en **tête de la critique** (section 4), à partir du contenu produit par le prompt Feature N (profil unique) ; les risques mis en évidence MUST être **ancrés** dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`), aucun risque inventé non ancré.
+- **IHI-P-FR-008**: Le système MUST préserver la conformité Feature C (`IHI-C-FR-001` à `IHI-C-FR-007`), les garde-fous Feature L (`IHI-L-FR-001` à `IHI-L-FR-008`, `IHI-L-FR-011` à `IHI-L-FR-017` hors format-strict supersédé) et les exigences Feature N (`IHI-N-FR-001` à `IHI-N-FR-016`) et Feature O (`IHI-O-FR-001` à `IHI-O-FR-014`) non contraires au présent cadre 4-sections / concision.
+- **IHI-P-FR-009**: Le système MUST préserver le **déclenchement automatique** (`IHI-O-FR-001`) et la **restitution inline** (`IHI-O-FR-002`) de la critique au sein de la section 4, sans navigation séparée ; les états `en cours` / `erreur` / `prête` (`IHI-O-FR-006`) sont rendus dans la section 4 sans casser les sections 1–3.
+- **IHI-P-FR-010**: Le système MUST, en l'absence de profil sélectionné, conserver le fallback « Adulte » (`IHI-N-FR-012`) avec mise en évidence des risques « Adulte » et signal visuel « profil par défaut », sans produire de critique 4-profils.
+- **IHI-P-FR-011**: Le système MUST assurer la **stabilité** de l'ordonnancement 4-sections sur l'ensemble des états du compte rendu (composition en cours, critique en cours, erreur critique, profil par défaut, liste longue, produit non identifié) — l'ordre et le nombre de sections ne varient pas.
+- **IHI-P-FR-012**: Le système MUST limiter Feature P à l'**ordonnancement du compte rendu**, à la **suppression de la liste brute d'ingrédients** et à l'**orientation concise/visuelle de la critique** ; le moteur `HealthCritiqueEngine`, le bilan de composition et le flux composition MUST conserver leur propre contrat (cohérent `IHI-O-FR-007`).
+
+### Key Entities (Feature P)
+
+- **ReportSection**: section ordonnée du compte rendu, parmi {`ProduitIdentifie`, `Synthese`, `VerdictParIngredient`, `CritiqueSante`} ; exactement 4 sections dans cet ordre.
+- **ProduitIdentifie**: entête de section 1 exposant le produit identifié (ou état neutre « non identifié ») ; ancrage Feature C.
+- **Synthese**: section 2 intégrant la pastille kcal (Feature K) et les KPI additifs juxtaposés (`additive-risk-insights`, `IHI-C-FR-007`).
+- **VerdictParIngredient**: section 3 intégrant les cartes vigilances Modéré/Élevée Feature N (`IHI-N-FR-010`) et le bouton « Voir tous les ingrédients analysés » (`IHI-N-FR-011`) ; remplace l'affichage brut du segment.
+- **ConciseVisualCritique**: forme de restitution critique (section 4) concise et visuelle : rappel profil + signaux-risques courts hiérarchisés par profil + jauge 3 paliers, cartes détaillées en repli dépliable.
+- **ProfileRiskHighlight**: mise en évidence en tête de critique des risques spécifiques au profil sélectionné (ex. femme enceinte), ancrés dans le `ValidatedIngredientSegment`.
+- *(Supprimé de l'UI)* **RawIngredientListDisplay** : exposition à plat du `ValidatedIngredientSegment` — retirée du compte rendu (le segment reste entrée d'analyse).
+
+### Success Criteria (Feature P)
+
+- **IHI-P-SC-001**: 100 % des comptes rendus exposent **exactement 4 sections** dans l'ordre Produit identifié → Synthèse → Verdict par ingrédient → Critique santé ; 0 % exposent une section hors cadre.
+- **IHI-P-SC-002**: 0 % des comptes rendus exposent une **liste brute des ingrédients identifiés** à plat (affichage du segment supprimé).
+- **IHI-P-SC-003**: 100 % des comptes rendus intègrent la **pastille kcal** (Feature K) et les **KPI additifs** juxtaposés (`additive-risk-insights`) à la section **« Synthèse »** (attribution explicite `IHI-C-FR-007` pour les KPI).
+- **IHI-P-SC-004**: 100 % des critiques (section 4) sont restituées sous forme **concise et visuelle** : rappel « Évalué pour vous : <profil> » + mise en évidence des risques spécifiques au profil en tête + jauge 3 paliers, sans mur narratif par défaut.
+- **IHI-P-SC-005**: 100 % des risques mis en évidence pour le profil sélectionné sont **ancrés** dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`) ; 0 % de risque inventé non ancré.
+- **IHI-P-SC-006**: 100 % des cartes ingrédients détaillées Feature N restent accessibles **en repli dépliable** (profondeur conservée, non dominante).
+- **IHI-P-SC-007**: 100 % des comptes rendus préservent le **déclenchement automatique** (`IHI-O-FR-001`) et la **restitution inline** (`IHI-O-FR-002`) de la critique en section 4, sans navigation séparée.
+- **IHI-P-SC-008**: 100 % des états du compte rendu (composition en cours, critique en cours, erreur critique, profil par défaut, liste longue, produit non identifié) conservent l'**ordonnancement 4-sections** stable (ordre et nombre de sections inchangés).
+- **IHI-P-SC-009**: 100 % des cas « profil non sélectionné » conservent le fallback « Adulte » (`IHI-N-FR-012`) avec mise en évidence des risques « Adulte » + signal visuel « profil par défaut » ; 0 % produisent une critique 4-profils.
+- **IHI-P-SC-010**: La conformité sémantique Feature P (ordonnancement 4 sections, suppression liste brute, concision/visuel critique, hiérarchisation risques profil) est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné `IHI-C-FR-006` MVP) ; le format parsé Feature N/O reste vérifié par le parseur existant. Aucun audit automatisé bloquant n'est exigé au MVP.
+
+---
+
 ## Cross-domain Notes
 
 - Consomme le segment validé de `ingredient-normalization-validation` (source de vérité pour l’ancrage — Feature C).
@@ -781,6 +897,7 @@ En tant qu'utilisatrice, je veux que le flux critique santé ne passe plus par u
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature M)
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature N)
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature O — critique santé intégrée à l'écran principal des résultats ; supersede Feature M)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature P — compte rendu restructuré en 4 sections ordonnées + critique santé concise/visuelle centrée sur le profil sélectionné)
 
 ## Assumptions
 
@@ -796,3 +913,4 @@ En tant qu'utilisatrice, je veux que le flux critique santé ne passe plus par u
 - Pour **Feature M**, le correctif est strictement un **câblage de navigation** (route `HealthCritiqueEntry` + bouton dans `LlmResultScreen`) ; `HealthCritiqueScreen` existant est réutilisé sans modification ; la synchronisation du segment repose sur le flux existant `lastValidatedSegmentForHealth` ; aucune modification du moteur, du prompt, du parseur ou du flux composition.
 - Pour **Feature N**, la sélection et la persistance du profil utilisateur sont du ressort de `user-guidance-experience` (saisie lors de l'Onboarding + édition dans un écran « Paramètres / Profil ») ; IHI **consomme** le profil. En l'absence de profil sélectionné, IHI se rabat sur le **profil par défaut « Adulte »** (profil unique, pas 4-profils) avec un signal visuel « profil par défaut ». Le format 4-marqueurs strict Feature L (**IHI-L-FR-009** / **IHI-L-SC-004**) est **supersédé et retiré** (flux 4-profils supprimé entièrement) au profit d'une sortie à **profil unique** (marqueur canonique par profil, dont `###SPORTIF` nouvellement introduit) — traçabilité conservée en spec. Les exigences Feature L non format-strict (persona, dimensions de risque, hiérarchie des preuves, populations vulnérables transversales, garde-fous éthiques, seuil « liste très longue », rédaction française, disclaimer) restent applicables. La restitution affiche un **Niveau de prudence** (jauge 3 paliers + texte court) juste sous les KPI additifs/risques existants (`additive-risk-insights`, **IHI-C-FR-007**), puis des **cartes ingrédients** limitées aux vigilances Modéré/Élevé, avec bouton « Voir tous les ingrédients analysés » déployant une **liste compacte** (nom + statut de vigilance). La conformité sémantique est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C).
 - Pour **Feature O**, la critique santé est **intégrée à l'écran principal des résultats** (`LlmResultScreen`) avec **déclenchement automatique** (bilan composition `Complete` + segment validé disponible) et **restitution 100 % inline** ; les écrans séparés `HealthCritiqueScreen` (entrée) et `HealthCritiqueResultScreen` (résultat), ainsi que les routes `HealthCritiqueEntry` / `HealthCritiqueResult`, sont **supprimés** (supersession Feature M, traçabilité conservée). Le moteur `HealthCritiqueEngine`, le prompt builder (Feature L/N) et le parseur sont **inchangés** ; la conformité Feature C et les garde-fous Feature L/N restent applicables. Le déclenchement automatique d'une seconde inférence LLM est accepté (état `en cours` streaming rendu inline ; l'inférence critique est déléguée à `HybridGemma4LocalGateway.inferStreaming` — même chemin LiteRT-LM que la composition — pour éviter l'`IllegalStateException` de cycle de vie conversation/backend observée avec un runner dédié). Les actions « Copier la réponse » / « Copier le prompt » sont **retirées** de la section critique inline (IHI-O-FR-009 supersédé) ; la persistance (`LastHealthAnalysisStore`) est conservée. L'ordonnancement de l'écran résultat (bilan → pastille kcal → KPI additifs → critique inline) est préservé (Ref. UGE).
+- Pour **Feature P**, le compte rendu (`LlmResultScreen`) est restructuré en **exactement 4 sections ordonnées fixes** : Produit identifié → Synthèse → Verdict par ingrédient → Critique santé ; la **liste brute des ingrédients identifiés** (affichage à plat du `ValidatedIngredientSegment`) est **supprimée de l'UI** (le segment reste entrée d'analyse / ancrage Feature C). La pastille kcal (Feature K) et les KPI additifs juxtaposés (`additive-risk-insights`, `IHI-C-FR-007`) sont **intégrés à la section « Synthèse »**. La critique santé (section 4) évolue vers une forme **concise et visuelle** : rappel « Évalué pour vous : <profil> » + **mise en évidence des risques spécifiques au profil sélectionné** (ex. femme enceinte) en tête + jauge 3 paliers, cartes détaillées en **repli dépliable** (profondeur non dominante). Le moteur `HealthCritiqueEngine`, le bilan/flux composition et le prompt builder restent inchangés au-delà de l'orientation concise/visuelle ; la conformité Feature C et les garde-fous Feature L/N restent applicables. La sélection/persistance du profil reste du ressort de `user-guidance-experience` (Ref. UGE). La conformité sémantique Feature P est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C).

@@ -1,8 +1,8 @@
-# Specification Quality Checklist: Feature O — Critique santé intégrée à l'écran principal des résultats
+# Specification Quality Checklist: Feature P — Compte rendu restructuré + critique santé concise/visuelle par profil
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-06-28
-**Feature**: [spec.md](../spec.md) — section « Feature O »
+**Feature**: [spec.md](../spec.md) (Feature P)
 
 ## Content Quality
 
@@ -31,8 +31,5 @@
 
 ## Notes
 
-- Feature O **supersède Feature M** (câblage de navigation par bouton + écrans séparés). Les exigences `IHI-M-FR-001` à `IHI-M-FR-008` et `IHI-M-SC-001` à `IHI-M-SC-005` sont marquées supersédées/retirées dans la section Feature M (traçabilité conservée).
-- Clarifications résolues en session 2026-06-28 : déclenchement **automatique** (Option A) + **suppression** des écrans/route séparés (Option A).
-- Feature N (prompt + restitution profil) reste applicable ; seule la destination écran change (inline sur `LlmResultScreen`).
-- Aucun détail d'implémentation ne fuite dans la spec (les références à `LlmResultScreen`, `HealthCritiqueScreen`, `NavHost` sont des identifiants de surfaces UX existantes nécessaires au câblage de supersession, pas des choix technologiques nouveaux).
-- Prêt pour `/speckit.clarify` (si affinage) ou `/speckit.plan`.
+- Feature P s'appuie sur Feature N (profil unique) et Feature O (restitution inline) ; aucune régression introduite, les exigences N/O non contraires au cadre 4-sections / concision sont préservées.
+- Items marqués incomplets requirent spec updates avant `/speckit-clarify` ou `/speckit-plan`.

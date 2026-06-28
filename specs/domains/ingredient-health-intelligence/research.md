@@ -232,3 +232,37 @@ Les « inconnues » techniques ont été résolues par la spec + session **clari
 - **Rationale** : respect des frontières DDD (constitution VI) ; Feature O = câblage + restitution, pas de logique métier nouvelle.
 - **Alternatives considered** : réordonner l'écran (rejeté — hors scope, impact UX non spécifié).
 
+
+---
+
+## 14. Feature P — Compte rendu restructuré (4 sections) + critique concise/visuelle par profil
+
+### 14.1 Intégration pastille kcal + KPI additifs dans « Synthèse »
+
+- **Decision** : la `CompositionEnergyPastille` (Feature K) et l'`AdditivesSection` (panneau `AdditiveKpiPanel`, KPI `additive-risk-insights`) sont **intégrées à la section « Synthèse »** (à l'intérieur du `SectionCard` « Synthèse »), et non plus des sections autonomes. L'attribution explicite `IHI-C-FR-007` est préservée via `AdditiveKpiPanel` (inchangé). La section « Additifs » autonome disparaît de l'UI (`IHI-P-FR-003`).
+- **Rationale** : respect du cadre strict à 4 sections (`IHI-P-FR-001`) ; la synthèse agrège les indicateurs (kcal + additifs) pour un scan rapide ; pas de perte d'information.
+- **Alternatives considered** : conserver une section « Additifs » distincte (rejeté — violerait « exactement 4 sections ») ; déplacer les KPI dans le Verdict (rejeté — sémantique distincte : KPI additifs = projection `additive-risk-insights`, verdict = impacts santé LLM).
+
+### 14.2 Suppression de la liste brute des ingrédients identifiés
+
+- **Decision** : `IngredientsSection` (carte « Ingrédients identifiés » repliable du `BilanResultCard`) et la carte streaming « Ingrédients identifiés » (`StreamingContent`) sont **retirées** de l'UI. Le `ValidatedIngredientSegment` reste **entrée d'analyse** et source d'ancrage Feature C (`IHI-C-FR-005`) ; seule son exposition à plat est supprimée (`IHI-P-FR-002`). L'accès structuré aux ingrédients reste via le « Verdict par ingrédient » et le bouton « Voir tous les ingrédients analysés » (Feature N, `IHI-N-FR-011`).
+- **Rationale** : réduit la charge visuelle et la redondance avec le verdict ; cœur de l'intention produit.
+- **Alternatives considered** : garder la liste en repli (rejeté — l'utilisatrice demande explicitement sa suppression) ; déplacer dans la Synthèse (rejeté — toujours une exposition à plat).
+
+### 14.3 Sections inconditionnelles + états neutres (4 sections stables)
+
+- **Decision** : `ProductSection` et `HealthImpactSection` sont rendues **inconditionnelles** (toujours présentes dans le compte rendu `Complete`). En cas d'absence : `ProductSection` affiche « Produit non identifié » (état neutre) ; `HealthImpactSection` affiche « Aucun ingrédient à vigilance identifié » (état neutre). La `Synthèse` est déjà inconditionnelle. La 4ᵉ section (Critique santé) est rendue par `InlineCritiqueSection` (Feature O). Cela garantit **exactement 4 sections stables** sur tous les états du compte rendu (`IHI-P-FR-001` / `IHI-P-SC-008`).
+- **Rationale** : prévisibilité de la lecture (constitution III) ; ordre et nombre de sections ne varient pas.
+- **Alternatives considered** : masquer les sections vides (rejeté — violerait « exactement 4 sections » et la stabilité跨-états).
+
+### 14.4 Critique concise/visuelle + risques profil en tête (`ProfileRiskHighlights`)
+
+- **Decision** : `CritiqueProfileContent` ajoute, juste après le rappel « Évalué pour vous : <profil> » (et le signal « profil par défaut » le cas échéant) et **avant** la `PrudenceGauge`, une couche `ProfileRiskHighlights` : une liste de **pastilles/étiquettes colorées courtes** (une par `IngredientRiskCard`, i.e. ingrédients à vigilance Modérée/Élevée pour le profil sélectionné), reprenant le nom (+ code éventuel) + un marqueur de sévérité visuel (couleur / emoji). Si aucune carte : pastille unique « Aucun risque marqué pour votre profil ». Les cartes détaillées Feature N (`IngredientRiskCardItem`) restent **repliables par défaut** (profondeur non dominante — `IHI-P-FR-006`).
+- **Rationale** : fait ressortir les risques pour le type d'utilisateur choisi en tête (`IHI-P-FR-005`/`007`) ; scan en quelques secondes ; profondeur conservée pour qui veut creuser.
+- **Alternatives considered** : afficher d'emblée toutes les cartes détaillées (rejeté — mur narratif, peu lisible) ; supprimer les cartes détaillées (rejeté — perte de la profondeur Feature N).
+
+### 14.5 Non-régression Feature C / N / O
+
+- **Decision** : `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N), `HealthCritiqueSectionParser`, le flux composition et le déclenchement automatique (Feature O) sont **inchangés** (`IHI-P-FR-008`/`009`/`012`). L'ancrage Feature C (`IHI-C-FR-001`..`007`) reste exigé : chaque ingrédient mentionné dans une pastille/carte/verdict MUST être ancré dans le `ValidatedIngredientSegment`. La suppression de l'affichage brute n'impacte pas l'ancrage (le segment reste entrée d'analyse).
+- **Rationale** : respect des frontières DDD (constitution VI) ; Feature P = mise en page + restitution concise, pas de logique métier nouvelle.
+- **Alternatives considered** : modifier le prompt pour produire une sortie plus courte (rejeté — hors périmètre, risquerait l'ancrage et le format parsé Feature N).

@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocalDining
@@ -246,44 +245,6 @@ private fun StreamingContent(state: StreamingBilanState.Streaming) {
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 8.dp)
                 )
-            }
-        }
-    }
-
-    AnimatedVisibility(
-        visible = state.partialIngredients.isNotEmpty(),
-        enter = fadeIn()
-    ) {
-        StreamingSectionCard(
-            icon = Icons.AutoMirrored.Filled.List,
-            iconTint = MiamIAColors.SectionIngredients,
-            title = "Ingrédients identifiés",
-            badge = "${state.partialIngredients.size}",
-            isLoading = state.sectionReached == StreamingSection.LISTE,
-            testTag = "streaming_ingredients_card"
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.padding(top = 8.dp)
-            ) {
-                state.partialIngredients.forEach { line ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = "•",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MiamIAColors.SectionIngredients,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(end = 8.dp, top = 1.dp)
-                        )
-                        Text(
-                            text = line,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
             }
         }
     }

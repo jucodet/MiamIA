@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeveloperBoard
 import androidx.compose.material.icons.filled.DeveloperMode
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Info
@@ -33,7 +29,6 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -80,19 +75,21 @@ fun BilanResultCard(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        CompositionEnergyPastille(estimatedKcalPer100g = bilan.estimatedKcalPer100g)
         BilanHeader()
-        if (!bilan.identifiedProduct.isNullOrBlank()) {
-            ProductSection(bilan.identifiedProduct, bilan.productConfidence)
-        }
-        AnalysisSection(bilan.compositionAnalysis)
-        IngredientsSection(bilan.ingredientLines)
-        if (bilan.healthImpacts.isNotEmpty()) {
-            HealthImpactSection(bilan.healthImpacts)
-        }
-        additiveKpi?.let { kpi ->
-            AdditivesSection(kpi, onRequestShowRaw = onToggleRaw)
-        }
+        // Feature P — compte rendu en 4 sections ordonnées fixes :
+        // (1) Produit identifié, (2) Synthèse, (3) Verdict par ingrédient,
+        // (4) Critique santé (rendue inline par InlineCritiqueSection sur LlmResultScreen).
+        // La liste brute des ingrédients identifiés est supprimée de l'UI
+        // (IHI-P-FR-002) ; la Synthèse agrège la pastille kcal + les KPI additifs
+        // (IHI-P-FR-003). Sections 1/3 inconditionnelles (états neutres).
+        ProductSection(bilan.identifiedProduct, bilan.productConfidence)
+        SyntheseSection(
+            estimatedKcalPer100g = bilan.estimatedKcalPer100g,
+            analysis = bilan.compositionAnalysis,
+            additiveKpi = additiveKpi,
+            onRequestShowRaw = onToggleRaw,
+        )
+        HealthImpactSection(bilan.healthImpacts)
         DisclaimerSection(bilan.disclaimer)
         if (inferenceTimeMs > 0L) {
             InferenceTimeBadge(inferenceTimeMs, backend)
@@ -245,102 +242,7 @@ private fun BilanHeader() {
 }
 
 @Composable
-private fun IngredientsSection(ingredients: List<String>) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("bilan_ingredients_section")
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MiamIAColors.SectionIngredients.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.List,
-                        contentDescription = null,
-                        tint = MiamIAColors.SectionIngredients,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Ingrédients identifiés",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f)
-                )
-                Surface(
-                    color = MiamIAColors.SectionIngredients.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "${ingredients.size}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MiamIAColors.SectionIngredients,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = if (expanded) "Replier" else "Déplier",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
-                    ingredients.forEach { line ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Text(
-                                text = "•",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MiamIAColors.SectionIngredients,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(end = 8.dp, top = 1.dp)
-                            )
-                            Text(
-                                text = line,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProductSection(product: String, confidence: Int?) {
+private fun ProductSection(product: String?, confidence: Int?) {
     SectionCard(
         icon = Icons.Filled.LocalDining,
         iconTint = MiamIAColors.SectionSynthese,
@@ -348,22 +250,37 @@ private fun ProductSection(product: String, confidence: Int?) {
         title = "Produit identifié",
         testTag = "bilan_product_section"
     ) {
-        val label = if (confidence != null) {
-            "Identification d'un $product à $confidence\u00A0%"
+        if (product.isNullOrBlank()) {
+            // Feature P — état neutre « Produit non identifié » (section inconditionnelle).
+            Text(
+                text = "Produit non identifié",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         } else {
-            "Identification d'un $product"
+            val label = if (confidence != null) {
+                "Identification d'un $product à $confidence\u00A0%"
+            } else {
+                "Identification d'un $product"
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(top = 8.dp)
-        )
     }
 }
 
 @Composable
-private fun AnalysisSection(analysis: String) {
+private fun SyntheseSection(
+    estimatedKcalPer100g: Int?,
+    analysis: String,
+    additiveKpi: AnalysisDisplayResult?,
+    onRequestShowRaw: () -> Unit,
+) {
     SectionCard(
         icon = Icons.Filled.Science,
         iconTint = MiamIAColors.SectionSynthese,
@@ -371,39 +288,32 @@ private fun AnalysisSection(analysis: String) {
         title = "Synthèse",
         testTag = "bilan_analysis_section"
     ) {
-        Surface(
-            color = MiamIAColors.SectionSynthese.copy(alpha = 0.04f),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
-        ) {
-            Text(
-                text = analysis,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(12.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun AdditivesSection(
-    kpi: AnalysisDisplayResult,
-    onRequestShowRaw: () -> Unit
-) {
-    SectionCard(
-        icon = Icons.Filled.Warning,
-        iconTint = MiamIAColors.SectionAdditives,
-        iconBackground = MiamIAColors.SectionAdditives.copy(alpha = 0.1f),
-        title = "Additifs",
-        testTag = "bilan_additives_section"
-    ) {
-        AdditiveKpiPanel(
-            result = kpi,
-            onRequestShowRaw = onRequestShowRaw,
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(top = 8.dp)
-        )
+        ) {
+            // Feature P — pastille kcal intégrée en tête de la Synthèse (IHI-P-FR-003).
+            CompositionEnergyPastille(estimatedKcalPer100g = estimatedKcalPer100g)
+            Surface(
+                color = MiamIAColors.SectionSynthese.copy(alpha = 0.04f),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = analysis,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+            // Feature P — KPI additifs juxtaposés (additive-risk-insights) intégrés à la
+            // Synthèse (attribution explicite IHI-C-FR-007 préservée via AdditiveKpiPanel).
+            additiveKpi?.let { kpi ->
+                AdditiveKpiPanel(
+                    result = kpi,
+                    onRequestShowRaw = onRequestShowRaw,
+                )
+            }
+        }
     }
 }
 
@@ -417,38 +327,48 @@ private fun HealthImpactSection(impacts: List<IngredientHealthImpact>) {
         badge = "${impacts.size}",
         testTag = "bilan_health_impact_section"
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(top = 8.dp)
-        ) {
-            impacts.forEach { impact ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Surface(
-                        color = healthLevelColor(impact.level).copy(alpha = 0.35f),
-                        shape = RoundedCornerShape(8.dp)
+        if (impacts.isEmpty()) {
+            // Feature P — état neutre « Aucun ingrédient à vigilance » (section inconditionnelle).
+            Text(
+                text = "Aucun ingrédient à vigilance identifié.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                impacts.forEach { impact ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = healthLevelLabel(impact.level),
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = impact.ingredient,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        if (impact.note.isNotBlank()) {
-                            CategoryChips(
-                                note = impact.note,
-                                chipColor = healthLevelColor(impact.level),
-                                modifier = Modifier.padding(top = 4.dp)
+                        Surface(
+                            color = healthLevelColor(impact.level).copy(alpha = 0.35f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = healthLevelLabel(impact.level),
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = impact.ingredient,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (impact.note.isNotBlank()) {
+                                CategoryChips(
+                                    note = impact.note,
+                                    chipColor = healthLevelColor(impact.level),
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
                         }
                     }
                 }
