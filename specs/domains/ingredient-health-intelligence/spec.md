@@ -2,7 +2,7 @@
 
 **Domain Context**: `ingredient-health-intelligence`
 **Created**: 2026-05-06
-**Last Modified**: 2026-06-28 (Feature P — restructuration du compte rendu en 4 sections ordonnées + critique santé concise/visuelle centrée sur le profil sélectionné)
+**Last Modified**: 2026-06-28 (Feature Q — contrainte de concision maximale intégrée au prompt de critique santé)
 **Status**: Draft
 
 ## Purpose
@@ -881,6 +881,98 @@ En tant qu'utilisatrice dont le profil est « Femme enceinte », je veux que la 
 
 ---
 
+## Feature Q — Concision maximale du contenu de la critique santé intégrée au prompt
+
+> Origine : intake `/speckit-design` + `/speckit-specify` 2026-06-28
+> Intention : rendre le **contenu** de la critique santé **le plus concis possible**, en intégrant cette contrainte **directement au prompt** construit par `HealthCritiquePromptBuilder` (Feature L/N). Le LLM doit produire des formulations **courtes et denses** (pas de prose narrative, pas de préambules, pas de répétitions), tout en préservant le format de sortie strict Feature N (rappel « Évalué pour vous : <profil> » + marqueur unique + 3 blocs : Niveau de prudence, Cartes à vigilance, Liste complète), l'ancrage Feature C, et les garde-fous éthiques Feature L/N. Complémentaire de Feature P (qui agit sur la **restitution UI** : 4 sections, pastilles visuelles) — Feature Q agit sur la **production textuelle** elle-même.
+
+### Clarifications (Feature Q)
+
+#### Session 2026-06-28
+
+- **Portée** : Feature Q modifie le **prompt de critique santé** (`HealthCritiquePromptBuilder.buildSystemInstruction`) pour y intégrer une **contrainte explicite de concision maximale**. Elle ne modifie pas le moteur `HealthCritiqueEngine`, le parseur `HealthCritiqueSectionParser`, le bilan de composition, ni les KPI additifs (`additive-risk-insights`). Conformité Feature C (`IHI-C-FR-001` à `IHI-C-FR-007`) et garde-fous Feature L/N inchangés.
+- **Concision « maximale »** : le prompt MUST exiger du LLM des **formulations courtes et denses** : (a) **aucun préambule** ni phrase d'introduction avant le rappel « Évalué pour vous : <profil> » (déjà exigé Feature N, réaffirmé) ; (b) **aucune prose narrative** autour des blocs — chaque bloc va à l'essentiel ; (c) **Niveau de prudence** : un palier (Faible/Modéré/Élevé) + un **texte justificatif court** (idéalement une seule phrase, ≤ ~25 mots) ; (d) **Cartes à vigilance** : `Impact` / `Fait établi` / `Nuance` / `Cible particulièrement` rédigés en **formulations courtes** (idéalement ≤ ~15 mots par sous-ligne), sans développements narratifs ; (e) **Liste complète** : une ligne par ingrédient, format compact `nom : statut` (inchangé Feature N) ; (f) **pas de répétitions** ni de reformulations entre blocs.
+- **Préservation du format strict** : la concision MUST NOT supprimer ni fusionner les 3 blocs exigés (Feature N `IHI-N-FR-006` à `IHI-N-FR-011`) ; le rappel `EvaluatedForHeader` + le marqueur unique + les 3 blocs restent **obligatoires et identifiables par le parseur** (`IHI-N-FR-013`). La concision agit sur la **longueur des formulations**, pas sur la structure.
+- **Préservation de l'ancrage et des garde-fous** : la concision MUST NOT encourager d'inventer ou de résumer au point d'inventer des faits non ancrés ; chaque ingrédient mentionné MUST rester **littéralement ancrable** dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`). Les garde-fous éthiques (pas de diagnostic, pas de prescription — `IHI-L-FR-007`) et le disclaimer (`IHI-L-FR-011`) restent exigés. Les références CIRC/OMS restent citées **quand applicables** (sans développement).
+- **Relation Feature P** : Feature P agit sur la **restitution UI** (4 sections, pastilles visuelles `ProfileRiskHighlights`, cartes en repli) ; Feature Q agit sur la **production textuelle LLM** (concision du contenu). Les deux sont **complémentaires et indépendantes** : Feature Q produit un texte court que Feature P affiche de façon visuelle. Aucune supersession.
+- **Non-régression Feature L/N/O/P** : les exigences Feature L non format-strict (persona expert `IHI-L-FR-001`, 5 dimensions de risque `IHI-L-FR-003`, hiérarchie faits/incertitudes/hypothèses `IHI-L-FR-004`, contextualisation dose `IHI-L-FR-005`, opacité `IHI-L-FR-006`, garde-fous `IHI-L-FR-007`, populations vulnérables `IHI-L-FR-008`, rédaction française + disclaimer `IHI-L-FR-011`, seuil liste longue `IHI-L-FR-012`), Feature N (`IHI-N-FR-001` à `IHI-N-FR-016`), Feature O (`IHI-O-FR-001` à `IHI-O-FR-014`) et Feature P (`IHI-P-FR-001` à `IHI-P-FR-012`) restent applicables ; Feature Q **ajoute** une contrainte de concision au prompt, sans déroger au format strict ni aux garde-fous.
+- **Validation MVP** : la conformité sémantique (concision des formulations, absence de préambule/prose, préservation format + ancrage + garde-fous) est tenue par **relecture humaine + traçabilité** sur un jeu fixe (aligné `IHI-C-FR-006` MVP) ; le format de sortie parsé (rappel + marqueur + 3 blocs) reste vérifié par le parseur existant Feature N. Aucun audit automatisé bloquant n'est exigé au MVP.
+- Q: La concision s'applique-t-elle aussi au prompt du bilan de composition ? → A: **Non, uniquement au prompt de critique santé** (périmètre Feature Q strict, cohérent `IHI-L-FR-017` / `IHI-N-FR-016`) ; le bilan de composition garde son propre contrat. Une extension éventuelle ferait l'objet d'une feature distincte.
+- Q: La concision peut-elle supprimer les références CIRC/OMS ? → A: **Non** : les références restent **citées quand applicables** (ex. « CIRC 2A »), de façon **compacte** (pas de développement narratif). La concision porte sur la longueur, pas sur la suppression d'attributs exigés.
+- Q: Un seuil chiffré de longueur est-il exigé en spec ? → A: **Indications courtes** (≤ ~25 mots pour le justificatif de prudence, ≤ ~15 mots par sous-ligne de carte) données à titre **directif** dans le prompt ; la **valeur exacte** des seuils et leur caractère indicatif vs strict est laissé au **plan d'implémentation** (la spec exige seulement « formulations courtes et denses, pas de prose narrative »).
+
+### User Scenarios (Feature Q)
+
+#### US-Q1 — Prompt intégrant la contrainte de concision maximale (P1)
+
+En tant que développeuse, je veux que le prompt de critique santé contienne une **contrainte explicite de concision maximale** (formulations courtes, pas de préambule, pas de prose narrative, pas de répétitions), afin que le LLM produise un contenu court et dense par construction.
+
+**Why this priority** : cœur de l'intention produit décrite ; sans contrainte au prompt, la concision dépend du seul modèle et n'est pas reproductible.
+
+**Independent Test** : inspecter le prompt construit par `HealthCritiquePromptBuilder.buildSystemInstruction(profile)` et vérifier la présence d'une contrainte explicite de concision (formulations courtes, pas de préambule/prose/répétitions) dans l'instruction système.
+
+**Acceptance Scenarios**:
+
+1. **Given** un profil sélectionné (ex. « Femme enceinte »), **When** le prompt de critique santé est construit, **Then** l'instruction système contient une **contrainte explicite de concision** exigeant des formulations courtes et denses, l'absence de préambule/prose narrative et l'absence de répétitions.
+2. **Given** le prompt construit, **When** on inspecte la section format, **Then** la concision est **bornée par le format strict** Feature N : rappel + marqueur unique + 3 blocs (Niveau de prudence, Cartes à vigilance, Liste complète) restent obligatoires et identifiables.
+3. **Given** le prompt construit, **When** on l'exécute sur un jeu fixe, **Then** la sortie produite est **plus courte** (formulations denses, pas de prose) qu'une sortie sans la contrainte, tout en restant parsable (marqueur + 3 blocs).
+
+#### US-Q2 — Sortie concise préservant ancrage et garde-fous (P1)
+
+En tant qu'utilisatrice, je veux que la critique santé soit **courte et dense** (lisible en quelques secondes) tout en restant **fiable** (ancrage Feature C, garde-fous éthiques, références CIRC/OMS quand applicables), afin de ne pas lire un bloc narratif long.
+
+**Why this priority** : valeur produit directe (lisibilité) sans compromis sur la fiabilité.
+
+**Independent Test** : produire une critique sur un jeu fixe et vérifier (a) la concision (pas de préambule, formulations courtes, pas de prose), (b) l'ancrage (chaque ingrédient mentionné ancré dans le `ValidatedIngredientSegment`), (c) la préservation du disclaimer et des garde-fous (pas de diagnostic/prescription).
+
+**Acceptance Scenarios**:
+
+1. **Given** une critique produite depuis le prompt Feature Q, **When** on lit la sortie, **Then** elle ne contient **aucun préambule** avant le rappel « Évalué pour vous : <profil> » et **aucune prose narrative** autour des blocs.
+2. **Given** la sortie concise, **When** on vérifie l'ancrage, **Then** chaque ingrédient mentionné (cartes, liste complète) est **littéralement ancrable** dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`) ; aucun fait inventé.
+3. **Given** la sortie concise, **When** on vérifie les garde-fous, **Then** le disclaimer est présent (`IHI-L-FR-011`), aucune diagnose/prescription (`IHI-L-FR-007`), et les références CIRC/OMS sont citées **de façon compacte** quand applicables.
+4. **Given** la sortie concise, **When** le parseur Feature N l'analyse, **Then** il reconnaît le marqueur unique + les 3 blocs (sortie parsable — `IHI-N-FR-013` / `IHI-N-SC-009`).
+
+### Edge Cases (Feature Q)
+
+- **Liste très longue** : la synthèse des risques majeurs en tête du bloc 2 (`IHI-L-FR-012`) reste applicable, rédigée de façon **concise** (pas de mur narratif) pour le profil sélectionné.
+- **Aucun ingrédient à vigilance (Modéré/Élevé)** : la sortie reste concise (Niveau Faible + justificatif court + liste compacte RAS) ; pas de prose de remplissage.
+- **Terme ambigu / opacité** : la `Nuance` d'opacité (`IHI-L-FR-006`) est signalée en **formulation courte**, sans développement narratif.
+- **Demande d'avis médical** : garde-fou `IHI-L-FR-007` inchangé ; le refus poli et l'orientation restent **courts** et conformes au format ciblé.
+- **Sortie trop courte / tronquée par excès de concision** : la concision MUST NOT supprimer d'informations exigées (rappel, marqueur, 3 blocs, champs de carte) ; en cas de sortie tronquée ne respectant pas le format, le parseur Feature N la rejette comme `non-analysable-response` (`IHI-N-FR-013`) — la concision n'autorise pas une sortie non conforme.
+- **Ancrage Feature C** : inchangé ; la concision ne permet pas d'inventer ou de résumer au point de produire un fait non ancré (`IHI-C-FR-003`).
+
+### Functional Requirements (Feature Q)
+
+- **IHI-Q-FR-001**: Le système MUST intégrer une **contrainte explicite de concision maximale** dans l'instruction système du prompt de critique santé (`HealthCritiquePromptBuilder.buildSystemInstruction`) : formulations **courtes et denses**, **pas de préambule** avant le rappel « Évalué pour vous : <profil> », **pas de prose narrative** autour des blocs, **pas de répétitions** ni reformulations entre blocs.
+- **IHI-Q-FR-002**: Le système MUST borner la concision au **format strict Feature N** : le rappel `EvaluatedForHeader` + le marqueur unique + les 3 blocs (Niveau de prudence, Cartes à vigilance, Liste complète) restent **obligatoires et identifiables par le parseur** (`IHI-N-FR-006` à `IHI-N-FR-013`) ; la concision agit sur la longueur des formulations, pas sur la structure.
+- **IHI-Q-FR-003**: Le système MUST exiger dans le prompt un **Niveau de prudence** concis : un palier (Faible/Modéré/Élevé) + un **texte justificatif court** (idéalement une seule phrase), sans développement narratif (`IHI-N-FR-007` préservé).
+- **IHI-Q-FR-004**: Le système MUST exiger dans le prompt des **cartes à vigilance concises** : chaque sous-ligne (`Impact`, `Fait établi`, `Nuance`, `Cible particulièrement`) en **formulation courte**, sans développement narratif ; les références CIRC/OMS restent **citées de façon compacte** quand applicables (`IHI-N-FR-008` préservé).
+- **IHI-Q-FR-005**: Le système MUST préserver la conformité Feature C (`IHI-C-FR-001` à `IHI-C-FR-007`) : la concision MUST NOT encourager d'inventer ou de résumer au point de produire un fait non ancré ; chaque ingrédient mentionné MUST être **littéralement ancrable** dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`).
+- **IHI-Q-FR-006**: Le système MUST préserver les garde-fous Feature L/N : pas de diagnostic, pas de prescription (`IHI-L-FR-007`), disclaimer présent (`IHI-L-FR-011`), populations vulnérables transversales (`IHI-L-FR-008`), rédaction française (`IHI-L-FR-011`).
+- **IHI-Q-FR-007**: Le système MUST préserver les autres exigences Feature L non format-strict (persona expert `IHI-L-FR-001`, 5 dimensions de risque `IHI-L-FR-003`, hiérarchie faits/incertitudes/hypothèses `IHI-L-FR-004`, contextualisation dose `IHI-L-FR-005`, opacité `IHI-L-FR-006`, seuil liste longue `IHI-L-FR-012`) et Feature N (`IHI-N-FR-001` à `IHI-N-FR-016`) ; Feature Q **ajoute** la concision sans déroger.
+- **IHI-Q-FR-008**: Le système MUST permettre la **répétabilité** du prompt construit (même segment + même profil → même prompt — `IHI-N-FR-014` préservé) ; la contrainte de concision est un **contenu intégré au code** (cohérent `IHI-L-FR-016` / `IHI-N-FR-015`), sans configuration externe modifiable sans recompilation.
+- **IHI-Q-FR-009**: Le système MUST limiter Feature Q au **prompt de critique santé** ; le prompt du bilan de composition MUST conserver son propre contrat (cohérent `IHI-L-FR-017` / `IHI-N-FR-016`).
+- **IHI-Q-FR-010**: Le système MUST assurer la **non-régression** du moteur `HealthCritiqueEngine`, du parseur `HealthCritiqueSectionParser`, du flux composition, des KPI additifs juxtaposés (`additive-risk-insights`), et de la restitution Feature P (4 sections, pastilles visuelles) — Feature Q agit uniquement sur le prompt.
+
+### Key Entities (Feature Q)
+
+- **ConcisionDirective**: contrainte explicite intégrée à `HealthCritiquePrompt` exigeant des formulations courtes/denses, pas de préambule, pas de prose narrative, pas de répétitions — bornée par le format strict Feature N.
+- **HealthCritiquePrompt (étendu)**: prompt de critique santé construit (instruction système + message utilisateur), intégrant la `ConcisionDirective` en plus du persona expert, des dimensions de risque, de la hiérarchie des preuves, des populations vulnérables, du format strict Feature N et des garde-fous éthiques.
+- **ConciseCritiqueOutput**: sortie de critique concise (rappel + marqueur + 3 blocs denses), parsable par le parseur Feature N, ancrée Feature C, garde-fous préservés.
+
+### Success Criteria (Feature Q)
+
+- **IHI-Q-SC-001**: 100 % des prompts construits contiennent une **contrainte explicite de concision** (formulations courtes/denses, pas de préambule, pas de prose narrative, pas de répétitions).
+- **IHI-Q-SC-002**: 100 % des prompts construits préservent le **format strict Feature N** (rappel + marqueur unique + 3 blocs obligatoires et identifiables).
+- **IHI-Q-SC-003**: 100 % des sorties LLM produites depuis le prompt Feature Q sur un jeu fixe sont **plus concises** (pas de préambule, formulations courtes, pas de prose narrative) qu'une sortie sans la contrainte, tout en restant parsables (marqueur + 3 blocs — `IHI-N-SC-009`).
+- **IHI-Q-SC-004**: 100 % des sorties concises préservent l'ancrage Feature C (chaque ingrédient mentionné ancré dans le `ValidatedIngredientSegment` ; 0 % fait inventé).
+- **IHI-Q-SC-005**: 100 % des sorties concises préservent les garde-fous (disclaimer présent, pas de diagnostic/prescription, références CIRC/OMS compactes quand applicables).
+- **IHI-Q-SC-006**: 100 % des exécutions de construction du prompt sont **répétables** (même segment + même profil → même prompt) sur ≥ 3 exécutions successives.
+- **IHI-Q-SC-007**: 0 % de régression sur le moteur `HealthCritiqueEngine`, le parseur `HealthCritiqueSectionParser`, le flux composition, les KPI additifs juxtaposés, et la restitution Feature P (4 sections, pastilles visuelles).
+- **IHI-Q-SC-008**: La conformité sémantique Feature Q (concision des formulations, absence de préambule/prose, préservation format + ancrage + garde-fous) est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné `IHI-C-FR-006` MVP) ; le format parsé reste vérifié par le parseur Feature N (`IHI-N-SC-009`). Aucun audit automatisé bloquant n'est exigé au MVP.
+
+---
+
 ## Cross-domain Notes
 
 - Consomme le segment validé de `ingredient-normalization-validation` (source de vérité pour l’ancrage — Feature C).
@@ -898,6 +990,7 @@ En tant qu'utilisatrice dont le profil est « Femme enceinte », je veux que la 
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature N)
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature O — critique santé intégrée à l'écran principal des résultats ; supersede Feature M)
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature P — compte rendu restructuré en 4 sections ordonnées + critique santé concise/visuelle centrée sur le profil sélectionné)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature Q — contrainte de concision maximale du contenu de la critique santé intégrée au prompt)
 
 ## Assumptions
 
@@ -914,3 +1007,4 @@ En tant qu'utilisatrice dont le profil est « Femme enceinte », je veux que la 
 - Pour **Feature N**, la sélection et la persistance du profil utilisateur sont du ressort de `user-guidance-experience` (saisie lors de l'Onboarding + édition dans un écran « Paramètres / Profil ») ; IHI **consomme** le profil. En l'absence de profil sélectionné, IHI se rabat sur le **profil par défaut « Adulte »** (profil unique, pas 4-profils) avec un signal visuel « profil par défaut ». Le format 4-marqueurs strict Feature L (**IHI-L-FR-009** / **IHI-L-SC-004**) est **supersédé et retiré** (flux 4-profils supprimé entièrement) au profit d'une sortie à **profil unique** (marqueur canonique par profil, dont `###SPORTIF` nouvellement introduit) — traçabilité conservée en spec. Les exigences Feature L non format-strict (persona, dimensions de risque, hiérarchie des preuves, populations vulnérables transversales, garde-fous éthiques, seuil « liste très longue », rédaction française, disclaimer) restent applicables. La restitution affiche un **Niveau de prudence** (jauge 3 paliers + texte court) juste sous les KPI additifs/risques existants (`additive-risk-insights`, **IHI-C-FR-007**), puis des **cartes ingrédients** limitées aux vigilances Modéré/Élevé, avec bouton « Voir tous les ingrédients analysés » déployant une **liste compacte** (nom + statut de vigilance). La conformité sémantique est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C).
 - Pour **Feature O**, la critique santé est **intégrée à l'écran principal des résultats** (`LlmResultScreen`) avec **déclenchement automatique** (bilan composition `Complete` + segment validé disponible) et **restitution 100 % inline** ; les écrans séparés `HealthCritiqueScreen` (entrée) et `HealthCritiqueResultScreen` (résultat), ainsi que les routes `HealthCritiqueEntry` / `HealthCritiqueResult`, sont **supprimés** (supersession Feature M, traçabilité conservée). Le moteur `HealthCritiqueEngine`, le prompt builder (Feature L/N) et le parseur sont **inchangés** ; la conformité Feature C et les garde-fous Feature L/N restent applicables. Le déclenchement automatique d'une seconde inférence LLM est accepté (état `en cours` streaming rendu inline ; l'inférence critique est déléguée à `HybridGemma4LocalGateway.inferStreaming` — même chemin LiteRT-LM que la composition — pour éviter l'`IllegalStateException` de cycle de vie conversation/backend observée avec un runner dédié). Les actions « Copier la réponse » / « Copier le prompt » sont **retirées** de la section critique inline (IHI-O-FR-009 supersédé) ; la persistance (`LastHealthAnalysisStore`) est conservée. L'ordonnancement de l'écran résultat (bilan → pastille kcal → KPI additifs → critique inline) est préservé (Ref. UGE).
 - Pour **Feature P**, le compte rendu (`LlmResultScreen`) est restructuré en **exactement 4 sections ordonnées fixes** : Produit identifié → Synthèse → Verdict par ingrédient → Critique santé ; la **liste brute des ingrédients identifiés** (affichage à plat du `ValidatedIngredientSegment`) est **supprimée de l'UI** (le segment reste entrée d'analyse / ancrage Feature C). La pastille kcal (Feature K) et les KPI additifs juxtaposés (`additive-risk-insights`, `IHI-C-FR-007`) sont **intégrés à la section « Synthèse »**. La critique santé (section 4) évolue vers une forme **concise et visuelle** : rappel « Évalué pour vous : <profil> » + **mise en évidence des risques spécifiques au profil sélectionné** (ex. femme enceinte) en tête + jauge 3 paliers, cartes détaillées en **repli dépliable** (profondeur non dominante). Le moteur `HealthCritiqueEngine`, le bilan/flux composition et le prompt builder restent inchangés au-delà de l'orientation concise/visuelle ; la conformité Feature C et les garde-fous Feature L/N restent applicables. La sélection/persistance du profil reste du ressort de `user-guidance-experience` (Ref. UGE). La conformité sémantique Feature P est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C).
+- Pour **Feature Q**, le **prompt de critique santé** (`HealthCritiquePromptBuilder.buildSystemInstruction`) intègre une **contrainte explicite de concision maximale** : formulations courtes/denses, pas de préambule, pas de prose narrative, pas de répétitions. La concision est **bornée par le format strict Feature N** (rappel + marqueur unique + 3 blocs obligatoires et parsables) ; elle agit sur la longueur des formulations, pas sur la structure. L'ancrage Feature C (`IHI-C-FR-001`..`007`), les garde-fous Feature L (persona, dimensions de risque, hiérarchie des preuves, populations vulnérables, éthique, disclaimer, seuil liste longue) et les exigences Feature N/O/P restent **applicables** (Feature Q ajoute, ne déroge pas). Le moteur, le parseur, le flux composition, les KPI additifs et la restitution Feature P sont **inchangés**. La conformité sémantique Feature Q est tenue au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné Feature C) ; le format parsé reste vérifié par le parseur Feature N. La contrainte est un **contenu intégré au code** (répétable, pas de configuration externe). Feature Q est **limitée au prompt de critique santé** (bilan composition non modifié).

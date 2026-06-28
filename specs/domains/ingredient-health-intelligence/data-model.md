@@ -221,3 +221,33 @@
 - Chaque `ProfileRiskHighlight` MUST être ancré dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`) ; 0 % risque inventé (`IHI-P-SC-005`).
 - Les cartes détaillées `IngredientRiskCardItem` MUST rester repliables par défaut (profondeur non dominante — `IHI-P-FR-006` / `IHI-P-SC-006`).
 - `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N), `HealthCritiqueSectionParser`, flux composition, déclenchement automatique (Feature O) MUST être inchangés (`IHI-P-FR-008`/`009`/`012`).
+
+---
+
+## Feature Q — Concision maximale du contenu de la critique santé intégrée au prompt
+
+### Entités (Feature Q)
+
+- `ConcisionDirective` *(contrainte explicite intégrée à `HealthCritiquePrompt` — `IHI-Q-FR-001`)*
+  - Bloc « CONCISION MAXIMALE » de l'instruction système exigeant : formulations **courtes et denses** ; **pas de préambule** avant le rappel « Évalué pour vous : <profil> » ; **pas de prose narrative** autour des blocs ; **pas de répétitions** ni reformulations entre blocs.
+  - Seuils **indicatifs** intégrés au texte : Niveau de prudence = un palier + une phrase courte (≤ ~25 mots) ; sous-lignes de cartes (Impact / Fait établi / Nuance / Cible particulièrement) ≤ ~15 mots.
+  - Invariant : **bornée par le format strict Feature N** (rappel + marqueur unique + 3 blocs obligatoires et parsables — `IHI-Q-FR-002`) ; la concision agit sur la longueur, pas sur la structure.
+  - Invariant : **préserve l'ancrage Feature C** (pas d'invention, pas de résumé produisant un fait non ancré — `IHI-Q-FR-005`) ; références CIRC/OMS **compactes** quand applicables ; garde-fous éthiques + disclaimer inchangés (`IHI-Q-FR-006`).
+
+- `HealthCritiquePrompt` *(étendu — `IHI-Q-FR-007`)*
+  - Instruction système + message utilisateur, intégrant la `ConcisionDirective` en plus du persona expert (`IHI-L-FR-001`), des 5 dimensions de risque (`IHI-L-FR-003`), de la hiérarchie des preuves (`IHI-L-FR-004`), des populations vulnérables (`IHI-L-FR-008`), du format strict Feature N (`IHI-N-FR-006`..`IHI-N-FR-013`) et des garde-fous (`IHI-L-FR-007`/`011`).
+  - Invariant : **répétable** (même segment + même profil → même prompt — `IHI-Q-FR-008` / `IHI-N-FR-014`) ; **contenu intégré au code** (pas de config externe — `IHI-L-FR-016` / `IHI-N-FR-015`).
+
+- `ConciseCritiqueOutput` *(sortie de critique concise — `IHI-Q-FR-002`)*
+  - Rappel `EvaluatedForHeader` + marqueur unique + 3 blocs **denses** (Niveau de prudence court, Cartes à formulations courtes, Liste compacte), parsable par `HealthCritiqueSectionParser` Feature N.
+  - Invariant : **pas de préambule**, **pas de prose narrative**, **pas de répétitions** ; ancrage Feature C préservé ; garde-fous préservés.
+
+## Validation rules (Feature Q)
+
+- `buildSystemInstruction(profile)` MUST contenir une `ConcisionDirective` (assertion JVM : présence des marqueurs « concision » / « formulations courtes » / « pas de préambule » / « pas de prose narrative » / « pas de répétitions » — `IHI-Q-FR-001` / `IHI-Q-SC-001`).
+- La directive MUST borner la concision au format strict Feature N (rappel + marqueur + 3 blocs obligatoires — `IHI-Q-FR-002` / `IHI-Q-SC-002`).
+- Le prompt MUST exiger un Niveau de prudence concis (palier + phrase courte — `IHI-Q-FR-003`) et des cartes à formulations courtes (réf. CIRC/OMS compactes — `IHI-Q-FR-004`).
+- La directive MUST préserver l'ancrage Feature C (pas d'invention — `IHI-Q-FR-005` / `IHI-Q-SC-004`) et les garde-fous (disclaimer, pas de diagnostic/prescription — `IHI-Q-FR-006` / `IHI-Q-SC-005`).
+- `buildSystemInstruction` MUST être **répétable** (même profil → même prompt — `IHI-Q-FR-008` / `IHI-Q-SC-006`).
+- Feature Q MUST se limiter au **prompt de critique santé** (bilan composition inchangé — `IHI-Q-FR-009`).
+- `HealthCritiqueEngine`, `HealthCritiqueSectionParser`, flux composition, KPI additifs, Feature P MUST être **inchangés** (`IHI-Q-FR-010` / `IHI-Q-SC-007`).

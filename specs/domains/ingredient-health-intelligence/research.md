@@ -266,3 +266,37 @@ Les « inconnues » techniques ont été résolues par la spec + session **clari
 - **Decision** : `HealthCritiqueEngine`, `HealthCritiquePromptBuilder` (Feature L/N), `HealthCritiqueSectionParser`, le flux composition et le déclenchement automatique (Feature O) sont **inchangés** (`IHI-P-FR-008`/`009`/`012`). L'ancrage Feature C (`IHI-C-FR-001`..`007`) reste exigé : chaque ingrédient mentionné dans une pastille/carte/verdict MUST être ancré dans le `ValidatedIngredientSegment`. La suppression de l'affichage brute n'impacte pas l'ancrage (le segment reste entrée d'analyse).
 - **Rationale** : respect des frontières DDD (constitution VI) ; Feature P = mise en page + restitution concise, pas de logique métier nouvelle.
 - **Alternatives considered** : modifier le prompt pour produire une sortie plus courte (rejeté — hors périmètre, risquerait l'ancrage et le format parsé Feature N).
+
+---
+
+## 15. Feature Q — Concision maximale du contenu de la critique santé intégrée au prompt
+
+### 15.1 Intégration au texte du prompt vs externalisation
+
+- **Decision** : la `ConcisionDirective` est **intégrée au texte de l'instruction système** construite par `HealthCritiquePromptBuilder.buildSystemInstruction(profile)`, sous forme d'un bloc « CONCISION MAXIMALE » explicite (formulations courtes/denses, pas de préambule, pas de prose narrative, pas de répétitions). Les seuils indicatifs de longueur (≤ ~25 mots pour le justificatif de prudence, ≤ ~15 mots par sous-ligne de carte) sont **intégrés au texte du prompt** (pas d'externalisation dans `HealthCritiqueConfig` au MVP), pour garder le contrat de prompt lisible d'un seul tenant. Cohérent `IHI-L-FR-016` / `IHI-N-FR-015` (contenu intégré au code, répétable, pas de config externe modifiable sans recompilation — `IHI-Q-FR-008`).
+- **Rationale** : un seul tenant garantit la répétabilité et la traçabilité du contrat (constitution I) ; externaliser les seuils ajouterait de la configuration sans valeur MVP.
+- **Alternatives considered** : externaliser les seuils dans `HealthCritiqueConfig` (rejeté au MVP — complexité sans valeur) ; générer la directive dynamiquement selon la longueur de liste (rejeté — casse la répétabilité).
+
+### 15.2 Bornage par le format strict Feature N
+
+- **Decision** : la directive de concision est **explicitement bornée** dans le prompt : « sans supprimer ni fusionner les blocs exigés » — le rappel `EvaluatedForHeader` + le marqueur unique + les 3 blocs (Niveau de prudence, Cartes à vigilance, Liste complète) restent **obligatoires et identifiables par le parseur** (`IHI-N-FR-006`..`IHI-N-FR-013`). La concision agit sur la **longueur des formulations**, pas sur la structure. Une sortie trop courte/tronquée ne respectant pas le format est rejetée par le parseur comme `non-analysable-response` (`IHI-N-FR-013`).
+- **Rationale** : préserve la parsabilité et la non-régression Feature N ; la concision n'autorise pas une sortie non conforme.
+- **Alternatives considered** : autoriser la fusion de blocs pour gagner en concision (rejeté — casserait le parseur et le contrat Feature N).
+
+### 15.3 Préservation ancrage + garde-fous + références compactes
+
+- **Decision** : la directive précise que la concision **ne doit pas inventer ni résumer au point de produire un fait non ancré** ; chaque ingrédient mentionné reste **littéralement ancrable** dans le `ValidatedIngredientSegment` (`IHI-C-FR-005`). Les références CIRC/OMS restent **citées de façon compacte** (ex. « CIRC 2A ») quand applicables, sans développement narratif. Disclaimer + garde-fous éthiques (pas de diagnostic/prescription) inchangés (`IHI-L-FR-007`/`IHI-L-FR-011`).
+- **Rationale** : la concision ne doit pas compromise la fiabilité (constitution I) ni l'éthique.
+- **Alternatives considered** : supprimer les références CIRC/OMS pour gagner en concision (rejeté — perte d'attribut exigé Feature L).
+
+### 15.4 Seuils indicatifs de longueur
+
+- **Decision** : les seuils (≤ ~25 mots justificatif prudence, ≤ ~15 mots par sous-ligne de carte) sont **indicatifs** (directifs, non stricts) et **intégrés au texte du prompt**. La spec exige seulement « formulations courtes et denses, pas de prose narrative » ; les seuils chiffrés sont des **directives** laissées au plan, non des exigences bloquantes.
+- **Rationale** : un LLM local peut difficilement respecter un seuil strict au mot près ; des directives qualitatives + indicateurs chiffrés suffisent au MVP (validation par relecture humaine — `IHI-Q-SC-008`).
+- **Alternatives considered** : seuils stricts bloquants (rejeté — non mesurable fiable au MVP) ; aucun seuil chiffré (rejeté — manque de guidance pour le modèle).
+
+### 15.5 Non-régression moteur/parseur/composition/KPI/Feature P
+
+- **Decision** : `HealthCritiqueEngine`, `HealthCritiqueSectionParser`, le flux composition, les KPI additifs juxtaposés (`additive-risk-insights`) et la restitution Feature P (4 sections, pastilles visuelles) sont **inchangés** (`IHI-Q-FR-010`). Feature Q agit **uniquement** sur le contenu du prompt. Le parseur Feature N continue de valider la sortie (marqueur + 3 blocs) ; la concision ne casse pas la parsabilité.
+- **Rationale** : respect des frontières DDD (constitution VI) ; Feature Q = directive de prompt, pas de logique métier nouvelle.
+- **Alternatives considered** : adapter le parseur pour mesurer la concision (rejeté — hors périmètre, non fiable au MVP).

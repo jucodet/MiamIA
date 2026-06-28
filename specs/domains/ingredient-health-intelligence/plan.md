@@ -1,7 +1,7 @@
 # Implementation Plan: ingredient-health-intelligence
 
 **Domain**: `specs/domains/ingredient-health-intelligence` | **Spec**: [spec.md](./spec.md)
-**Dernière feature planifiée**: Feature P — compte rendu restructuré en 4 sections ordonnées + critique santé concise/visuelle centrée profil (2026-06-28)
+**Dernière feature planifiée**: Feature Q — contrainte de concision maximale du contenu de la critique santé intégrée au prompt (2026-06-28)
 
 > Plan cumulatif par feature. Sections historiques conservées pour traçabilité (constitution I).
 
@@ -532,3 +532,84 @@ Voir [research.md](./research.md) §14 (décisions : intégration kcal/KPI dans 
 ### Phase 2 — Livraison (Feature P)
 
 Tâches exécutables dans [tasks.md](./tasks.md) (section Feature P).
+
+## Feature Q — Concision maximale du contenu de la critique santé intégrée au prompt (2026-06-28)
+
+**Branch**: `016-launch-splash-screen` (branche courante domaine) | **Date**: 2026-06-28
+**Input**: spec.md Feature Q + **clarify** implicite (3 questions résolues : périmètre critique seule, références CIRC/OMS citées de façon compacte, seuils de longueur indicatifs laissés au plan)
+
+### Summary
+
+La **Feature Q** intégre une **contrainte explicite de concision maximale** dans l'instruction système du prompt de critique santé (`HealthCritiquePromptBuilder.buildSystemInstruction`) : le LLM doit produire des **formulations courtes et denses** — **pas de préambule** avant le rappel « Évalué pour vous : <profil> », **pas de prose narrative** autour des blocs, **pas de répétitions** entre blocs, **Niveau de prudence** en un palier + une phrase courte, **cartes à vigilance** en formulations courtes (réf. CIRC/OMS compactes). La concision est **bornée par le format strict Feature N** (rappel + marqueur unique + 3 blocs obligatoires et parsables) ; elle agit sur la longueur des formulations, pas sur la structure. Ancrage Feature C, garde-fous Feature L/N, et non-régression moteur/parseur/composition/KPI/Feature P préservés. Complémentaire de Feature P (P = restitution UI concise/visuelle, Q = production textuelle concise).
+
+### Technical Context
+
+**Language/Version**: Kotlin 2.x
+**Primary Dependencies**: `HealthCritiquePromptBuilder.kt` (`buildSystemInstruction(profile)` — ajout d'une `ConcisionDirective` dans l'instruction système), `HealthCritiqueConfig.kt` (seuils indicatifs de longueur si externalisés), `HealthCritiqueSectionParser` (vérification non-régression : marqueur unique + 3 blocs toujours parsables), `UserProfile` (profil sélectionné)
+**Storage**: inchangé (`LastHealthAnalysisStore` conservé)
+**Testing**: tests JVM existants sur `buildSystemInstruction()` à étendre (assertion présence `ConcisionDirective` : « formulations courtes », « pas de préambule », « pas de prose narrative », « pas de répétitions ») ; non-régression parser Feature N ; parcours quickstart Feature Q
+**Target Platform**: Application Android (module `app`)
+**Project Type**: mobile-app monolithique
+**Performance Goals**: une sortie plus courte réduit le temps de streaming et la charge de parsing (bénéfice collatéral) ; pas de nouvel objectif chiffré.
+**Constraints**: Constitution ATDD ; concision bornée par le format strict Feature N (`IHI-Q-FR-002`) ; préservation ancrage Feature C (`IHI-Q-FR-005`) + garde-fous Feature L/N (`IHI-Q-FR-006`/`007`) ; répétabilité du prompt (`IHI-Q-FR-008`) ; périmètre critique seule (`IHI-Q-FR-009`) ; non-régression moteur/parseur/composition/KPI/Feature P (`IHI-Q-FR-010`)
+**Scale/Scope**: `HealthCritiquePromptBuilder.kt` (+ `HealthCritiqueConfig.kt` pour seuils indicatifs), tests JVM, docs domaine
+
+### Constitution Check (Feature Q)
+
+| Principe | Statut |
+|----------|--------|
+| I. Qualité / traçabilité | OK — spec Feature Q → tests JVM `buildSystemInstruction()` + parcours quickstart → code ; pas de supersession (Feature L/N/O/P préservées) |
+| II. ATDD | OK — US-Q1 (prompt contient la contrainte) testable par assertion JVM ; US-Q2 (sortie concise + ancrage + garde-fous) testable par parcours quickstart + relecture humaine sur jeu fixe |
+| III. UX | OK — sortie courte et dense = lecture en quelques secondes (aligné Feature P) |
+| IV. Performance | OK — sortie plus courte = streaming/parsing plus légers (bénéfice collatéral, pas d'objectif chiffré) |
+| V. Simplicité | OK — ajout localisé d'une directive dans le builder ; pas de structure nouvelle |
+| VI. DDD | OK — périmètre IHI (prompt critique seule) ; moteur/parseur/composition/KPI/Feature P inchangés |
+
+**Post-design** : inchangé.
+
+### Project Structure (Feature Q)
+
+#### Documentation (this feature)
+
+```text
+specs/domains/ingredient-health-intelligence/
+├── plan.md (section Feature Q)
+├── research.md (§15 Feature Q)
+├── data-model.md (entités Feature Q)
+├── quickstart.md (parcours Feature Q)
+├── contracts/
+│   └── critique-prompt-concision-contract.md   # NOUVEAU — contrainte de concision intégrée au prompt
+└── tasks.md (section Feature Q)
+```
+
+#### Source Code (repository root)
+
+```text
+app/src/main/java/com/miamia/healthcritique/HealthCritiquePromptBuilder.kt   # ajout ConcisionDirective dans buildSystemInstruction
+app/src/main/java/com/miamia/healthcritique/HealthCritiqueConfig.kt          # seuils indicatifs de longueur (optionnel)
+app/src/test/java/com/miamia/healthcritique/   # tests JVM buildSystemInstruction() étendus (présence ConcisionDirective)
+```
+
+**Structure Decision** : ajout d'un bloc « CONCISION MAXIMALE » dans `buildSystemInstruction(profile)`, entre la méthodologie/contraintes médicales existantes et le `FORMAT DE SORTIE STRICT`, exigeant formulations courtes/denses, pas de préambule, pas de prose narrative, pas de répétitions, et bornant la concision au format strict Feature N (rappel + marqueur + 3 blocs). Seuils indicatifs (≤ ~25 mots justificatif prudence, ≤ ~15 mots par sous-ligne carte) soit intégrés au texte du prompt, soit externalisés dans `HealthCritiqueConfig` (décision au plan : intégration au texte privilégiée pour lisibilité du contrat).
+
+### Complexity Tracking
+
+> Aucune violation constitutionnelle à justifier.
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| — | — | — |
+
+### Phase 0 — Recherche (Feature Q)
+
+Voir [research.md](./research.md) §15 (décisions : intégration au texte du prompt vs externalisation, bornage par format strict Feature N, préservation ancrage/garde-fous/références compactes, seuils indicatifs, non-régression).
+
+### Phase 1 — Design (Feature Q)
+
+- [data-model.md](./data-model.md) : entités Feature Q — `ConcisionDirective`, `HealthCritiquePrompt` (étendu), `ConciseCritiqueOutput`.
+- [contracts/critique-prompt-concision-contract.md](./contracts/critique-prompt-concision-contract.md) : contrat de la contrainte de concision (contenu obligatoire de la directive + bornage format strict + tests de conformité).
+- [quickstart.md](./quickstart.md) : parcours manuel Feature Q (prompt contient la directive, sortie concise, ancrage/garde-fous préservés, non-régression parser).
+
+### Phase 2 — Livraison (Feature Q)
+
+Tâches exécutables dans [tasks.md](./tasks.md) (section Feature Q).

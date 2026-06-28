@@ -205,3 +205,25 @@
 - `app/src/main/java/com/miamia/healthcritique/InlineCritiqueSection.kt`
 - `app/src/androidTest/java/com/miamia/result/LlmResultScreenUiTest.kt`
 - `app/src/androidTest/java/com/miamia/healthcritique/HealthCritiqueReadOnlySegmentAndroidTest.kt`
+
+---
+
+## Feature Q — Concision maximale de la critique santé intégrée au prompt (2026-06-28)
+
+### Parcours manuel (prompt concis + sortie concise préservant ancrage/garde-fous — `IHI-Q-SC-001`..`008`)
+
+1. Inspecter le prompt construit par `HealthCritiquePromptBuilder.buildSystemInstruction(profile)` : vérifier la présence d'un bloc **CONCISION MAXIMALE** exigeant formulations courtes/denses, pas de préambule, pas de prose narrative, pas de répétitions (`IHI-Q-SC-001`).
+2. Vérifier que la directive **borne** la concision au format strict Feature N (rappel + marqueur unique + 3 blocs obligatoires — `IHI-Q-SC-002`).
+3. Produire une critique sur un jeu fixe d'ingrédients : vérifier que la sortie est **plus courte** (pas de préambule avant « Évalué pour vous : <profil> », formulations courtes, pas de prose narrative) qu'une sortie sans la directive, tout en restant parsable (marqueur + 3 blocs — `IHI-Q-SC-003`).
+4. Vérifier l'ancrage : chaque ingrédient mentionné (cartes, liste complète) est **littéralement ancrable** dans le `ValidatedIngredientSegment` ; aucun fait inventé (`IHI-Q-SC-004`).
+5. Vérifier les garde-fous : disclaimer présent, pas de diagnostic/prescription, références CIRC/OMS **compactes** quand applicables (`IHI-Q-SC-005`).
+6. Vérifier la **répétabilité** : 2 exécutions de `buildSystemInstruction(profile)` → prompt identique (`IHI-Q-SC-006`).
+7. Non-régression : `HealthCritiqueSectionParser` reconnaît toujours le marqueur unique + les 3 blocs ; moteur, flux composition, KPI additifs, restitution Feature P (4 sections, pastilles) inchangés (`IHI-Q-SC-007`).
+8. Edge cases : (a) liste très longue → synthèse des risques majeurs concise en tête du bloc 2 ; (b) aucun ingrédient à vigilance → sortie courte (Niveau Faible + justificatif court + liste RAS) ; (c) terme ambigu → `Nuance` d'opacité en formulation courte ; (d) sortie trop courte/tronquée ne respectant pas le format → rejet `non-analysable-response` par le parseur.
+
+### Fichiers utiles (Feature Q)
+
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiquePromptBuilder.kt`
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueConfig.kt`
+- `app/src/test/java/com/miamia/healthcritique/` (tests JVM `buildSystemInstruction()`)
+- `app/src/main/java/com/miamia/healthcritique/HealthCritiqueSectionParser.kt` (non-régression)

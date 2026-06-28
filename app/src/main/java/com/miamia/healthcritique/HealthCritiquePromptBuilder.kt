@@ -20,6 +20,11 @@ package com.miamia.healthcritique
  * non modifié).
  *
  * Construction **répétable** (même segment + même profil → même prompt) — IHI-N-FR-014.
+ *
+ * Feature Q (2026-06-28) : une **CONCISION MAXIMALE** directive est intégrée à
+ * l'instruction système — formulations courtes/denses, pas de préambule, pas de prose
+ * narrative, pas de répétitions — bornée par le format strict Feature N (rappel + marqueur
+ * + 3 blocs obligatoires), préservant l'ancrage Feature C et les garde-fous Feature L/N.
  */
 class HealthCritiquePromptBuilder {
 
@@ -45,6 +50,13 @@ class HealthCritiquePromptBuilder {
         appendLine("- Ne pose aucun diagnostic et ne donne aucune prescription de régime ou de traitement ; l'analyse reste sans diagnostic médical.")
         appendLine("- Si l'utilisateur demande un avis médical personnalisé, refuse poliment et oriente vers un professionnel de santé.")
         appendLine("- Porte une attention particulière aux populations vulnérables : femmes enceintes/allaitantes (grossesse), enfants, personnes immunodéprimées ou ayant des antécédents familiaux de cancer. Pour les populations sans section dédiée (immunodéprimées, antécédents familiaux de cancer), intègre cette vigilance transversale dans les cartes et nuances pertinentes, sans ajouter de section supplémentaire.")
+        appendLine()
+        appendLine("CONCISION MAXIMALE (Feature Q) :")
+        appendLine("- Sois le plus concis possible : formulations courtes et denses, à l'essentiel. Aucun préambule ni phrase d'introduction avant le rappel « Évalué pour vous : ${profile.label} ». Aucune prose narrative autour des blocs. Aucune répétition ni reformulation entre les blocs.")
+        appendLine("- Niveau de prudence : un palier (Faible/Modéré/Élevé) + une seule phrase courte justificative (idéalement ≤ 25 mots).")
+        appendLine("- Cartes à vigilance : chaque sous-ligne (Impact, Fait établi, Nuance, Cible particulièrement) en formulation courte (idéalement ≤ 15 mots) ; cite les références CIRC/OMS de façon compacte (ex. « CIRC 2A ») quand applicables, sans développement narratif.")
+        appendLine("- Cette concision ne supprime ni ne fusionne aucun bloc exigé : le rappel, le marqueur unique et les trois blocs (Niveau de prudence, Cartes à vigilance, Liste complète) restent obligatoires et identifiables. La concision porte sur la longueur des formulations, pas sur la structure.")
+        appendLine("- La concision ne doit jamais t'amener à inventer ou à résumer au point de produire un fait non ancré : chaque ingrédient mentionné doit rester littéralement présent dans la liste fournie. Les garde-fous (pas de diagnostic, pas de prescription, disclaimer) restent intacts.")
         appendLine()
         appendLine("FORMAT DE SORTIE STRICT (profil unique — ${profile.label}) :")
         appendLine("Réponds uniquement avec, en toute première ligne, le rappel du profil ciblé :")

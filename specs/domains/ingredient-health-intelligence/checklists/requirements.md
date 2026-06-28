@@ -1,8 +1,8 @@
-# Specification Quality Checklist: Feature P — Compte rendu restructuré + critique santé concise/visuelle par profil
+# Specification Quality Checklist: Feature Q — Concision maximale de la critique santé intégrée au prompt
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-06-28
-**Feature**: [spec.md](../spec.md) (Feature P)
+**Feature**: [spec.md](../spec.md) (Feature Q)
 
 ## Content Quality
 
@@ -31,5 +31,5 @@
 
 ## Notes
 
-- Feature P s'appuie sur Feature N (profil unique) et Feature O (restitution inline) ; aucune régression introduite, les exigences N/O non contraires au cadre 4-sections / concision sont préservées.
+- Feature Q est **complémentaire** de Feature P (P = restitution UI concise/visuelle, Q = production textuelle concise) ; aucune supersession, Feature L/N/O/P préservées.
 - Items marqués incomplets requirent spec updates avant `/speckit-clarify` ou `/speckit-plan`.

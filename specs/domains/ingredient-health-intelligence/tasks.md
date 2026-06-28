@@ -632,3 +632,57 @@ T401 → T402 [US-O1] → T403 [US-O2] → T404 [US-O2] → T405 [US-O3] → T40
 ## Suggested MVP scope (Feature P)
 
 - **T501–T506** = US-P1 + US-P2 + US-P-intégration complètes (4 sections ordonnées + suppression liste brute + Synthèse agrégée).
+
+---
+
+# Feature Q — Concision maximale du contenu de la critique santé intégrée au prompt (2026-06-28)
+
+**Spec**: spec.md Feature Q | **Plan**: plan.md Feature Q | **Contract**: contracts/critique-prompt-concision-contract.md
+
+## Phase 13: User Story Q1 — Prompt intégrant la contrainte de concision maximale (P1)
+
+**Goal**: `HealthCritiquePromptBuilder.buildSystemInstruction` contient une `ConcisionDirective` explicite (formulations courtes/denses, pas de préambule, pas de prose narrative, pas de répétitions), bornée par le format strict Feature N.
+
+**Independent test**: parcours quickstart étapes 1–2 + 6 — présence de la directive + bornage format strict + répétabilité.
+
+### Implementation for US-Q1
+
+- [X] T601 [US-Q1] Ajouter un bloc **« CONCISION MAXIMALE »** dans `buildSystemInstruction(profile)` de `app/src/main/java/com/miamia/healthcritique/HealthCritiquePromptBuilder.kt`, placé entre les contraintes médicales/éthiques existantes et le `FORMAT DE SORTIE STRICT`. La directive exige : formulations **courtes et denses** ; **aucun préambule** avant le rappel « Évalué pour vous : <profil> » ; **aucune prose narrative** autour des blocs ; **aucune répétition** ni reformulation entre blocs ; Niveau de prudence = un palier + **une phrase courte** (≤ ~25 mots indicatif) ; sous-lignes de cartes (Impact / Fait établi / Nuance / Cible particulièrement) en **formulations courtes** (≤ ~15 mots indicatif) ; références CIRC/OMS **compactes** (ex. « CIRC 2A ») quand applicables. La directive **borne** explicitement la concision au format strict Feature N : « sans supprimer ni fusionner les blocs exigés » (rappel + marqueur unique + 3 blocs obligatoires et parsables). La directive **préserve** l'ancrage Feature C (« ne jamais inventer ni résumer au point de produire un fait non ancré ») et les garde-fous (disclaimer, pas de diagnostic/prescription) (`IHI-Q-FR-001`..`006`).
+- [X] T602 [US-Q1] Ajouter un test JVM `HealthCritiquePromptConcisionTest` dans `app/src/test/java/com/miamia/healthcritique/HealthCritiquePromptConcisionTest.kt` vérifiant que `buildSystemInstruction(UserProfile.FEMME_ENCEINTE)` contient les marqueurs de la `ConcisionDirective` (« concision » / « formulations courtes » / « pas de préambule » / « pas de prose narrative » / « pas de répétitions »), et que la directive borne au format strict (présence « sans supprimer » ou équivalent + préservation des 3 blocs Feature N). Vérifier la **répétabilité** (2 exécutions → prompt identique) (`IHI-Q-SC-001`/`002`/`006`).
+
+**Checkpoint**: US-Q1 vert — le prompt contient la directive de concision bornée au format strict ; test JVM vert.
+
+## Phase 14: User Story Q2 — Sortie concise préservant ancrage et garde-fous (P1)
+
+**Goal**: la sortie LLM produite depuis le prompt Feature Q est concise (pas de préambule/prose, formulations courtes) tout en restant parsable, ancrée Feature C, et conforme aux garde-fous.
+
+**Independent test**: parcours quickstart étapes 3–5 + 8 — sortie concise + ancrage + garde-fous + edge cases (relecture humaine sur jeu fixe).
+
+### Implementation for US-Q2
+
+- [X] T603 [US-Q2] Vérifier la **non-régression** du parseur `HealthCritiqueSectionParser` et du moteur `HealthCritiqueEngine` (aucune modification requise — Feature Q agit uniquement sur le prompt) : exécuter les tests JVM existants du parseur sur un jeu fixe et confirmer que le marqueur unique + les 3 blocs restent reconnus (`IHI-Q-FR-010` / `IHI-Q-SC-007`). Si une sortie de test fixe existe, vérifier qu'elle reste parsable après l'ajout de la directive (la directive ne supprime pas de blocs).
+- [X] T604 [US-Q2] Documenter la validation sémantique dans `specs/domains/ingredient-health-intelligence/quickstart.md` (parcours Feature Q) : la concision des formulations, l'absence de préambule/prose, l'ancrage Feature C et les garde-fous sont tenus au MVP par **relecture humaine + traçabilité** sur un jeu fixe (aligné `IHI-C-FR-006`) ; le format parsé reste vérifié par le parseur Feature N (`IHI-Q-SC-008`).
+
+**Checkpoint**: US-Q2 vert — non-régression parseur/moteur confirmée ; validation sémantique documentée (relecture humaine MVP).
+
+## Phase 15: Polish & documentation domaine (Feature Q)
+
+- [X] T605 [P] Vérifier la cohérence doc domaine (grep sous `specs/domains/ingredient-health-intelligence/`) : `plan.md` Feature Q, `research.md` §15, `data-model.md` Feature Q, `contracts/critique-prompt-concision-contract.md`, `quickstart.md` Feature Q alignés avec la spec Feature Q (`IHI-Q-FR-001`..`010` / `IHI-Q-SC-001`..`008`). Confirmer que `HealthCritiqueEngine`, `HealthCritiqueSectionParser`, le flux composition, les KPI additifs et la restitution Feature P sont **inchangés** (Feature Q = prompt seul).
+
+---
+
+## Parallel execution (Feature Q)
+
+- **T601** (prompt) → **T602** (test JVM) séquentiel (T602 dépend du prompt construit).
+- **T603** (non-régression parseur/moteur) après T601 (le prompt modifié ne doit pas casser la parsabilité) — lit les tests existants → parallèle [P] avec T604 (doc).
+- **T604** (doc quickstart) + **T605** (cohérence doc) → parallèle [P] après T601.
+
+## Implementation strategy (Feature Q)
+
+- MVP = **T601–T602** (directive de concision intégrée au prompt + test JVM) ; US-Q1 démontrable et testable indépendamment (parcours quickstart étapes 1–2 + 6).
+- Incrémental : US-Q2 (T603–T604, non-régression + validation sémantique documentée) s'ajoute sans casser US-Q1.
+- Non-régression critique : `HealthCritiqueEngine`, `HealthCritiqueSectionParser` (Feature N), flux composition, KPI additifs juxtaposés (`additive-risk-insights`), restitution Feature P (4 sections, pastilles visuelles) **inchangés** (`IHI-Q-FR-010` / `IHI-Q-SC-007`).
+
+## Suggested MVP scope (Feature Q)
+
+- **T601–T602** = US-Q1 complète (directive de concision dans le prompt + test JVM).
