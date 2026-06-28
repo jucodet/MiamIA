@@ -214,11 +214,17 @@ Les « inconnues » techniques ont été résolues par la spec + session **clari
 - **Rationale** : robustesse du rendu inline ; non-régression du bilan composition (l'erreur critique ne casse pas le bilan affiché au-dessus).
 - **Alternatives considered** : afficher un message d'erreur critique bloquant (rejeté — le bilan reste consultable).
 
-### 13.6 Persistance et actions copier
+### 13.6 Persistance et actions copier (révision 2026-06-28)
 
-- **Decision** : `LastHealthAnalysisStore` est **conservé** (persistance du dernier résultat critique) et consommé inline (rotation/process death) sans dépendre d'un écran séparé (`IHI-O-FR-011`). Les actions « Copier la réponse » et « Copier le prompt » sont conservées au niveau de la section critique inline (`IHI-O-FR-009`).
-- **Rationale** : non-régression de la persistance Feature B ; les actions copier restent utiles sur l'écran principal.
-- **Alternatives considered** : supprimer la persistance (rejeté — perte non-régression) ; déplacer les actions copier dans un menu global (rejeté — hors périmètre, friction).
+- **Decision** : `LastHealthAnalysisStore` est **conservé** (persistance du dernier résultat critique) et consommé inline (rotation/process death) sans dépendre d'un écran séparé (`IHI-O-FR-011`). Les actions « Copier la réponse » et « Copier le prompt » sont **retirées** de la section critique inline (`IHI-O-FR-009` supersédé) — décision produit post-livraison Feature O (allègement UI).
+- **Rationale** : non-régression de la persistance Feature B ; l'écran principal reste lisible sans actions secondaires.
+- **Alternatives considered** : conserver les actions copier (rejeté — produit) ; déplacer les actions copier dans un menu global (rejeté — hors périmètre, friction).
+
+### 13.7 Inférence synchrone du runner critique (correctif 2026-06-28)
+
+- **Decision** : `LiteRtHealthCritiqueRunner` utilise `Conversation.sendMessage` **synchrone** sur engine frais (par backend NPU→GPU→CPU, engine fermé en `finally`), sans `sendMessageAsync` ni re-tentative sur le même engine. `onStreamPartial` est rappelé une fois avec le texte final.
+- **Rationale** : l'API streaming `sendMessageAsync` lève une `IllegalStateException` (cycle de vie conversation/backend) ; la re-tentative synchrone sur le **même** engine wedgé échouait à son tour → `InferenceError` sur tous les backends. Le gateway composition (`HybridGemma4LocalGateway`) qui fonctionne utilise déjà `sendMessage` synchrone + engine fermé en `finally`. Alignement sur ce pattern.
+- **Alternatives considered** : conserver le streaming avec re-tentative sur engine frais (rejeté — complexité, bénéfice UX faible sur une critique ~70 s avec loading inline) ; partager un engine unique composition/critique (rejeté — refactor cross-domaine hors scope Feature O).
 
 ### 13.7 Non-régression et ordonnancement
 

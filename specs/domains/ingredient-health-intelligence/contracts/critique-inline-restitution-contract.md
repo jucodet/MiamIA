@@ -35,11 +35,11 @@
 |---------|-------------|----------|
 | Placement | en continuité sous le bilan composition / pastille kcal / KPI additifs juxtaposés | `IHI-O-FR-002` / `IHI-O-FR-012` |
 | Composables | extraits de `HealthCritiqueResultScreen` : rappel « Évalué pour vous », avertissements, `PrudenceGauge`, `IngredientRiskCardItem` (filtrés Modéré/Élevé), `FullIngredientListToggle`, disclaimers | `IHI-O-FR-005` (cohérent Feature N `IHI-N-FR-006`..`011`) |
-| État `en cours` | loading + `streamingText` (streaming) rendus inline | `IHI-O-FR-006` |
+| État `en cours` | loading + `streamingText` rendus inline (inférence synchrone `sendMessage` ; `onStreamPartial` rappelé une fois en fin d'inférence) | `IHI-O-FR-006` |
 | État `erreur` | `InferenceError` / `InputInvalid` rendus inline (message), sans casser le bilan composition au-dessus | `IHI-O-FR-006` |
 | État `prête` | `CritiqueReady` rendu inline (rappel + jauge + cartes + liste complète) | `IHI-O-FR-002` |
 | Profil | consommation `UserProfileProvider` (Feature N/I) + rappel + fallback « Adulte » + signal « profil par défaut » | `IHI-O-FR-008` |
-| Actions copier | « Copier la réponse » + « Copier le prompt » au niveau de la section critique inline | `IHI-O-FR-009` |
+| ~~Actions copier~~ | **Retirées** : « Copier la réponse » + « Copier le prompt » supprimées de la section critique inline | ~~`IHI-O-FR-009`~~ (supersédé) |
 | Persistance | `LastHealthAnalysisStore` conservé (rotation/process death), sans écran séparé | `IHI-O-FR-011` |
 
 ## Chaîne critique santé (cible Feature O)

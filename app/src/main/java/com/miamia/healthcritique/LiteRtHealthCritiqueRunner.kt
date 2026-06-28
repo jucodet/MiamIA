@@ -8,15 +8,12 @@ import com.miamia.composition.GemmaModelLocation
 import com.miamia.composition.GemmaModelLocator
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
-import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.ExecutionException
@@ -150,11 +147,11 @@ class LiteRtHealthCritiqueRunner(
         }
         val warm = retainedEngine
         if (warm != null && retainedModelAbsolutePath == path) {
-            try {
-                return runInferenceOnEngine(warm, systemInstruction, userMessage, onStreamPartial)
-            } catch (_: Exception) {
-                disposeRetainedLocked()
+            val warmResult = runInferenceOnEngine(warm, systemInstruction, userMessage, onStreamPartial)
+            if (warmResult is HealthCritiqueLlmGenerateResult.Success) {
+                return warmResult
             }
+            disposeRetainedLocked()
         }
         var lastError: HealthCritiqueLlmGenerateResult.Failure? = null
         for (backend in litertLmBackendChain()) {
@@ -215,40 +212,17 @@ class LiteRtHealthCritiqueRunner(
         val conversationConfig = ConversationConfig(
             systemInstruction = Contents.of(systemInstruction),
         )
-        val stream = onStreamPartial != null
         val text = try {
             engine.createConversation(conversationConfig).use { conversation ->
-                when {
-                    stream && onStreamPartial != null ->
-                        collectAssistantTextStreaming(conversation, userMessage, onStreamPartial)
-                    onStreamPartial != null -> {
-                        val t = textFromMessage(conversation.sendMessage(userMessage))
-                        onStreamPartial.invoke(t)
-                        t
-                    }
-                    else -> textFromMessage(conversation.sendMessage(userMessage))
-                }
+                val t = textFromMessage(conversation.sendMessage(userMessage))
+                if (onStreamPartial != null && t.isNotBlank()) onStreamPartial.invoke(t)
+                t
             }.trim()
-        } catch (e: IllegalStateException) {
-            if (onStreamPartial != null) {
-                try {
-                    engine.createConversation(conversationConfig).use { conversation ->
-                        val t = textFromMessage(conversation.sendMessage(userMessage))
-                        onStreamPartial.invoke(t)
-                        t
-                    }.trim()
-                } catch (_: Exception) {
-                    return HealthCritiqueLlmGenerateResult.Failure(
-                        HealthInferenceErrorCode.INFERENCE_FAILED,
-                        "${CompositionMessages.GEMMA_LOAD_FAILED_USER} (${e.javaClass.simpleName})",
-                    )
-                }
-            } else {
-                return HealthCritiqueLlmGenerateResult.Failure(
-                    HealthInferenceErrorCode.INFERENCE_FAILED,
-                    "${CompositionMessages.GEMMA_LOAD_FAILED_USER} (${e.javaClass.simpleName})",
-                )
-            }
+        } catch (e: Exception) {
+            return HealthCritiqueLlmGenerateResult.Failure(
+                HealthInferenceErrorCode.INFERENCE_FAILED,
+                "${CompositionMessages.GEMMA_LOAD_FAILED_USER} (${e.javaClass.simpleName})",
+            )
         }
         return if (text.isEmpty()) {
             HealthCritiqueLlmGenerateResult.Failure(
@@ -258,25 +232,6 @@ class LiteRtHealthCritiqueRunner(
         } else {
             HealthCritiqueLlmGenerateResult.Success(text)
         }
-    }
-
-    private fun collectAssistantTextStreaming(
-        conversation: Conversation,
-        userMessage: String,
-        onStreamPartial: (String) -> Unit,
-    ): String {
-        var reconciled = ""
-        runBlocking {
-            conversation.sendMessageAsync(userMessage)
-                .catch { throw it }
-                .collect { chunk ->
-                    val piece = textFromMessage(chunk)
-                    if (piece.isEmpty()) return@collect
-                    reconciled = if (piece.startsWith(reconciled)) piece else reconciled + piece
-                    onStreamPartial(reconciled)
-                }
-        }
-        return reconciled
     }
 
     private fun textFromMessage(message: Message): String =

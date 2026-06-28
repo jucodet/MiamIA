@@ -162,7 +162,7 @@
 7. Simuler un segment validé vide au `Complete` : la critique n'est pas déclenchée.
 8. Appuyer sur « Retour » : retour direct au scan (pas d'écran critique intermédiaire) ; l'inférence en cours est annulée proprement (`IHI-O-SC-007`).
 9. Re-scanner le même produit : un seul `Complete` → une seule inférence critique (idempotence — `IHI-O-SC-008`).
-10. Vérifier les actions « Copier la réponse » / « Copier le prompt » au niveau de la section critique inline.
+10. Vérifier l'**absence** des actions « Copier la réponse » / « Copier le prompt » dans la section critique inline (retirées — `IHI-O-FR-009` supersédé).
 11. Non-régression : flux composition, KPI additifs juxtaposés, moteur/prompt/parseur inchangés (`IHI-O-SC-005`).
 
 ### Fichiers utiles (Feature O)

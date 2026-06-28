@@ -151,7 +151,7 @@
 
 - `InlineCritiqueSection` *(section de `LlmResultScreen` rendant la critique inline)*
   - Rend les états `en cours` / `erreur` / `prête` du `HealthCritiqueViewModel` (collecte `ui` + `streamingText`), en continuité sous le bilan composition / pastille kcal / KPI additifs juxtaposés.
-  - Composables de restitution réutilisés depuis `HealthCritiqueResultScreen` : `CritiqueProfileContent`, `PrudenceGauge`, `IngredientRiskCardItem` (filtré Modéré/Élevé), `FullIngredientListToggle`, actions « Copier la réponse » / « Copier le prompt ».
+  - Composables de restitution réutilisés depuis `HealthCritiqueResultScreen` : `CritiqueProfileContent`, `PrudenceGauge`, `IngredientRiskCardItem` (filtré Modéré/Élevé), `FullIngredientListToggle`. Les actions « Copier la réponse » / « Copier le prompt » sont **retirées** (`IHI-O-FR-009` supersédé).
   - Invariant : aucune navigation ; aucune route séparée ; restitution 100 % inline (`IHI-O-FR-002` / `IHI-O-FR-005`).
 
 - `CritiqueAutoTrigger` *(règle de déclenchement automatique — `IHI-O-FR-001`)*

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,7 +44,6 @@ fun InlineCritiqueSection(
 ) {
     val state by viewModel.ui.collectAsState()
     val streamingText by viewModel.streamingText.collectAsState()
-    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -116,38 +113,6 @@ fun InlineCritiqueSection(
                         )
                     }
                 }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(
-                onClick = {
-                    val r = state.result as? HealthCritiqueResult.CritiqueReady
-                    val payload = r?.llmRawText ?: ""
-                    HealthCritiqueClipboard.copyPlainText(context, "critique_sante", payload)
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("health_result_copy"),
-            ) {
-                Text("Copier la réponse")
-            }
-            OutlinedButton(
-                onClick = {
-                    HealthCritiqueClipboard.copyPlainText(
-                        context,
-                        "prompt_critique",
-                        state.lastSystemPrompt,
-                    )
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("health_result_copy_prompt"),
-            ) {
-                Text("Copier le prompt")
             }
         }
     }
