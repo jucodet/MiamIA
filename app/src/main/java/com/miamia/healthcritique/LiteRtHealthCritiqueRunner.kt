@@ -3,7 +3,6 @@ package com.miamia.healthcritique
 import android.content.Context
 import android.util.Log
 import com.miamia.BuildConfig
-import com.miamia.composition.CompositionMessages
 import com.miamia.composition.GemmaModelLocation
 import com.miamia.composition.GemmaModelLocator
 import com.miamia.gemma4local.HybridGemma4LocalGateway
@@ -41,13 +40,13 @@ class LiteRtHealthCritiqueRunner(
             GemmaModelLocation.NotFound ->
                 HealthCritiqueLlmGenerateResult.Failure(
                     HealthInferenceErrorCode.GEMMA_NOT_FOUND,
-                    CompositionMessages.GEMMA_NOT_FOUND_USER,
+                    HealthCritiqueMessages.GEMMA_NOT_FOUND_USER,
                 )
 
             is GemmaModelLocation.LoadFailed ->
                 HealthCritiqueLlmGenerateResult.Failure(
                     HealthInferenceErrorCode.GEMMA_LOAD_FAILED,
-                    CompositionMessages.GEMMA_LOAD_FAILED_USER,
+                    HealthCritiqueMessages.GEMMA_LOAD_FAILED_USER,
                 )
 
             is GemmaModelLocation.Ready -> runWithTimeout(
@@ -79,13 +78,13 @@ class LiteRtHealthCritiqueRunner(
     } catch (_: TimeoutCancellationException) {
         HealthCritiqueLlmGenerateResult.Failure(
             HealthInferenceErrorCode.GEMMA_TIMEOUT,
-            CompositionMessages.GEMMA_TIMEOUT_USER,
+            HealthCritiqueMessages.GEMMA_TIMEOUT_USER,
         )
     } catch (e: Exception) {
         Log.e(TAG, "critique_inference_failed ${e::class.java.simpleName}: ${e.message}", e)
         HealthCritiqueLlmGenerateResult.Failure(
             HealthInferenceErrorCode.GEMMA_LOAD_FAILED,
-            "${CompositionMessages.GEMMA_LOAD_FAILED_USER} (${e.javaClass.simpleName})",
+            "${HealthCritiqueMessages.GEMMA_LOAD_FAILED_USER} (${e.javaClass.simpleName})",
         )
     }
 

@@ -632,3 +632,32 @@ T401 → T402 [US-O1] → T403 [US-O2] → T404 [US-O2] → T405 [US-O3] → T40
 ## Suggested MVP scope (Feature P)
 
 - **T501–T506** = US-P1 + US-P2 + US-P-intégration complètes (4 sections ordonnées + suppression liste brute + Synthèse agrégée).
+
+---
+
+# Feature Q — Widget visuel autoportant + prompt concis anti-timeout (2026-06-29)
+
+**Spec**: spec.md Feature Q | **Plan**: plan.md Feature Q
+
+## Phase 13: User Story Q1 — Carte visuelle autoportante + prompt concis (P1)
+
+**Goal**: `PersonaRiskSnapshotCard` regroupe persona + jauge + pastilles ; prompt concis ; timeout 180 s ; message erreur dédié ; pas de streaming brut.
+
+**Independent test**: critique réussie → carte `health_result_snapshot` visible ; timeout → message critique + bouton retry.
+
+### Implementation for US-Q1
+
+- [X] T601 [US-Q1] Créer `HealthCritiqueMessages.kt` avec `GEMMA_TIMEOUT_USER` spécifique critique dans `app/src/main/java/com/miamia/healthcritique/HealthCritiqueMessages.kt` (`IHI-Q-FR-005`).
+- [X] T602 [US-Q1] Aligner `DEFAULT_MAX_INFERENCE_MS` sur 180_000 dans `app/src/main/java/com/miamia/healthcritique/HealthCritiqueConfig.kt` ; utiliser `HealthCritiqueMessages` dans `LiteRtHealthCritiqueRunner.kt` (`IHI-Q-FR-004`/`005`).
+- [X] T603 [US-Q1] Raccourcir le format de sortie dans `HealthCritiquePromptBuilder.kt` : max 7 vigilances 1-ligne, liste Modéré/Élevé uniquement (`IHI-Q-FR-003`).
+- [X] T604 [US-Q1] Étendre `HealthCritiqueSectionParser.kt` pour parser vigilances 1-ligne (`• nom | code | type | impact`) (`IHI-Q-FR-003`).
+- [X] T605 [US-Q1] Ajouter `PersonaRiskSnapshotCard` et restructurer `CritiqueProfileContent` dans `InlineCritiqueSection.kt` : carte autoportante, détail replié par défaut, masquer streaming brut, bouton Réessayer sur erreur (`IHI-Q-FR-001`/`002`/`006`).
+
+## Phase 14: Tests & polish (Feature Q)
+
+- [X] T606 [P] Adapter `HealthCritiqueProfilePromptTest.kt` et ajouter test parser format concis dans `HealthCritiqueSectionParserTest.kt`.
+- [ ] T607 [P] Exécuter `./gradlew test --tests "com.miamia.healthcritique.*"` et corriger régressions.
+
+## Suggested MVP scope (Feature Q)
+
+- **T601–T605** = US-Q1 complète (carte visuelle + anti-timeout).

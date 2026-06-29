@@ -38,12 +38,10 @@ class HealthCritiqueProfilePromptTest {
     fun prompt_containsRequiredBlocksForProfileUniqueFormat() {
         val s = builder.buildSystemInstruction(UserProfile.ADULTE)
         assertTrue("Niveau de prudence", s.contains("Niveau de prudence", ignoreCase = true))
-        assertTrue("Cartes d'ingrédients à vigilance", s.contains("Cartes d'ingrédients à vigilance", ignoreCase = true))
-        assertTrue("Impact", s.contains("Impact :"))
-        assertTrue("Fait établi", s.contains("Fait établi :"))
-        assertTrue("Nuance", s.contains("Nuance :"))
-        assertTrue("Cible particulièrement", s.contains("Cible particulièrement :"))
-        assertTrue("Liste complète des ingrédients analysés", s.contains("Liste complète des ingrédients analysés", ignoreCase = true))
+        assertTrue("Vigilances concises", s.contains("Vigilances", ignoreCase = true))
+        assertTrue("format 1-ligne", s.contains("une seule ligne", ignoreCase = true))
+        assertTrue("max vigilances", s.contains("${HealthCritiquePromptBuilder.MAX_VIGILANCE_LINES}"))
+        assertTrue("Ingrédients à vigilance", s.contains("Ingrédients à vigilance", ignoreCase = true))
     }
 
     @Test

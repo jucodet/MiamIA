@@ -80,11 +80,38 @@ class HealthCritiqueSectionParserTest {
 
             ###ADULTE
 
-            Liste complète des ingrédients analysés :
-            - Eau : RAS
+            Ingrédients à vigilance :
+            - Eau : Modéré
         """.trimIndent()
         val parsed = parser.parse(raw, UserProfile.ADULTE)
         assertTrue(parsed.prudenceLevel == null)
         assertTrue(parsed.warnings.any { it.contains("Niveau de prudence absent") })
+    }
+
+    @Test
+    fun parsesConciseOneLineVigilance() {
+        val raw = """
+            Évalué pour vous : Femme enceinte
+
+            ###FEMME_ENCEINTE
+
+            Niveau de prudence : Élevé — présence de nitrites à éviter pendant la grossesse.
+
+            • Nitrite de sodium | E250 | Conservateur | Risque cancérogène probable à forte consommation
+
+            Ingrédients à vigilance :
+            - Nitrite de sodium : Élevé
+        """.trimIndent()
+
+        val parsed = parser.parse(raw, UserProfile.FEMME_ENCEINTE)
+
+        assertEquals(PrudenceLevel.ELEVE, parsed.prudenceLevel)
+        assertEquals(1, parsed.riskCards.size)
+        val card = parsed.riskCards.first()
+        assertEquals("Nitrite de sodium", card.nom)
+        assertEquals("E250", card.code)
+        assertTrue(card.impact.contains("cancérogène", ignoreCase = true))
+        assertEquals(1, parsed.fullIngredientList.size)
+        assertEquals(IngredientVigilanceStatut.ELEVE, parsed.fullIngredientList.first().statut)
     }
 }

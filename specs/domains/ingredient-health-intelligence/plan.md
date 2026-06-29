@@ -1,7 +1,7 @@
 # Implementation Plan: ingredient-health-intelligence
 
 **Domain**: `specs/domains/ingredient-health-intelligence` | **Spec**: [spec.md](./spec.md)
-**Dernière feature planifiée**: Feature P — compte rendu restructuré en 4 sections ordonnées + critique santé concise/visuelle centrée profil (2026-06-28)
+**Dernière feature planifiée**: Feature Q — widget visuel autoportant critique santé + prompt concis (2026-06-29)
 
 > Plan cumulatif par feature. Sections historiques conservées pour traçabilité (constitution I).
 
@@ -532,3 +532,45 @@ Voir [research.md](./research.md) §14 (décisions : intégration kcal/KPI dans 
 ### Phase 2 — Livraison (Feature P)
 
 Tâches exécutables dans [tasks.md](./tasks.md) (section Feature P).
+
+## Feature Q — Widget visuel autoportant critique santé + prompt concis (2026-06-29)
+
+**Date**: 2026-06-29 | **Input**: spec.md Feature Q
+
+### Summary
+
+La **Feature Q** corrige les timeouts fréquents de la critique santé (prompt verbeux + délai 30 s + message d'erreur composition) et remplace le rendu narratif par une **carte visuelle autoportante** (`PersonaRiskSnapshotCard`) : persona, jauge 3 paliers, pastilles risque, justification courte ; détail en repli. Le prompt exige une sortie **concise** (max 7 vigilances 1-ligne, liste Modéré/Élevé uniquement). Timeout aligné **180 s** ; messages dédiés `HealthCritiqueMessages`.
+
+### Technical Context
+
+**Language/Version**: Kotlin 2.x, Jetpack Compose, Material 3
+**Primary Dependencies**: `HealthCritiquePromptBuilder`, `HealthCritiqueSectionParser`, `InlineCritiqueSection`, `HealthCritiqueConfig`, `LiteRtHealthCritiqueRunner`, `Gemma4LocalConfig.DEFAULT_TIMEOUT_MS`
+**Testing**: JVM tests prompt/parser ; tests existants `HealthCritiqueEngineTest`
+**Constraints**: non-régression Feature N/O/P ; ancrage Feature C
+
+### Constitution Check (Feature Q)
+
+| Principe | Statut |
+|----------|--------|
+| I. Qualité | OK — spec → tests → code |
+| II. ATDD | OK — tests prompt/parser |
+| III. UX | OK — widget autoportant, erreur explicite, retry |
+| IV. Performance | OK — prompt concis + timeout 180 s |
+| V. Simplicité | OK — une carte, repli détail |
+| VI. DDD | OK — périmètre `healthcritique` |
+
+### Source Code
+
+```text
+app/src/main/java/com/miamia/healthcritique/
+├── HealthCritiqueMessages.kt          # NOUVEAU — messages erreur dédiés
+├── HealthCritiquePromptBuilder.kt     # prompt concis Feature Q
+├── HealthCritiqueConfig.kt            # timeout 180 s
+├── HealthCritiqueSectionParser.kt     # format vigilance 1-ligne
+├── LiteRtHealthCritiqueRunner.kt      # HealthCritiqueMessages
+└── InlineCritiqueSection.kt           # PersonaRiskSnapshotCard + repli + retry
+```
+
+### Phase 2 — Livraison (Feature Q)
+
+Tâches dans [tasks.md](./tasks.md) (section Feature Q).

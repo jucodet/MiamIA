@@ -2,7 +2,7 @@
 
 **Domain Context**: `ingredient-health-intelligence`
 **Created**: 2026-05-06
-**Last Modified**: 2026-06-28 (Feature P — restructuration du compte rendu en 4 sections ordonnées + critique santé concise/visuelle centrée sur le profil sélectionné)
+**Last Modified**: 2026-06-29 (Feature Q — widget visuel autoportant critique santé + prompt concis + erreurs timeout dédiées)
 **Status**: Draft
 
 ## Purpose
@@ -881,6 +881,56 @@ En tant qu'utilisatrice dont le profil est « Femme enceinte », je veux que la 
 
 ---
 
+## Feature Q — Widget visuel autoportant critique santé + prompt concis (anti-timeout)
+
+> Origine : intake `/speckit-design` 2026-06-29
+> Intention : la section **Critique santé** (inline, section 4) MUST afficher un **graphique visuel autoportant** (persona + niveau de prudence + pastilles risque) compréhensible sans lire un paragraphe narratif ; le prompt LLM MUST être **raccourci** pour éviter les timeouts ; les erreurs timeout MUST afficher un message **spécifique critique** (pas « analyse composition »).
+
+### Clarifications (Feature Q)
+
+- **Portée** : Feature Q modifie le **prompt de critique** (`HealthCritiquePromptBuilder`), la **restitution UI** (`InlineCritiqueSection`), le **timeout** et les **messages d'erreur** de la critique ; elle ne modifie pas le bilan composition ni le flux OCR.
+- **Widget autoportant** : une **carte unique** regroupe persona (« Évalué pour vous »), jauge visuelle 3 paliers (Faible/Modéré/Élevé), pastilles risque profil et justification **courte** (≤ 120 caractères affichés) ; le détail (cartes ingrédients, liste compacte) est en **repli fermé par défaut**.
+- **Prompt concis** : sortie LLM limitée — marqueur profil + Niveau de prudence (1 ligne) + max **7** vigilances en **1 ligne** chacune (`• nom | code | type | impact court`) + liste compacte **uniquement** des ingrédients Modéré/Élevé (pas la liste complète RAS).
+- **Timeout** : délai critique aligné sur `local-llm-runtime` (**180 s** par défaut) ; message utilisateur dédié « La critique santé n'a pas pu être générée à temps ».
+- **Non-régression** : profil unique (Feature N), inline + auto-trigger (Feature O), ancrage Feature C, garde-fous Feature L.
+
+### User Scenarios (Feature Q)
+
+#### US-Q1 — Snapshot visuel autoportant (P1)
+
+En tant qu'utilisatrice, je veux voir en un coup d'œil le **niveau de risque pour ma persona** sans lire un long paragraphe.
+
+1. **Given** une critique réussie, **When** la section Critique santé s'affiche, **Then** une **carte visuelle unique** montre persona + jauge 3 paliers active + pastilles risque ; aucun mur de texte LLM brut n'est affiché par défaut.
+
+#### US-Q2 — Détail en repli (P2)
+
+En tant qu'utilisatrice, je peux ouvrir le détail ingrédient si besoin.
+
+1. **Given** une critique avec vigilances, **When** j'appuie sur « Voir le détail », **Then** les cartes ingrédients et la liste compacte apparaissent ; par défaut elles sont masquées.
+
+#### US-Q3 — Erreur timeout critique explicite (P1)
+
+En tant qu'utilisatrice, si la critique dépasse le délai, je vois un message clair et un bouton Réessayer.
+
+1. **Given** un timeout critique, **When** l'erreur s'affiche, **Then** le message mentionne **critique santé** (pas composition) et un bouton **Réessayer** relance l'analyse.
+
+### Functional Requirements (Feature Q)
+
+- **IHI-Q-FR-001** : Le système MUST restituer la critique sous forme d'une **carte visuelle autoportante** (`PersonaRiskSnapshot`) : persona, jauge 3 paliers, pastilles risque, justification courte.
+- **IHI-Q-FR-002** : Le détail narratif (cartes, liste) MUST être **replié par défaut** ; accessible via « Voir le détail ».
+- **IHI-Q-FR-003** : Le prompt MUST exiger une sortie **concise** (max 7 vigilances 1-ligne ; liste compacte Modéré/Élevé uniquement).
+- **IHI-Q-FR-004** : Le timeout critique MUST être **180 s** par défaut (aligné runtime local).
+- **IHI-Q-FR-005** : Les erreurs timeout MUST utiliser un message **spécifique critique** (`HealthCritiqueMessages`), distinct de la composition.
+- **IHI-Q-FR-006** : Le streaming LLM brut MUST NOT être affiché à l'utilisatrice pendant le chargement.
+
+### Success Criteria (Feature Q)
+
+- **IHI-Q-SC-001** : 0 % des erreurs timeout critique n'affichent le libellé « analyse composition ».
+- **IHI-Q-SC-002** : 100 % des critiques réussies exposent la carte autoportante sans paragraphe narratif dominant.
+- **IHI-Q-SC-003** : L'utilisatrice identifie le niveau de prudence pour sa persona en **< 5 s** sans scroll.
+
+---
+
 ## Cross-domain Notes
 
 - Consomme le segment validé de `ingredient-normalization-validation` (source de vérité pour l’ancrage — Feature C).
@@ -897,7 +947,7 @@ En tant qu'utilisatrice dont le profil est « Femme enceinte », je veux que la 
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature M)
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature N)
 - Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature O — critique santé intégrée à l'écran principal des résultats ; supersede Feature M)
-- Intake `/speckit-design` + `/speckit-specify` 2026-06-28 (Feature P — compte rendu restructuré en 4 sections ordonnées + critique santé concise/visuelle centrée sur le profil sélectionné)
+- Intake `/speckit-design` + `/speckit-specify` 2026-06-29 (Feature Q — widget visuel autoportant critique santé + prompt concis + erreurs timeout dédiées)
 
 ## Assumptions
 

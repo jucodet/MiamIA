@@ -20,7 +20,7 @@ class HealthCritiqueSectionParser {
         Regex("Niveau de prudence\\s*:\\s*(Faible|Modéré|Élevé)(?:\\s*[—-]\\s*(.+))?", RegexOption.IGNORE_CASE)
 
     private val cardHeaderRegex =
-        Regex("^[•\\-*]\\s*(.+?)\\s*\\|\\s*(.*?)\\s*\\|\\s*(.+)$")
+        Regex("^[•\\-*]\\s*(.+?)\\s*\\|\\s*(.*?)\\s*\\|\\s*(.+?)(?:\\s*\\|\\s*(.+))?$")
 
     private val fullListLineRegex =
         Regex("^-\\s*(.+?)\\s*:\\s*(RAS|Modéré|Élevé)$", RegexOption.IGNORE_CASE)
@@ -86,26 +86,31 @@ class HealthCritiqueSectionParser {
                 val nom = headerMatch.groupValues[1].trim()
                 val code = headerMatch.groupValues[2].trim().takeIf { it.isNotBlank() && it != "-" }
                 val type = headerMatch.groupValues[3].trim()
-                var impact = ""
+                val inlineImpact = headerMatch.groupValues.getOrNull(4)?.trim().orEmpty()
+                var impact = inlineImpact
                 var faitEtabli = ""
                 var nuance = ""
                 var cible = ""
                 var j = i + 1
-                while (j < lines.size) {
-                    val sub = lines[j].trim()
-                    if (sub.isEmpty()) { j++; break }
-                    if (cardHeaderRegex.matches(sub) || fullListLineRegex.matches(sub)) break
-                    when {
-                        sub.startsWith("Impact :", ignoreCase = true) ->
-                            impact = sub.substringAfter("Impact:", "").trim()
-                        sub.startsWith("Fait établi :", ignoreCase = true) ->
-                            faitEtabli = sub.substringAfter("Fait établi:", "").trim()
-                        sub.startsWith("Nuance :", ignoreCase = true) ->
-                            nuance = sub.substringAfter("Nuance:", "").trim()
-                        sub.startsWith("Cible particulièrement :", ignoreCase = true) ->
-                            cible = sub.substringAfter("Cible particulièrement:", "").trim()
+                if (inlineImpact.isBlank()) {
+                    while (j < lines.size) {
+                        val sub = lines[j].trim()
+                        if (sub.isEmpty()) { j++; break }
+                        if (cardHeaderRegex.matches(sub) || fullListLineRegex.matches(sub)) break
+                        when {
+                            sub.startsWith("Impact :", ignoreCase = true) ->
+                                impact = sub.substringAfter("Impact:", "").trim()
+                            sub.startsWith("Fait établi :", ignoreCase = true) ->
+                                faitEtabli = sub.substringAfter("Fait établi:", "").trim()
+                            sub.startsWith("Nuance :", ignoreCase = true) ->
+                                nuance = sub.substringAfter("Nuance:", "").trim()
+                            sub.startsWith("Cible particulièrement :", ignoreCase = true) ->
+                                cible = sub.substringAfter("Cible particulièrement:", "").trim()
+                        }
+                        j++
                     }
-                    j++
+                } else {
+                    j = i + 1
                 }
                 cards.add(
                     IngredientRiskCard(
@@ -128,7 +133,8 @@ class HealthCritiqueSectionParser {
 
     private fun parseFullList(text: String): List<FullIngredientStatutEntry> {
         val entries = mutableListOf<FullIngredientStatutEntry>()
-        val inListSection = text.contains("Liste complète des ingrédients analysés", ignoreCase = true)
+        val inListSection = text.contains("Ingrédients à vigilance", ignoreCase = true) ||
+            text.contains("Liste complète des ingrédients analysés", ignoreCase = true)
         if (!inListSection) return entries
         for (line in text.lines()) {
             val m = fullListLineRegex.matchEntire(line.trim())
