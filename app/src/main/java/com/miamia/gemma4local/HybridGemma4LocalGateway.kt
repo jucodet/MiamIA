@@ -11,9 +11,9 @@ import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import com.miamia.gemma4local.model.BackendExecution
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -108,7 +108,7 @@ class HybridGemma4LocalGateway(
         }.getOrDefault(false)
     }
 
-    private fun runInferenceLoop(
+    private suspend fun runInferenceLoop(
         modelFile: File,
         systemInstruction: String,
         userMessage: String,
@@ -118,9 +118,14 @@ class HybridGemma4LocalGateway(
         for (backend in prioritizedBackends()) {
             val name = backendName(backend)
             val started = System.currentTimeMillis()
-            val output = runCatching {
+            // On distingue l'annulation cooperative (timeout caller via withTimeout) d'un échec
+            // backend : runCatching avalait la CancellationException et enchainait sur le backend
+            // suivant au lieu de propager l'annulation — le withTimeout devenait inoperant.
+            val output = try {
                 runAnalyzeOnBackend(modelFile.absolutePath, backend, systemInstruction, userMessage, onPartial)
-            }.getOrElse { t ->
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (t: Throwable) {
                 val elapsed = System.currentTimeMillis() - started
                 backendErrors += "$name:${t.javaClass.simpleName}:${t.message.orEmpty()}"
                 Log.e(TAG, "backend_fail $name ${elapsed}ms ${t::class.java.simpleName}: ${t.message}", t)
@@ -136,7 +141,7 @@ class HybridGemma4LocalGateway(
         )
     }
 
-    private fun runAnalyzeOnBackend(
+    private suspend fun runAnalyzeOnBackend(
         modelPath: String,
         backend: Backend,
         systemInstruction: String,
@@ -188,25 +193,30 @@ class HybridGemma4LocalGateway(
             "###ADDITIFS_RISQUE et ###IMPACT_SANTE : chaque ligne commence par VERT ou ORANGE ou ROUGE ou INCERTAIN puis | puis nom puis | puis note courte. " +
             "Si aucun additif, laisser ###ADDITIFS_RISQUE vide."
 
-    private fun collectStreaming(
+    /**
+     * Collecte le flux de streaming de maniere cooperative (suspend) pour que le `withTimeout`
+     * de l'appelant puisse interrompre rellement la collecte. L'anti-pattern `runBlocking`
+     * bloquait le thread IO : l'annulation du timeout n'etait effective qu'au retour de
+     * `runBlocking`, c'est-a-dire trop tard (apres la fin de l'inférence). Le `engine.close()`
+     * du `finally` de [runAnalyzeOnBackend] s'execute a l'annulation et stoppe la generation native.
+     */
+    private suspend fun collectStreaming(
         conversation: Conversation,
         prompt: String,
         onPartial: (String) -> Unit
     ): String {
         var reconciled = ""
-        runBlocking {
-            conversation.sendMessageAsync(prompt)
-                .catch { e ->
-                    Log.w(TAG, "stream_error ${e::class.java.simpleName}: ${e.message}")
-                    throw e
-                }
-                .collect { chunk ->
-                    val piece = textFromMessage(chunk)
-                    if (piece.isEmpty()) return@collect
-                    reconciled = if (piece.startsWith(reconciled)) piece else reconciled + piece
-                    onPartial(reconciled)
-                }
-        }
+        conversation.sendMessageAsync(prompt)
+            .catch { e ->
+                Log.w(TAG, "stream_error ${e::class.java.simpleName}: ${e.message}")
+                throw e
+            }
+            .collect { chunk ->
+                val piece = textFromMessage(chunk)
+                if (piece.isEmpty()) return@collect
+                reconciled = if (piece.startsWith(reconciled)) piece else reconciled + piece
+                onPartial(reconciled)
+            }
         return reconciled.trim()
     }
 
